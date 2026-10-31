@@ -78,6 +78,7 @@
 		duration: '',
 		wrapped: false,
 		preview: null,
+		resizer: null,
 		lines: [],
 		currentLine: -1,
 		currentTime: 0,
@@ -92,7 +93,7 @@
 		style.textContent =
 			'#queue-view.mai-lq-active{display:flex!important;flex-direction:column!important;min-height:0!important}' +
 			'#queue-view.mai-lq-active > .lms-list{display:none!important}' +
-			'.mai-lq-panel{display:none;flex:1 1 auto;min-height:0;flex-direction:column;background:var(--background-color);color:var(--text-color);overflow:hidden;font:inherit}' +
+			'.mai-lq-panel{display:none;flex:1 1 auto;min-height:0;height:100%;flex-direction:column;background:var(--background-color);color:var(--text-color);overflow:hidden;font:inherit}' +
 			'#queue-view.mai-lq-active > .mai-lq-panel{display:flex}' +
 			'.mai-lq-searchbar{display:flex;align-items:center;gap:2px;min-height:var(--sub-toolbar-height,48px);padding:0 7px;border-bottom:1px solid var(--sub-toolbar-border-color);background:var(--sub-toolbar-color);color:var(--sub-toolbar-text-color);flex:0 0 auto}' +
 			'.mai-lq-searchbar .mai-lq-inputs{display:flex;gap:12px;flex:1 1 auto;min-width:0;padding:0 2px}' +
@@ -100,7 +101,9 @@
 			'.mai-lq-searchbar input:focus{border-bottom-color:var(--highlight-color,#1976d2)}' +
 			'.mai-lq-searchbar input::placeholder{color:var(--text-color);opacity:.55}' +
 			'.mai-lq-status{flex:0 0 auto;min-height:24px;padding:4px 14px;font-size:var(--small-font-size,90%);opacity:var(--sub-opacity,.7);white-space:normal}' +
-			'.mai-lq-list{flex:0 1 45%;min-height:0;overflow:auto;overscroll-behavior:contain}' +
+			'.mai-lq-list{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}' +
+			'.mai-lq-resizer{flex:0 0 7px;min-height:7px;cursor:row-resize;background:var(--border-color);position:relative;touch-action:none}' +
+			'.mai-lq-resizer:after{content:"";position:absolute;left:50%;top:2px;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:var(--sub-toolbar-text-color);opacity:.45}' +
 			'.mai-lq-item{display:block;width:100%;box-sizing:border-box;text-align:left;border:0;border-bottom:1px solid var(--list-item-border-color);background:transparent;color:inherit;font:inherit;padding:9px 14px 8px;cursor:pointer;outline:none}' +
 			'.mai-lq-item:hover{background:var(--list-hover-color)}' +
 			'.mai-lq-item.selected{background:var(--pq-current-color)}' +
@@ -112,11 +115,11 @@
 			'.mai-lq-preview{display:block;font-size:var(--small-font-size,90%);opacity:.62;white-space:pre-line;overflow:hidden;max-height:2.9em;margin-top:3px}' +
 			'.mai-lq-item.selected .mai-lq-title{color:var(--highlight-color,#1976d2)}' +
 			'.mai-lq-toggle.mai-lq-toggle-active{background:var(--pq-current-color)!important;border-radius:50%}' +
-			'.mai-lq-toolbar-btn{color:var(--sub-toolbar-text-color)!important}' +
+			'.mai-lq-toolbar-btn{color:var(--sub-toolbar-text-color)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}' +
 			'.mai-lq-progress{flex:0 0 auto;height:3px;background:var(--border-color);overflow:hidden;opacity:.9}' +
 			'.mai-lq-progress-fill{height:100%;width:0;background:var(--highlight-color,#1976d2);transition:width .2s ease}' +
 			'.mai-lq-progress.indeterminate .mai-lq-progress-fill{width:35%!important;animation:mai-lq-progress 1.1s ease-in-out infinite}' +
-			'.mai-lq-lyrics{flex:1 1 auto;min-height:0;overflow:auto;padding:6px 14px 12px;border-top:1px solid var(--sub-toolbar-border-color);text-align:center;line-height:1.55;white-space:pre-wrap}' +
+			'.mai-lq-lyrics{flex:0 0 33.333%;min-height:72px;overflow:auto;padding:6px 14px 12px;border-top:1px solid var(--sub-toolbar-border-color);text-align:center;line-height:1.55;white-space:pre-wrap}' +
 			'.mai-lq-line{padding:2px 8px;border-radius:4px;white-space:pre-wrap}' +
 			'.mai-lq-line.lyrics-current-line{background:var(--pq-current-color)!important;font-weight:var(--bold-weight)!important}' +
 			'.mai-lq-progress.done .mai-lq-progress-fill{width:100%!important;opacity:.55}' +
@@ -266,6 +269,38 @@
 		}, 250);
 	}
 
+	function initPreviewResizer(panel) {
+		var dragging = false;
+		var startY = 0;
+		var startHeight = 0;
+		function move(event) {
+			if (!dragging || !state.preview) return;
+			var point = event.touches ? event.touches[0] : event;
+			if (!point) return;
+			var panelHeight = panel.getBoundingClientRect().height;
+			var next = startHeight - (point.clientY - startY);
+			next = Math.max(72, Math.min(next, panelHeight - 140));
+			state.preview.style.flex = '0 0 ' + next + 'px';
+			event.preventDefault();
+		}
+		function end() {
+			dragging = false;
+			document.removeEventListener('pointermove', move);
+			document.removeEventListener('pointerup', end);
+			document.removeEventListener('pointercancel', end);
+		}
+		state.resizer.addEventListener('pointerdown', function (event) {
+			if (!state.preview) return;
+			dragging = true;
+			startY = event.clientY;
+			startHeight = state.preview.getBoundingClientRect().height;
+			document.addEventListener('pointermove', move);
+			document.addEventListener('pointerup', end);
+			document.addEventListener('pointercancel', end);
+			event.preventDefault();
+		});
+	}
+
 	function createPanel() {
 		var panel = document.createElement('div');
 		panel.id = 'mai-lq-panel';
@@ -273,19 +308,6 @@
 
 		var bar = document.createElement('div');
 		bar.className = 'mai-lq-searchbar';
-
-		var back = document.createElement('button');
-		back.type = 'button';
-		back.className = 'v-btn v-btn--flat v-btn--icon v-btn--small toolbar-button mai-lq-toolbar-btn';
-		back.title = TEXT.back;
-		back.setAttribute('aria-label', TEXT.back);
-		back.innerHTML = '<i class="v-icon material-icons" aria-hidden="true">arrow_back</i>';
-		back.addEventListener('click', function (event) {
-			event.preventDefault();
-			event.stopPropagation();
-			deactivate();
-		});
-		bar.appendChild(back);
 
 		var inputs = document.createElement('div');
 		inputs.className = 'mai-lq-inputs';
@@ -355,11 +377,20 @@
 		state.list.id = 'mai-lq-list';
 		panel.appendChild(state.list);
 
+		state.resizer = document.createElement('div');
+		state.resizer.className = 'mai-lq-resizer';
+		state.resizer.setAttribute('role', 'separator');
+		state.resizer.setAttribute('aria-orientation', 'horizontal');
+		state.resizer.title = IS_ZH ? '拖动调整歌词高度' : 'Drag to resize lyrics';
+		panel.appendChild(state.resizer);
+
 		state.preview = document.createElement('div');
 		state.preview.className = 'mai-lq-lyrics np-info-lyrics';
 		state.preview.id = 'mai-lq-lyrics';
+		state.preview.style.flex = '0 0 33.333%';
 		panel.appendChild(state.preview);
 
+		initPreviewResizer(panel);
 		return panel;
 	}
 
