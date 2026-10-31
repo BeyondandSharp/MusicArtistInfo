@@ -68,6 +68,14 @@
 			<input type="text" class="stdedit selectFolder" name="pref_lyricsFolder" id="pref_lyricsFolder" value="[% prefs.pref_lyricsFolder %]" size="40">
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS" desc="PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS_DESC" %]
+			<input type="checkbox" [% IF prefs.pref_enableCustomLyricsScripts %]checked [% END %] class="stdedit" name="pref_enableCustomLyricsScripts" id="pref_enableCustomLyricsScripts" value="1" />
+			<label for="pref_enableCustomLyricsScripts" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS_ENABLE" | string %]</label>
+			<br/>
+			<input type="text" class="stdedit selectFolder" name="pref_customLyricsScriptsFolder" id="pref_customLyricsScriptsFolder" value="[% prefs.pref_customLyricsScriptsFolder %]" size="40">
+			<div class="settingDescription">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS_HINT" | string %]</div>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE" desc="PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE_DESC" %]
 			<select class="stdedit" name="pref_preferredLanguage" id="pref_preferredLanguage">
 				<option value="">[% "PLUGIN_MUSICARTISTINFO_LANGUAGE_DEFAULT" | string %]</option>

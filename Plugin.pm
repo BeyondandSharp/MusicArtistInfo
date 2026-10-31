@@ -49,6 +49,8 @@ sub initPlugin {
 		lookupCoverArt => 1,
 		lookupAlbumArtistPicturesOnly => 1,
 		useAIGeneratedContent => 1,
+		enableCustomLyricsScripts => 0,
+		customLyricsScriptsFolder => '',
 	});
 
 	$prefs->setChange(\&webPages, 'hidextramenusitems');

@@ -306,6 +306,10 @@ my $lyricsProvider = {
 
 			Plugins::MusicArtistInfo::Lyrics::Genius->getLyrics($args, $scb);
 		}
+	},
+	PerlScripts => sub {
+		require Plugins::MusicArtistInfo::Lyrics::PerlScripts;
+		Plugins::MusicArtistInfo::Lyrics::PerlScripts->getLyrics(@_);
 	}
 };
 
@@ -319,6 +323,12 @@ sub _fetchLyrics {
 		map { $lyricsProvider->{$_} }
 		@{$prefs->get('lyricsProviders') || $lyricsProviderPipeline}
 	];
+
+	require Plugins::MusicArtistInfo::Lyrics::PerlScripts;
+
+	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
+		unshift @$handlerPipeline, $lyricsProvider->{PerlScripts};
+	}
 
 	Async::Util::amap(
 		inputs => $handlerPipeline,
