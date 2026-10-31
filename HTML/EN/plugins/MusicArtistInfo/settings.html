@@ -68,6 +68,38 @@
 			<input type="text" class="stdedit selectFolder" name="pref_lyricsFolder" id="pref_lyricsFolder" value="[% prefs.pref_lyricsFolder %]" size="40">
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_DESC" %]
+			<input type="checkbox" [% IF prefs.pref_saveLyricsWithSong %]checked [% END %] class="stdedit" name="pref_saveLyricsWithSong" id="pref_saveLyricsWithSong" value="1" />
+			<label for="pref_saveLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_ENABLE" | string %]</label>
+			<br/>
+			<input type="checkbox" [% IF prefs.pref_overwriteLyricsWithSong %]checked [% END %] class="stdedit" name="pref_overwriteLyricsWithSong" id="pref_overwriteLyricsWithSong" value="1" />
+			<label for="pref_overwriteLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_OVERWRITE" | string %]</label>
+			<br/>
+			<label for="pref_lyricsFileNameFormat" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT" | string %]</label>
+			<input type="text" class="stdedit" name="pref_lyricsFileNameFormat" id="pref_lyricsFileNameFormat" value="[% prefs.pref_lyricsFileNameFormat | html %]" size="40">
+			<div class="settingDescription">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT_DESC" | string %]</div>
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES" desc="PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_DESC" %]
+			<input type="checkbox" [% IF prefs.pref_enableCustomLyricsSources %]checked [% END %] class="stdedit" name="pref_enableCustomLyricsSources" id="pref_enableCustomLyricsSources" value="1" />
+			<label for="pref_enableCustomLyricsSources" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_ENABLE" | string %]</label>
+			<br/>
+			<label for="pref_customLyricsSourcesFolder" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER" | string %]</label>
+			<input type="text" class="stdedit selectFolder" name="pref_customLyricsSourcesFolder" id="pref_customLyricsSourcesFolder" value="[% prefs.pref_customLyricsSourcesFolder | html %]" size="40">
+			<div class="settingDescription">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER_DESC" | string %]</div>
+			<br/>
+			<select class="stdedit" name="pref_customLyricsSourcesFirst" id="pref_customLyricsSourcesFirst">
+				<option [% IF prefs.pref_customLyricsSourcesFirst %]selected [% END %]value="1">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FIRST" | string %]</option>
+				<option [% IF !prefs.pref_customLyricsSourcesFirst %]selected [% END %]value="0">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_LAST" | string %]</option>
+			</select>
+			<br/>
+			<input type="checkbox" [% IF prefs.pref_integrateMaterialSkin %]checked [% END %] class="stdedit" name="pref_integrateMaterialSkin" id="pref_integrateMaterialSkin" value="1" />
+			<label for="pref_integrateMaterialSkin" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_MATERIAL_SKIN_ENABLE" | string %]</label>
+			<div class="settingDescription">[% "PLUGIN_MUSICARTISTINFO_MATERIAL_SKIN_DESC" | string %]</div>
+			[% IF customSourcesFolderMissing %]<div style="color:red">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER_MISSING" | string %]</div>[% END %]
+			<div class="settingDescription">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_HINT" | string %]</div>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE" desc="PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE_DESC" %]
 			<select class="stdedit" name="pref_preferredLanguage" id="pref_preferredLanguage">
 				<option value="">[% "PLUGIN_MUSICARTISTINFO_LANGUAGE_DEFAULT" | string %]</option>

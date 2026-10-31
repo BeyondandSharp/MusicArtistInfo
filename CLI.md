@@ -37,6 +37,10 @@ musicartistinfo lyrics [artist:abba title:waterloo | track_id:123 | url:]
 Return lyrics for the given song. Again, `track_id` or `url` would directly point to a local track. For
 tracks streamed from a service, use `artist` and `title` instead.
 
+If **Save lyrics next to songs** is enabled in the plugin settings, the returned lyrics are also written
+to an LRC file next to the local audio file (subject to the configured filename format and overwrite
+setting). Web UI users additionally get a **Choose lyrics** window; see the plugin README.
+
 ```
 musicartistinfo artistphoto [artist:abba | artist_id:123]
 ```
