@@ -434,6 +434,8 @@
 			}
 		}
 
+		var queueHeight = view.getBoundingClientRect().height;
+		if (queueHeight > 0) view.style.height = queueHeight + 'px';
 		view.classList.add('mai-lq-active');
 		state.active = true;
 		return true;
@@ -444,7 +446,10 @@
 		stopSync();
 		state.open = false;
 		state.active = false;
-		if (state.queueView) state.queueView.classList.remove('mai-lq-active');
+		if (state.queueView) {
+			state.queueView.classList.remove('mai-lq-active');
+			state.queueView.style.height = '';
+		}
 		if (state.panel) state.panel.style.display = 'none';
 		updateToolbarButton();
 	}
