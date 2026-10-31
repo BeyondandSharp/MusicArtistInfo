@@ -485,9 +485,6 @@
 		if (!target) return;
 
 		var list = target.querySelector('.v-list') || target;
-		var divider = document.createElement('div');
-		divider.className = 'v-divider';
-		list.appendChild(divider);
 
 		var item = document.createElement('div');
 		item.className = 'v-list__tile v-list__tile--link mai-lq-menu-entry';
@@ -504,7 +501,29 @@
 			} catch (e) {}
 			openQueueLyrics();
 		});
-		list.appendChild(item);
+		// Put "Choose lyrics" in the section above the zoom controls.  The
+		// existing divider between the display options and the zoom header
+		// is kept, so the menu reads: options / Choose lyrics / divider /
+		// zoom.
+		var anchor = null;
+		for (var c = 0; c < list.children.length; c++) {
+			var child = list.children[c];
+			if ((child.innerText || '').indexOf('Zoom') >= 0
+				|| (child.innerText || '').indexOf('缩放') >= 0) {
+				anchor = child;
+				break;
+			}
+		}
+		if (anchor && anchor.previousElementSibling
+			&& anchor.previousElementSibling.classList
+			&& anchor.previousElementSibling.classList.contains('v-divider')) {
+			anchor = anchor.previousElementSibling;
+		}
+		if (anchor) {
+			list.insertBefore(item, anchor);
+		} else {
+			list.insertBefore(item, list.firstChild);
+		}
 	}
 
 	function fillInfo(info) {

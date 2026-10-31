@@ -4,6 +4,7 @@ use strict;
 
 use File::Basename qw(dirname);
 use File::Path qw(make_path);
+use File::Spec::Functions qw(catfile);
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
@@ -27,12 +28,19 @@ sub custom_js_path {
 sub _block {
 	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '1.30.1';
 
+	# Bust the browser cache when the client script changes, without
+	# changing the plugin version.
+	my $script = catfile(dirname(__FILE__), '..', 'HTML', 'EN',
+		'plugins', 'MusicArtistInfo', 'html', 'materialLyricsChooser.js');
+	my $mtime = (stat($script))[9] || 0;
+	my $cacheKey = $mtime ? "$version-$mtime" : $version;
+
 	return $BEGIN_MARKER . "\n"
 		. "(function(){\n"
 		. "  if (window.__MAI_MATERIAL_LOADER) return;\n"
 		. "  window.__MAI_MATERIAL_LOADER = true;\n"
 		. "  var s = document.createElement('script');\n"
-		. "  s.src = '/plugins/MusicArtistInfo/html/materialLyricsChooser.js?v=$version';\n"
+		. "  s.src = '/plugins/MusicArtistInfo/html/materialLyricsChooser.js?v=$cacheKey';\n"
 		. "  s.async = true;\n"
 		. "  document.head.appendChild(s);\n"
 		. "})();\n"
