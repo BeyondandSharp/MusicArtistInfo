@@ -5,7 +5,9 @@ use Exporter 'import';
 
 our @EXPORT = qw(logger);
 
-sub logger { return FakeLogger->new }
+sub logger {
+	return FakeLogger->new;
+}
 
 package FakeLogger;
 
@@ -16,5 +18,6 @@ sub warn  { 0 }
 sub error { 0 }
 sub is_info  { 0 }
 sub is_debug { 0 }
+sub is_warn  { 0 }
 
 1;

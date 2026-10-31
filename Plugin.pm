@@ -12,6 +12,7 @@ use Plugins::MusicArtistInfo::ArtistInfo;
 use Plugins::MusicArtistInfo::Common qw(CAN_IMAGEPROXY CAN_LMS_WORKS CAN_LMS_CAN_WEBLINK);
 use Plugins::MusicArtistInfo::TrackInfo;
 use Plugins::MusicArtistInfo::LocalFile;
+use Plugins::MusicArtistInfo::Lyrics::MaterialSkin;
 
 use constant PLUGIN_TAG => 'musicartistinfo';
 
@@ -49,8 +50,13 @@ sub initPlugin {
 		lookupCoverArt => 1,
 		lookupAlbumArtistPicturesOnly => 1,
 		useAIGeneratedContent => 1,
-		enableCustomLyricsScripts => 0,
-		customLyricsScriptsFolder => '',
+		saveLyricsWithSong => 0,
+		overwriteLyricsWithSong => 0,
+		lyricsFileNameFormat => 'FILE',
+		enableCustomLyricsSources => 0,
+		customLyricsSourcesFirst => 1,
+		customLyricsSourcesFolder => '',
+		integrateMaterialSkin => 1,
 	});
 
 	$prefs->setChange(\&webPages, 'hidextramenusitems');
@@ -60,6 +66,8 @@ sub initPlugin {
 	Plugins::MusicArtistInfo::ArtistInfo->init($class);
 	Plugins::MusicArtistInfo::TrackInfo->init($class);
 	Plugins::MusicArtistInfo::LocalFile->init($class);
+
+	Plugins::MusicArtistInfo::Lyrics::MaterialSkin->sync if main::WEBUI;
 
 	if (CAN_LMS_WORKS) {
 		require Plugins::MusicArtistInfo::WorkInfo;
@@ -446,6 +454,10 @@ sub minSize {
 	}
 
 	return 0;
+}
+
+sub shutdownPlugin {
+	Plugins::MusicArtistInfo::Lyrics::MaterialSkin->remove;
 }
 
 1;

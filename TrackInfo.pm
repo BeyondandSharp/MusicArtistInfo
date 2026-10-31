@@ -3,23 +3,43 @@ package Plugins::MusicArtistInfo::TrackInfo;
 use strict;
 
 use Async::Util;
+use Digest::MD5 qw(md5_hex);
 use File::Basename qw(dirname);
 use File::Slurp qw(read_file write_file);
 use File::Spec::Functions qw(catfile catdir);
+use JSON::PP ();
+use Time::HiRes qw(time);
 
 use Slim::Menu::TrackInfo;
+use Scalar::Util qw(blessed);
+use Slim::Music::Info;
+use Slim::Utils::Cache;
 use Slim::Utils::Strings qw(string cstring);
 use Slim::Utils::Log;
 use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
+use Slim::Utils::Timers;
+use Slim::Utils::Unicode;
 
 use Plugins::MusicArtistInfo::API;
 use Plugins::MusicArtistInfo::Common qw(CLICOMMAND isDirWritable);
 use Plugins::MusicArtistInfo::Parser::LRC;
+use Plugins::MusicArtistInfo::Lyrics::Candidates;
+use Plugins::MusicArtistInfo::Lyrics::ChosenCache;
+use Plugins::MusicArtistInfo::Lyrics::PerlScripts;
+use Plugins::MusicArtistInfo::Lyrics::FileName;
+use Plugins::MusicArtistInfo::Lyrics::Sidecar;
+use Plugins::MusicArtistInfo::Lyrics::WebUI;
 
 my $log = logger('plugin.musicartistinfo');
 my $onlineLog = logger('plugin.musicartistinfo.online');
 my $prefs = preferences('plugin.musicartistinfo');
+my $cache = Slim::Utils::Cache->new;
+my $chosenCache = Plugins::MusicArtistInfo::Lyrics::ChosenCache->new;
+
+my $CANDIDATE_SESSION_EXPIRES = 30 * 60;
+my $CANDIDATE_TIMEOUT         = 30;
+my $MAX_OVERRIDE_LENGTH       = 200;
 
 my $lyricsProviderPipeline = [
 	'MAILyricsAPI',
@@ -30,6 +50,9 @@ my $lyricsProviderPipeline = [
 	'Genius',
 	'GeniusNoDot',
 ];
+
+my $lyricsProvider;
+my %lyricsProviderLabels;
 
 sub init {
 #                                                                |requires Client
@@ -43,6 +66,17 @@ sub init {
 		func => \&_objInfoHandler,
 		after => 'moreartistinfo',
 	) );
+
+	if ( main::WEBUI ) {
+		eval {
+			require Slim::Web::Pages;
+			Slim::Web::Pages->addRawFunction(
+				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel)},
+				\&_lyricsApi,
+			);
+		};
+		$log->error("Could not register lyrics chooser endpoints: $@") if $@;
+	}
 
 	Slim::Utils::Timers::setTimer(__PACKAGE__, time() + rand(5), \&updateLyricsProviders);
 }
@@ -82,10 +116,12 @@ sub _objInfoHandler {
 		type => 'link',
 		url => \&getLyrics,
 		passthrough => [ {
-			id     => $id,
-			title  => $title,
-			artist => $artist,
-			url    => $url,
+			id       => $id,
+			title    => $title,
+			artist   => $artist,
+			url      => $url,
+			album    => ($obj && blessed $obj && $obj->can('albumname') ? $obj->albumname : undef),
+			duration => ($obj && blessed $obj && $obj->can('secs') ? $obj->secs : undef),
 		} ],
 	};
 }
@@ -196,8 +232,23 @@ sub getSongLyricsCLI {
 		return;
 	}
 
-	if ( !$forceOnlineLookup && (my $lyrics = _getCachedLyrics($args) || _getLocalLyrics($args)) ) {
-		main::INFOLOG && $log->is_info && $log->info("Found cached/local lyrics for " . $args->{title} . ' by ' . $args->{artist});
+	if ( !$forceOnlineLookup && (my $lyrics = $chosenCache->get($args)) ) {
+		main::INFOLOG && $log->is_info && $log->info("Found lyrics chosen for " . $args->{title} . ' by ' . $args->{artist});
+		_renderLyricsResponse($lyrics, $request, $args);
+		$request->setStatusDone();
+		return;
+	}
+
+	if ( !$forceOnlineLookup && (my $lyrics = _getCachedLyrics($args)) ) {
+		main::INFOLOG && $log->is_info && $log->info("Found cached lyrics for " . $args->{title} . ' by ' . $args->{artist});
+		_save_lyrics_next_to_song($args, $lyrics, undef, 0);
+		_renderLyricsResponse($lyrics, $request, $args);
+		$request->setStatusDone();
+		return;
+	}
+
+	if ( !$forceOnlineLookup && (my $lyrics = _getLocalLyrics($args)) ) {
+		main::INFOLOG && $log->is_info && $log->info("Found local lyrics for " . $args->{title} . ' by ' . $args->{artist});
 		_renderLyricsResponse($lyrics, $request, $args);
 		$request->setStatusDone();
 		return;
@@ -212,6 +263,7 @@ sub getSongLyricsCLI {
 		_renderLyricsResponse($lyrics, $request, $args);
 
 		_cacheLyrics($args, $lyrics);
+		_save_lyrics_next_to_song($args, $lyrics, $item, 0);
 
 		$request->setStatusDone();
 	}, sub {
@@ -238,11 +290,24 @@ sub getLyrics {
 		my $lyricsRequest = shift;
 
 		my $responseText = $lyricsRequest->getResult('lyrics') || $lyricsRequest->getResult('error');
+		my $isWeb = !$params->{isButton}
+			&& Plugins::MusicArtistInfo::Plugin->isWebBrowser($client, $params);
+
+		if ($isWeb) {
+			$responseText = _web_lyrics_content(
+				$client,
+				$args,
+				$lyricsRequest->getResult('lyrics'),
+				$lyricsRequest->getResult('error'),
+			);
+		}
 
 		$cb->({
 			items => Plugins::MusicArtistInfo::Plugin->textAreaItem($client, $params->{isButton}, $responseText),
 		});
 	};
+
+	$args->{track_id} ||= $args->{id} if defined $args->{id};
 
 	my $command = [CLICOMMAND, 'lyrics'];
 	foreach (qw(title artist url track_id)) {
@@ -260,7 +325,18 @@ sub getLyrics {
 	}
 }
 
-my $lyricsProvider = {
+%lyricsProviderLabels = (
+	MAILyricsAPI => 'MusicArtistInfo',
+	AZLyrics    => 'AZLyrics',
+	LRCLibGet   => 'LRCLib',
+	LRCLibSearch => 'LRCLib',
+	ChartLyrics => 'ChartLyrics',
+	Genius      => 'Genius',
+	GeniusNoDot => 'Genius',
+	PerlScripts => 'Perl scripts',
+);
+
+$lyricsProvider = {
 	MAILyricsAPI => sub {
 		my ($args, $cb) = @_;
 		Plugins::MusicArtistInfo::API->getLyrics($cb, $args);
@@ -324,10 +400,15 @@ sub _fetchLyrics {
 		@{$prefs->get('lyricsProviders') || $lyricsProviderPipeline}
 	];
 
-	require Plugins::MusicArtistInfo::Lyrics::PerlScripts;
-
 	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
-		unshift @$handlerPipeline, $lyricsProvider->{PerlScripts};
+		my $scripts = $lyricsProvider->{PerlScripts};
+
+		if ( $prefs->get('customLyricsSourcesFirst') ) {
+			unshift @$handlerPipeline, $scripts;
+		}
+		else {
+			push @$handlerPipeline, $scripts;
+		}
 	}
 
 	Async::Util::amap(
@@ -431,18 +512,37 @@ sub _getLocalLyrics {
 
 	# try "Song.mp3.lrc" and "Song.lrc"
 	if ($url && Slim::Music::Info::isFileURL($url)) {
-		my $filePath = Slim::Utils::Misc::pathFromFileURL($url);
-		my $filePath2 = $filePath . '.lrc';
+		my $audioPath = Slim::Utils::Misc::pathFromFileURL($url);
+		my $filePath  = $audioPath;
+		my $filePath2 = $audioPath . '.lrc';
 		$filePath =~ s/\.\w{2,4}$/.lrc/;
 
 		# try .lrc files first
 		my @files = ($filePath, $filePath2);
 
 		# text files second
-		$filePath =~ s/\.lrc$/.txt/;
-		$filePath2 =~ s/\.lrc$/.txt/;
+		my $textPath  = $filePath;
+		my $textPath2 = $filePath2;
+		$textPath  =~ s/\.lrc$/.txt/;
+		$textPath2 =~ s/\.lrc$/.txt/;
 
-		push @files, $filePath, $filePath2;
+		push @files, $textPath, $textPath2;
+
+		# file named according to the user-configured filename format
+		if ( $track && -f $audioPath ) {
+			my $format = $prefs->get('lyricsFileNameFormat') || 'FILE';
+			my $basename = eval {
+				Plugins::MusicArtistInfo::Lyrics::FileName->lyrics_filename($track, $format)
+			};
+
+			if ( $basename ) {
+				my $patternFile = catfile(dirname($audioPath), $basename);
+				unshift @files, $patternFile;
+			}
+		}
+
+		my %seen;
+		@files = grep { defined $_ && !$seen{$_}++ } @files;
 
 		foreach my $file (@files) {
 			if (-r $file) {
@@ -495,6 +595,780 @@ sub _getLocalLyrics {
 	return $lyrics;
 }
 
+sub _save_lyrics_next_to_song {
+	my ($args, $lyrics, $item, $force) = @_;
+
+	return unless $prefs->get('saveLyricsWithSong');
+	return unless defined $lyrics && $lyrics =~ /\S/;
+	return if $item && $item->{instrumental};
+
+	my $instrumental = string('PLUGIN_MUSICARTISTINFO_INSTRUMENTAL');
+	return if $instrumental && $lyrics eq $instrumental;
+
+	my $track = $args->{track};
+	return unless $track && $track->url;
+
+	my $url = $track->url;
+	$url =~ s/^tmp:/file:/ if $url;
+
+	return unless Slim::Music::Info::isFileURL($url);
+
+	my $audioPath = Slim::Utils::Misc::pathFromFileURL($url);
+	return unless $audioPath && -f $audioPath;
+
+	my $format = $prefs->get('lyricsFileNameFormat') || 'FILE';
+	my $basename = eval {
+		Plugins::MusicArtistInfo::Lyrics::FileName->lyrics_filename($track, $format)
+	};
+
+	return unless $basename;
+
+	my $result = Plugins::MusicArtistInfo::Lyrics::Sidecar->save(
+		$audioPath,
+		$basename,
+		$lyrics,
+		{
+			overwrite => $force || $prefs->get('overwriteLyricsWithSong'),
+		},
+	);
+
+	if ( $result->{file} ) {
+		main::INFOLOG && $log->is_info && $log->info("Saved lyrics to $result->{file}");
+	}
+	elsif ( $result->{error} ) {
+		$log->warn("Could not save lyrics next to $audioPath: $result->{error}");
+	}
+
+	return $result;
+}
+
+sub _web_lyrics_content {
+	my ($client, $args, $lyrics, $error) = @_;
+
+	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '1.30.1';
+
+	return Plugins::MusicArtistInfo::Lyrics::WebUI->build(
+		client   => $client,
+		lyrics   => $lyrics,
+		error    => $error,
+		track_id => $args->{track_id} || $args->{id},
+		url      => $args->{url},
+		title    => $args->{title},
+		artist   => $args->{artist},
+		album    => $args->{album},
+		duration  => $args->{duration},
+		endpoint => '/plugins/MusicArtistInfo/lyrics',
+		script   => "/plugins/MusicArtistInfo/html/lyricsChooser.js?v=$version",
+		strings  => _lyrics_chooser_strings($client),
+	);
+}
+
+sub _lyrics_chooser_strings {
+	my ($client) = @_;
+
+	my %fallback = (
+		choose  => 'Choose lyrics',
+		title   => 'Title',
+		artist  => 'Artist',
+		search  => 'Search',
+		use     => 'Use this lyrics',
+		close   => 'Close',
+		loading => 'Searching for lyrics...',
+		none    => 'No lyrics found',
+		error   => 'Could not load lyrics',
+		saved   => 'Saved',
+		cached  => 'Cached',
+		source  => 'Source',
+		synced  => 'Synced',
+		plain   => 'Plain text',
+	);
+
+	my %strings;
+	foreach my $key (keys %fallback) {
+		my $string = eval {
+			cstring($client, 'PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_' . uc($key));
+		};
+
+		$strings{$key} = (defined $string && $string ne '') ? $string : $fallback{$key};
+	}
+
+	return \%strings;
+}
+
+sub _builtin_candidate_sources {
+	my @sources;
+
+	my @ids = @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
+
+	foreach my $id (@ids) {
+		next if $id eq 'PerlScripts';
+		next unless $lyricsProvider->{$id};
+
+		push @sources, {
+			id    => $id,
+			label => $lyricsProviderLabels{$id} || $id,
+		};
+	}
+
+	return @sources;
+}
+
+sub collectCandidates {
+	my ($lookupArgs, $cb, $opts) = @_;
+
+	$opts ||= {};
+
+	my $onCandidate = $opts->{on_candidate};
+	my $onProgress  = $opts->{on_progress};
+
+	my @candidates;
+	my $done = 0;
+	my $token = {};
+	my $timer;
+	my $sourcesDone = 0;
+	my $totalSources = 0;
+
+	my $reportProgress = sub {
+		return if $done || !$onProgress;
+		$onProgress->({
+			done  => $sourcesDone,
+			total => $totalSources,
+			found => scalar @candidates,
+		});
+	};
+
+	my $sourceDone = sub {
+		return if $done;
+		$sourcesDone++;
+		$reportProgress->();
+	};
+
+	my $finish = sub {
+		return if $done++;
+		Slim::Utils::Timers::killTimers($token, $timer) if $timer;
+
+		my $final = Plugins::MusicArtistInfo::Lyrics::Candidates->finalize(\@candidates);
+		$log->debug('Lyrics chooser collected ' . scalar(@$final) . ' candidates');
+		$cb->($final) if $cb;
+	};
+
+	$timer = sub { $finish->() };
+	Slim::Utils::Timers::setTimer($token, time() + $CANDIDATE_TIMEOUT, $timer);
+
+	my @sources = _builtin_candidate_sources();
+
+	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
+		my $custom = {
+			id     => 'PerlScripts',
+			label  => 'Perl scripts',
+			custom => 1,
+		};
+
+		if ( $prefs->get('customLyricsSourcesFirst') ) {
+			unshift @sources, $custom;
+		}
+		else {
+			push @sources, $custom;
+		}
+	}
+
+	$totalSources = scalar @sources;
+	$reportProgress->();
+
+	unless (@sources) {
+		return $finish->();
+	}
+
+	Async::Util::amap(
+		inputs => \@sources,
+		action => sub {
+			my ($source, $acb) = @_;
+
+			return $acb->() if $done;
+
+			my %args = %$lookupArgs;
+			my $priority = 0;
+			for (my $i = 0; $i < @sources; $i++) {
+				if ( $sources[$i] eq $source ) {
+					$priority = $i;
+					last;
+				}
+			}
+
+			if ( $source->{custom} ) {
+				$log->debug('Lyrics chooser querying Perl scripts');
+				Plugins::MusicArtistInfo::Lyrics::PerlScripts->getCandidates(
+					\%args,
+					sub {
+						my $result = shift || [];
+						$log->debug('Lyrics chooser Perl scripts returned ' . scalar(@$result) . ' candidates');
+
+						if ( !$onCandidate ) {
+							foreach my $candidate (@$result) {
+								next unless ref $candidate eq 'HASH';
+								$candidate->{priority} = $priority;
+								push @candidates, $candidate;
+							}
+						}
+
+						$sourceDone->();
+						$acb->();
+					},
+					$onCandidate ? sub {
+						my $candidate = shift;
+						return if $done || !$candidate || ref $candidate ne 'HASH';
+						$candidate->{priority} = $priority;
+						push @candidates, $candidate;
+						$onCandidate->($candidate);
+						$reportProgress->();
+					} : undef,
+				);
+
+				return;
+			}
+
+			my $handler = $lyricsProvider->{$source->{id}};
+
+			unless ($handler) {
+				$sourceDone->();
+				$acb->();
+				return;
+			}
+
+			$handler->(\%args, sub {
+				my $result = shift;
+
+				if ( $result && ref $result && !$result->{error} && $result->{lyrics} ) {
+					my $candidate = Plugins::MusicArtistInfo::Lyrics::Candidates->normalize(
+						$result,
+						$source->{label},
+					);
+
+					if ($candidate) {
+						$candidate->{priority} = $priority;
+						push @candidates, $candidate;
+						$onCandidate->($candidate) if $onCandidate && !$done;
+						$reportProgress->();
+					}
+				}
+
+				$sourceDone->();
+				$acb->();
+			});
+		},
+		cb => sub {
+			$finish->();
+		},
+		at_a_time => 4,
+	);
+}
+
+sub _trim_param {
+	my ($value) = @_;
+
+	return '' unless defined $value;
+	$value =~ s/^\s+//;
+	$value =~ s/\s+$//;
+	$value = substr($value, 0, $MAX_OVERRIDE_LENGTH) if length($value) > $MAX_OVERRIDE_LENGTH;
+
+	return $value;
+}
+
+sub _decode_param {
+	my ($value) = @_;
+
+	return $value unless defined $value;
+
+	eval {
+		if ( Slim::Utils::Unicode::looks_like_utf8($value) ) {
+			$value = Slim::Utils::Unicode::utf8on($value);
+		}
+	};
+
+	return $value;
+}
+
+sub _chooser_args {
+	my ($params) = @_;
+
+	my $track;
+	my $trackId = $params->{track_id};
+
+	if ( defined $trackId && $trackId =~ /^\d+$/ ) {
+		$track = Slim::Schema->find('Track', $trackId);
+	}
+
+	$track ||= Slim::Schema->objectForUrl($params->{url})
+		if $params->{url};
+
+	if ( !$track && $params->{player} ) {
+		my $client = eval { Slim::Player::Client::getClient($params->{player}) };
+
+		if ($client) {
+			my $song = eval { $client->playingSong };
+			$track = $song->track if $song && eval { $song->track };
+
+			if ( !$track ) {
+				my $status = eval {
+					Slim::Control::Request::executeRequest(
+						$client,
+						['status', 0, 10, 'tags:title,artist,album,url'],
+					);
+				};
+
+				if ($status && !$status->isStatusError) {
+					my $loop = $status->getResult('playlist_loop');
+					my $index = $status->getResult('playlist_cur_index');
+					my $item;
+
+					if ( ref $loop eq 'ARRAY' && @$loop ) {
+						foreach my $candidate (@$loop) {
+							if ( defined $index && defined $candidate->{'playlist index'}
+								&& $candidate->{'playlist index'} eq $index ) {
+								$item = $candidate;
+								last;
+							}
+						}
+
+						$item ||= $loop->[0];
+					}
+
+					if ($item) {
+						$params->{title}  = $item->{title}  if !defined $params->{title}  || $params->{title} eq '';
+						$params->{artist} = $item->{artist} if !defined $params->{artist} || $params->{artist} eq '';
+						$params->{album}  = $item->{album}  if !defined $params->{album}  || $params->{album} eq '';
+						$params->{url}    = $item->{url}    if !defined $params->{url}    || $params->{url} eq '';
+						$params->{track_id} = $item->{id}   if defined $item->{id};
+						$track = Slim::Schema->find('Track', $item->{id}) if defined $item->{id};
+					}
+				}
+			}
+		}
+	}
+
+	my $original = {
+		title    => _decode_param($params->{title}),
+		artist   => _decode_param($params->{artist}),
+		album    => _decode_param($params->{album}),
+		duration => _decode_param($params->{duration}),
+		url      => $params->{url},
+		track_id => $trackId,
+	};
+
+	if ($track) {
+		$original->{track}    = $track;
+		$original->{track_id} = $track->id;
+		$original->{url}      = $track->url;
+		$original->{title}    ||= $track->title;
+		$original->{artist}   ||= $track->artistName;
+		$original->{album}    ||= $track->albumname;
+		$original->{duration} ||= $track->secs;
+	}
+
+	my $titleOverride  = _trim_param(_decode_param($params->{title}));
+	my $artistOverride = _trim_param(_decode_param($params->{artist}));
+	my $albumOverride  = _trim_param(_decode_param($params->{album}));
+	my $durationOverride = _trim_param(_decode_param($params->{duration}));
+
+	my %lookup = %$original;
+	$lookup{title}  = $titleOverride  if $titleOverride ne '';
+	$lookup{artist} = $artistOverride if $artistOverride ne '';
+	$lookup{album}  = $albumOverride  if $albumOverride ne '';
+	$lookup{duration} = $durationOverride if $durationOverride ne '';
+
+	return ($original, \%lookup);
+}
+
+sub _send_json {
+	my ($httpClient, $response, $data, $status) = @_;
+
+	my $body = eval { JSON::PP->new->utf8->encode($data) } || '{}';
+
+	$response->code($status || 200);
+	$response->content_type('application/json; charset=utf-8');
+	$response->header('Cache-Control' => 'no-cache');
+	$response->header('Content-Length' => length($body));
+	$response->header('Connection' => 'close');
+
+	require Slim::Web::HTTP;
+	Slim::Web::HTTP::addHTTPResponse($httpClient, $response, \$body)
+		if $httpClient->connected;
+}
+
+sub _candidate_hash {
+	my $candidate = shift || {};
+	my $key = join "\x1f",
+		$candidate->{source} || '',
+		$candidate->{title}  || '',
+		$candidate->{artist} || '',
+		$candidate->{lyrics} || '';
+	utf8::encode($key);
+	return md5_hex($key);
+}
+
+sub _candidate_json {
+	my $candidate = shift || {};
+	return {
+		hash    => _candidate_hash($candidate),
+		index   => $candidate->{index},
+		source  => $candidate->{source},
+		title   => $candidate->{title},
+		artist  => $candidate->{artist},
+		album   => $candidate->{album},
+		synced  => $candidate->{synced} ? 1 : 0,
+		lyrics  => $candidate->{lyrics},
+		preview => $candidate->{preview},
+	};
+}
+
+sub _store_search_state {
+	my ($session, $state) = @_;
+
+	my $data = JSON::PP->new->utf8->encode($state);
+	$cache->set("mai_lyrics_chooser_$session", $data, $CANDIDATE_SESSION_EXPIRES);
+
+	return 1;
+}
+
+sub _load_search_state {
+	my $session = shift;
+	return unless defined $session;
+
+	my $cached = $cache->get("mai_lyrics_chooser_$session");
+	return unless defined $cached && !ref $cached;
+
+	my $state = eval { JSON::PP->new->utf8->decode($cached) };
+	return unless $state && ref $state eq 'HASH';
+
+	return $state;
+}
+
+sub _search_snapshot {
+	my ($session, $state) = @_;
+
+	$state ||= {};
+	my @out = map { _candidate_json($_) } @{ $state->{candidates} || [] };
+
+	return {
+		search_id => $session,
+		session   => $session,
+		candidates => \@out,
+		done      => $state->{done} ? 1 : 0,
+		cancelled => $state->{cancelled} ? 1 : 0,
+		progress  => $state->{progress} || 0,
+		total     => $state->{total} || 0,
+		found     => scalar @out,
+		elapsed   => $state->{created} ? time() - $state->{created} : 0,
+	};
+}
+
+sub _lyricsApi {
+	my ($httpClient, $response) = @_;
+
+	return unless $httpClient->connected;
+
+	my $request = $response->request;
+	my $path    = $request->uri->path;
+
+	$log->debug("Lyrics chooser API request: $path");
+
+	my %params;
+	my @pairs = eval { $request->uri->query_form };
+	if (@pairs) {
+		for (my $i = 0; $i < @pairs; $i += 2) {
+			$params{$pairs[$i]} = $pairs[$i + 1];
+		}
+	}
+
+	if ( $path =~ m{/lyrics/select} ) {
+		return _handle_lyrics_select($httpClient, $response, \%params);
+	}
+
+	if ( $path =~ m{/lyrics/search} ) {
+		return _handle_lyrics_search($httpClient, $response, \%params);
+	}
+
+	if ( $path =~ m{/lyrics/cancel} ) {
+		return _handle_lyrics_cancel($httpClient, $response, \%params);
+	}
+
+	return _handle_lyrics_candidates($httpClient, $response, \%params);
+}
+
+sub _handle_lyrics_candidates {
+	my ($httpClient, $response, $params) = @_;
+
+	my ($saveArgs, $lookupArgs) = _chooser_args($params);
+
+	unless ( defined $lookupArgs->{title} && $lookupArgs->{title} ne ''
+		&& defined $lookupArgs->{artist} && $lookupArgs->{artist} ne '' ) {
+		return _send_json($httpClient, $response, { error => 'Missing title or artist' }, 400);
+	}
+
+	if ( $params->{async} ) {
+		return _handle_lyrics_candidates_async($httpClient, $response, $saveArgs, $lookupArgs);
+	}
+
+	my $sent = 0;
+
+	my $finish = sub {
+		my $candidates = shift;
+
+		return if $sent++;
+		$log->debug('Lyrics chooser sending ' . scalar(@{ $candidates || [] }) . ' candidates');
+		return unless $httpClient->connected;
+
+		my $session = md5_hex(rand() . time() . $$);
+
+		my $save = { %$saveArgs };
+		delete $save->{track};
+
+		my $sessionData = JSON::PP->new->utf8->encode({
+			candidates => $candidates,
+			save_args  => $save,
+			created    => time(),
+		});
+
+		$cache->set(
+			"mai_lyrics_chooser_$session",
+			$sessionData,
+			$CANDIDATE_SESSION_EXPIRES,
+		);
+
+		my @out = map { _candidate_json($_) } @$candidates;
+
+		_send_json($httpClient, $response, {
+			session    => $session,
+			candidates => \@out,
+		});
+	};
+
+	my $token = {};
+	my $timer = sub {
+		$finish->([]);
+	};
+	Slim::Utils::Timers::setTimer($token, time() + $CANDIDATE_TIMEOUT + 5, $timer);
+
+	collectCandidates($lookupArgs, sub {
+		Slim::Utils::Timers::killTimers($token, $timer);
+		$finish->(shift || []);
+	});
+}
+
+sub _handle_lyrics_candidates_async {
+	my ($httpClient, $response, $saveArgs, $lookupArgs) = @_;
+
+	my $session = md5_hex(rand() . time() . $$);
+	my $save = { %$saveArgs };
+	delete $save->{track};
+
+	my $state = {
+		candidates => [],
+		save_args  => $save,
+		created    => time(),
+		done       => 0,
+		cancelled  => 0,
+		progress   => 0,
+		total      => 0,
+		found      => 0,
+	};
+
+	_store_search_state($session, $state);
+
+	my %seen;
+
+	my $addCandidate = sub {
+		my $candidate = shift;
+		return unless $candidate && ref $candidate eq 'HASH';
+
+		my $hash = _candidate_hash($candidate);
+		return if $seen{$hash}++;
+
+		my $current = _load_search_state($session);
+		return unless $current;
+		return if $current->{cancelled} || $current->{done};
+
+		push @{ $current->{candidates} }, $candidate;
+		$current->{found} = scalar @{ $current->{candidates} };
+		$current->{progress} = $state->{progress} || 0;
+		$current->{total} = $state->{total} || 0;
+
+		_store_search_state($session, $current);
+	};
+
+	my $updateProgress = sub {
+		my $progress = shift || {};
+
+		my $current = _load_search_state($session);
+		return unless $current;
+		return if $current->{cancelled} || $current->{done};
+
+		$current->{progress} = $progress->{done} || 0;
+		$current->{total}    = $progress->{total} || 0;
+		$current->{found}    = $progress->{found}
+			|| scalar @{ $current->{candidates} || [] };
+
+		$state->{progress} = $current->{progress};
+		$state->{total}    = $current->{total};
+
+		_store_search_state($session, $current);
+	};
+
+	collectCandidates($lookupArgs, sub {
+		my $final = shift || [];
+
+		my $current = _load_search_state($session);
+		return unless $current;
+		return if $current->{cancelled};
+
+		$current->{candidates} = $final;
+		$current->{done}       = 1;
+		$current->{progress}   = $current->{total} || scalar @$final;
+		$current->{found}      = scalar @$final;
+
+		_store_search_state($session, $current);
+	}, {
+		on_candidate => $addCandidate,
+		on_progress  => $updateProgress,
+	});
+
+	my $current = _load_search_state($session) || $state;
+
+	_send_json($httpClient, $response, _search_snapshot($session, $current));
+}
+
+sub _handle_lyrics_search {
+	my ($httpClient, $response, $params) = @_;
+
+	my $session = $params->{search_id} || '';
+
+	unless ( $session =~ /^[a-f0-9]{32}$/i ) {
+		return _send_json($httpClient, $response, { error => 'Invalid request' }, 400);
+	}
+
+	my $state = _load_search_state($session);
+	unless ($state) {
+		return _send_json($httpClient, $response, { error => 'Search result expired, please search again' }, 410);
+	}
+
+	_send_json($httpClient, $response, _search_snapshot($session, $state));
+}
+
+sub _handle_lyrics_cancel {
+	my ($httpClient, $response, $params) = @_;
+
+	my $request = $response->request;
+	my $safe = lc($request->header('X-Requested-With') || '') eq 'xmlhttprequest';
+
+	unless ($safe) {
+		eval {
+			require Slim::Web::HTTP::CSRF;
+			$safe = Slim::Web::HTTP::CSRF->isRequestCSRFSafe($request, $response, {}, undef);
+		};
+	}
+
+	unless ($safe) {
+		return _send_json($httpClient, $response, { error => 'Forbidden' }, 403);
+	}
+
+	my $session = $params->{search_id} || '';
+
+	unless ( $session =~ /^[a-f0-9]{32}$/i ) {
+		return _send_json($httpClient, $response, { error => 'Invalid request' }, 400);
+	}
+
+	my $state = _load_search_state($session);
+	unless ($state) {
+		return _send_json($httpClient, $response, { error => 'Search result expired, please search again' }, 410);
+	}
+
+	$state->{cancelled} = 1;
+	$state->{done}      = 1;
+	$state->{progress}  = $state->{total} || $state->{progress} || 0;
+
+	_store_search_state($session, $state);
+
+	_send_json($httpClient, $response, _search_snapshot($session, $state));
+}
+
+sub _handle_lyrics_select {
+	my ($httpClient, $response, $params) = @_;
+
+	my $request = $response->request;
+	my $safe = lc($request->header('X-Requested-With') || '') eq 'xmlhttprequest';
+
+	unless ($safe) {
+		eval {
+			require Slim::Web::HTTP::CSRF;
+			$safe = Slim::Web::HTTP::CSRF->isRequestCSRFSafe($request, $response, {}, undef);
+		};
+	}
+
+	unless ($safe) {
+		return _send_json($httpClient, $response, { error => 'Forbidden' }, 403);
+	}
+
+	my $session = $params->{session};
+	my $index   = $params->{index};
+	my $hash    = $params->{hash};
+
+	unless ( defined $session && $session =~ /^[a-f0-9]{32}$/i
+		&& ( ( defined $index && $index =~ /^\d+$/ )
+			|| ( defined $hash && $hash =~ /^[a-f0-9]{32}$/i ) ) ) {
+		return _send_json($httpClient, $response, { error => 'Invalid request' }, 400);
+	}
+
+	my $cached = $cache->get("mai_lyrics_chooser_$session");
+	my $data;
+	if ( defined $cached && !ref $cached ) {
+		$data = eval { JSON::PP->new->utf8->decode($cached) };
+	}
+
+	unless ( $data && ref $data eq 'HASH' && $data->{candidates} && ref $data->{candidates} eq 'ARRAY' ) {
+		return _send_json($httpClient, $response, { error => 'Search result expired, please search again' }, 410);
+	}
+
+	my $candidate;
+
+	if ( defined $hash ) {
+		foreach my $item ( @{ $data->{candidates} } ) {
+			if ( ref $item eq 'HASH' && lc(_candidate_hash($item)) eq lc($hash) ) {
+				$candidate = $item;
+				last;
+			}
+		}
+	}
+	else {
+		$candidate = $data->{candidates}->[$index];
+	}
+
+	unless ( $candidate && ref $candidate eq 'HASH' && defined $candidate->{lyrics} ) {
+		return _send_json($httpClient, $response, { error => 'Invalid candidate' }, 400);
+	}
+
+	my $save = { %{ $data->{save_args} || {} } };
+
+	if ( $save->{track_id} && $save->{track_id} =~ /^\d+$/ && !$save->{track} ) {
+		$save->{track} = Slim::Schema->find('Track', $save->{track_id});
+	}
+
+	if ( !$save->{track} && $save->{url} ) {
+		$save->{track} = Slim::Schema->objectForUrl($save->{url});
+	}
+
+	$chosenCache->save($save, $candidate->{lyrics});
+	_cacheLyrics($save, $candidate->{lyrics});
+
+	my $sidecar = _save_lyrics_next_to_song($save, $candidate->{lyrics}, undef, 1);
+
+	_send_json($httpClient, $response, {
+		lyrics  => $candidate->{lyrics},
+		source  => $candidate->{source} || '',
+		cached  => 1,
+		sidecar => $sidecar && $sidecar->{file} ? $sidecar->{file} : '',
+	});
+}
+
 sub _renderLyricsResponse {
 	my ($lyrics, $request, $args) = @_;
 
@@ -523,7 +1397,7 @@ sub updateLyricsProviders {
 
 		if ($result && ref $result && ref $result eq 'HASH' && $result->{lyricsProviders} && ref $result->{lyricsProviders} eq 'ARRAY') {
 			my @lyricsProviders = Slim::Utils::Misc::uniq(grep {
-				$lyricsProvider->{$_};
+				$_ ne 'PerlScripts' && $lyricsProvider->{$_};
 			} @{$result->{lyricsProviders}});
 
 			$prefs->set('lyricsProviders', \@lyricsProviders) if @lyricsProviders;

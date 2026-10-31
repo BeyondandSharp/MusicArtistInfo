@@ -604,34 +604,157 @@ PLUGIN_MUSICARTISTINFO_INSTRUMENTAL
 	EN	Instrumental
 	NL	Instrumentaal
 
-PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS
-	CS	Vlastní skripty pro texty písní
-	DA	Tilpassede sangtekst-scripts
-	DE	Eigene Songtext-Skripte
-	EN	Custom lyrics scripts
-	FR	Scripts de paroles personnalisés
-	HU	Egyéni dalszöveg-szkriptek
-	NL	Aangepaste songtekstscripts
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE
+	EN	Save lyrics next to the song file
+	DE	Songtexte neben der Musikdatei speichern
+	NL	Songteksten naast het muziekbestand opslaan
 
-PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS_DESC
-	CS	Načíst vlastní zdroje textů písní z jednoduchých skriptů v Perlu.
-	DA	Indlæs brugerdefinerede sangtekstkilder fra simple Perl-scripts.
-	DE	Eigene Songtext-Quellen aus einfachen Perl-Skripten laden.
-	EN	Load custom lyrics sources from simple Perl scripts. Scripts run inside LMS and must be trusted.
-	FR	Charger des sources de paroles personnalisées à partir de scripts Perl simples. Les scripts s'exécutent dans LMS et doivent être de confiance.
-	HU	Egyéni dalszövegforrások betöltése egyszerű Perl-szkriptekből. A szkriptek az LMS-en belül futnak, ezért megbízhatóak kell legyenek.
-	NL	Aangepaste songtekstbronnen laden uit eenvoudige Perl-scripts. Scripts draaien binnen LMS en moeten vertrouwd zijn.
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_DESC
+	EN	Downloaded lyrics will also be written as an LRC file next to the local song file. Existing files are left alone unless you enable overwriting.
+	DE	Heruntergeladene Songtexte werden zusätzlich als LRC-Datei neben der lokalen Musikdatei gespeichert. Bestehende Dateien werden nicht überschrieben, solange dies nicht aktiviert ist.
+	NL	Gedownloade songteksten worden ook als LRC-bestand naast het lokale muziekbestand opgeslagen. Bestaande bestanden worden niet overschreven tenzij je dit inschakelt.
 
-PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS_ENABLE
-	CS	Povolit vlastní skripty pro texty písní
-	DA	Aktivér tilpassede sangtekst-scripts
-	DE	Eigene Songtext-Skripte aktivieren
-	EN	Enable custom lyrics scripts
-	FR	Activer les scripts de paroles personnalisés
-	HU	Egyéni dalszöveg-szkriptek engedélyezése
-	NL	Aangepaste songtekstscripts inschakelen
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_ENABLE
+	EN	Save lyrics next to songs
+	DE	Songtexte neben Musikdateien speichern
+	NL	Songteksten naast muziekbestanden opslaan
 
-PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SCRIPTS_HINT
-	EN	Folder containing *.pl scripts. Each script must return a coderef or a hash with name and getLyrics; see script-examples/README.md. Scripts are tried before built-in providers.
-	DE	Ordner mit *.pl-Skripten. Jedes Skript muss eine Coderef oder einen Hash mit name und getLyrics zurückgeben; siehe script-examples/README.md. Skripte werden vor den eingebauten Quellen ausprobiert.
-	NL	Map met *.pl-scripts. Elk script moet een coderef of een hash met name en getLyrics retourneren; zie script-examples/README.md. Scripts worden vóór de ingebouwde bronnen geprobeerd.
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_OVERWRITE
+	EN	Overwrite existing lyrics files
+	DE	Bestehende Songtextdateien überschreiben
+	NL	Bestaande songtekstbestanden overschrijven
+
+PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT
+	EN	Lyrics filename format
+	DE	Dateinamensformat für Songtexte
+	NL	Bestandsnaamformaat voor songteksten
+
+PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT_DESC
+	EN	Uses the Lyrion Music Server title format, e.g. FILE (the song's filename), ARTIST - TITLE, or TRACKNUM - TITLE. Tokens include ARTIST, TITLE, ALBUM, TRACKNUM, DISC, YEAR, GENRE, FILE and EXT.
+	DE	Verwendet das Titelformat von Lyrion Music Server, z. B. FILE (Dateiname des Songs), ARTIST - TITLE oder TRACKNUM - TITLE. Verfügbare Felder: ARTIST, TITLE, ALBUM, TRACKNUM, DISC, YEAR, GENRE, FILE und EXT.
+	NL	Gebruikt het titelformaat van Lyrion Music Server, bijvoorbeeld FILE (de bestandsnaam van het nummer), ARTIST - TITLE of TRACKNUM - TITLE. Beschikbare velden: ARTIST, TITLE, ALBUM, TRACKNUM, DISC, YEAR, GENRE, FILE en EXT.
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES
+	EN	Custom Perl lyrics scripts
+	DE	Eigene Perl-Songtext-Skripte
+	NL	Aangepaste Perl-songtekstscripts
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_DESC
+	EN	Load custom lyrics sources from Perl scripts. Scripts run inside LMS with your permissions, so only use scripts you trust. Node.js is not required.
+	DE	Eigene Songtext-Quellen aus Perl-Skripten laden. Skripte laufen im LMS mit deinen Rechten, daher nur vertrauenswürdige Skripte verwenden. Node.js ist nicht nötig.
+	NL	Laad aangepaste songtekstbronnen uit Perl-scripts. Scripts draaien binnen LMS met jouw rechten, gebruik dus alleen scripts die je vertrouwt. Node.js is niet nodig.
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_ENABLE
+	EN	Enable custom Perl lyrics scripts
+	DE	Eigene Perl-Songtext-Skripte aktivieren
+	NL	Aangepaste Perl-songtekstscripts inschakelen
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER
+	EN	Scripts folder
+	DE	Skript-Ordner
+	NL	Scriptmap
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER_DESC
+	EN	Folder containing *.pl scripts. The default folder is created when you enable the feature.
+	DE	Ordner mit *.pl-Skripten. Der Standardordner wird beim Aktivieren angelegt.
+	NL	Map met *.pl-scripts. De standaardmap wordt aangemaakt wanneer je de functie inschakelt.
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FIRST
+	EN	Before built-in sources
+	DE	Vor den integrierten Quellen
+	NL	Voor ingebouwde bronnen
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_LAST
+	EN	After built-in sources
+	DE	Nach den integrierten Quellen
+	NL	Na ingebouwde bronnen
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER_MISSING
+	EN	The scripts folder does not exist. Please create it and copy your Perl scripts into it.
+	DE	Der Skript-Ordner existiert nicht. Bitte anlegen und die Perl-Skripte hineinkopieren.
+	NL	De scriptmap bestaat niet. Maak deze aan en kopieer je Perl-scripts erin.
+
+PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_HINT
+	EN	Each *.pl script must return a coderef or a hash with name and getLyrics. See script-examples/README.md. Scripts are trusted code and must not block LMS.
+	DE	Jedes *.pl-Skript muss eine Coderef oder einen Hash mit name und getLyrics zurückgeben. Siehe script-examples/README.md. Skripte sind vertrauenswürdiger Code und dürfen LMS nicht blockieren.
+	NL	Elk *.pl-script moet een coderef of een hash met name en getLyrics retourneren. Zie script-examples/README.md. Scripts zijn vertrouwde code en mogen LMS niet blokkeren.
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_CHOOSE
+	EN	Choose lyrics
+	DE	Songtext auswählen
+	NL	Songtekst kiezen
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_TITLE
+	EN	Title
+	DE	Titel
+	NL	Titel
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_ARTIST
+	EN	Artist
+	DE	Interpret
+	NL	Artiest
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SEARCH
+	EN	Search
+	DE	Suchen
+	NL	Zoeken
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_USE
+	EN	Use this lyrics
+	DE	Diesen Songtext verwenden
+	NL	Deze songtekst gebruiken
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_CLOSE
+	EN	Close
+	DE	Schließen
+	NL	Sluiten
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_LOADING
+	EN	Searching for lyrics...
+	DE	Songtexte werden gesucht...
+	NL	Songteksten worden gezocht...
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_NONE
+	EN	No lyrics found
+	DE	Keine Songtexte gefunden
+	NL	Geen songteksten gevonden
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_ERROR
+	EN	Could not load lyrics
+	DE	Songtexte konnten nicht geladen werden
+	NL	Songteksten konden niet worden geladen
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SAVED
+	EN	Saved
+	DE	Gespeichert
+	NL	Opgeslagen
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_CACHED
+	EN	Cached
+	DE	Zwischengespeichert
+	NL	Gecacht
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SOURCE
+	EN	Source
+	DE	Quelle
+	NL	Bron
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SYNCED
+	EN	Synced
+	DE	Synchronisiert
+	NL	Gesynchroniseerd
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_PLAIN
+	EN	Plain text
+	DE	Reiner Text
+	NL	Platte tekst
+
+PLUGIN_MUSICARTISTINFO_MATERIAL_SKIN_ENABLE
+	EN	Add lyrics chooser to Material Skin's now-playing settings and queue panel
+	DE	Songtext-Auswahl in den Material-Skin-Wiedergabeeinstellungen und im Warteschlangenbereich anzeigen
+	NL	Songtekstkeuze toevoegen aan de Material Skin-weergave-instellingen en wachtrij
+
+PLUGIN_MUSICARTISTINFO_MATERIAL_SKIN_DESC
+	EN	Adds a Choose lyrics entry to the now-playing settings menu and a lyrics icon next to the queue actions button. The queue panel switches to a lyrics search and candidate list. The plugin manages a small loader block in Material Skin's custom.js; existing custom code is preserved.
+	DE	Fügt einen Eintrag „Songtext auswählen“ zum Wiedergabeeinstellungsmenü und ein Songtext-Symbol neben der Warteschlangen-Aktionsschaltfläche hinzu. Der Warteschlangenbereich wechselt zu Songtextsuche und Kandidatenliste. Das Plugin verwaltet einen kleinen Loader-Block in der custom.js von Material Skin; vorhandener eigener Code bleibt erhalten.
+	NL	Voegt een vermelding „Songtekst kiezen“ toe aan het weergave-instellingenmenu en een songtekstpictogram naast de wachtrij-actieknop. Het wachtrijpaneel schakelt naar songtekst zoeken en een kandidatenlijst. De plugin beheert een klein loaderblok in de custom.js van Material Skin; bestaande eigen code blijft behouden.

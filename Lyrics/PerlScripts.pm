@@ -35,12 +35,12 @@ my $MAX_SCRIPT_SIZE    = 1024 * 1024;
 
 sub enabled {
 	my ($class) = @_;
-	return $prefs->get('enableCustomLyricsScripts') ? 1 : 0;
+	return $prefs->get('enableCustomLyricsSources') ? 1 : 0;
 }
 
 sub folder {
 	my ($class) = @_;
-	my $folder = $prefs->get('customLyricsScriptsFolder');
+	my $folder = $prefs->get('customLyricsSourcesFolder');
 	return defined $folder && $folder ne '' ? $folder : $class->default_folder;
 }
 
@@ -106,6 +106,44 @@ sub getLyrics {
 	};
 
 	$next->(sub { $cb->(shift) });
+}
+
+sub getCandidates {
+	my ($class, $args, $cb, $onCandidate) = @_;
+
+	return $cb->([]) unless $class->enabled;
+
+	my $scripts = $class->scripts;
+	return $cb->([]) unless @$scripts;
+
+	my $deadline = time() + $TOTAL_TIMEOUT;
+	my $index = 0;
+	my @candidates;
+
+	my $next;
+	$next = sub {
+		my $finished = shift;
+
+		return $finished->() if $index >= @$scripts || time() >= $deadline;
+
+		my $file = $scripts->[$index++];
+
+		$class->_run_script($file, $args, sub {
+			my $result = shift;
+
+			if ( _valid_result($result) ) {
+				$result->{source} ||= basename($file);
+				$result->{song}   ||= $args->{title};
+				$result->{artist} ||= $args->{artist};
+				push @candidates, $result;
+				$onCandidate->($result) if $onCandidate;
+			}
+
+			$next->($finished);
+		});
+	};
+
+	$next->(sub { $cb->(\@candidates) });
 }
 
 sub _run_script {
