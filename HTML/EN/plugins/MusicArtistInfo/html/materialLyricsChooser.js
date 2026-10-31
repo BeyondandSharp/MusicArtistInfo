@@ -217,6 +217,10 @@
 		});
 	}
 
+	function isSynced(candidate) {
+		return !!(candidate && (candidate.synced || /\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\]/.test(candidate.lyrics || '')));
+	}
+
 	function requestJson(url, options) {
 		options = options || {};
 		if (window.fetch) {
@@ -886,9 +890,10 @@
 			var head = document.createElement('div');
 			head.className = 'mai-lq-head';
 
+			var synced = isSynced(candidate);
 			var badge = document.createElement('span');
-			badge.className = 'mai-lq-badge' + (candidate.synced ? ' mai-lq-badge-synced' : '');
-			badge.textContent = candidate.synced ? TEXT.synced : TEXT.plain;
+			badge.className = 'mai-lq-badge' + (synced ? ' mai-lq-badge-synced' : '');
+			badge.textContent = synced ? TEXT.synced : TEXT.plain;
 			head.appendChild(badge);
 
 			var title = document.createElement('span');
@@ -950,7 +955,7 @@
 		state.lines = [];
 		state.currentLine = -1;
 		if (!candidate) return;
-		if (candidate.synced) {
+		if (isSynced(candidate)) {
 			var lines = Array.isArray(candidate.lines) && candidate.lines.length ? candidate.lines : parseLrc(candidate.lyrics);
 			if (lines.length) {
 				state.lines = lines;
@@ -966,7 +971,7 @@
 				return;
 			}
 		}
-		state.preview.textContent = candidate.synced ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
+		state.preview.textContent = isSynced(candidate) ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
 		stopSync();
 	}
 	function updateCurrentLine(scroll) {

@@ -51,6 +51,9 @@
 	function text(value) {
 		return value === null || value === undefined ? '' : String(value);
 	}
+	function isSynced(candidate) {
+		return !!(candidate && (candidate.synced || /\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\]/.test(candidate.lyrics || '')));
+	}
 
 	function el(tag, className, content) {
 		var node = document.createElement(tag);
@@ -196,8 +199,9 @@
 			button.type = 'button';
 
 			var title = el('span', 'mai-lyrics-item-title', text(candidate.title) || text(state.title));
-			var badge = el('span', 'mai-lyrics-badge' + (candidate.synced ? ' mai-lyrics-badge-synced' : ''),
-				candidate.synced ? state.strings.synced : state.strings.plain);
+			var synced = isSynced(candidate);
+			var badge = el('span', 'mai-lyrics-badge' + (synced ? ' mai-lyrics-badge-synced' : ''),
+				synced ? state.strings.synced : state.strings.plain);
 			title.appendChild(badge);
 
 			var metaParts = [];
@@ -242,7 +246,7 @@
 		state.lines = [];
 		state.currentLine = -1;
 		if (!candidate) return;
-		if (candidate.synced) {
+		if (isSynced(candidate)) {
 			var lines = Array.isArray(candidate.lines) && candidate.lines.length ? candidate.lines : parseLrc(candidate.lyrics);
 			if (lines.length) {
 				state.lines = lines;
@@ -258,7 +262,7 @@
 				return;
 			}
 		}
-		preview.textContent = candidate.synced ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
+		preview.textContent = isSynced(candidate) ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
 		stopSync();
 	}
 	function updateCurrentLine(scroll) {

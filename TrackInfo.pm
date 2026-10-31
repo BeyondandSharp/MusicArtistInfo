@@ -865,6 +865,9 @@ sub _web_lyrics_content {
 	my ($client, $args, $lyrics, $error) = @_;
 
 	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '1.30.1';
+	my $chooserScript = catfile(dirname(__FILE__), '..', 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsChooser.js');
+	my $chooserMtime = (stat($chooserScript))[9] || 0;
+	$version .= "-$chooserMtime" if $chooserMtime;
 
 	return Plugins::MusicArtistInfo::Lyrics::WebUI->build(
 		client   => $client,
@@ -1349,6 +1352,11 @@ sub _visible_candidate {
 	return 1;
 }
 
+sub _candidate_is_synced {
+	my $lyrics = _clean_candidate_text(shift);
+	return $lyrics =~ /\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\]/ ? 1 : 0;
+}
+
 sub _candidate_json {
 	my $candidate = shift || {};
 	return {
@@ -1358,11 +1366,11 @@ sub _candidate_json {
 		title   => $candidate->{title},
 		artist  => $candidate->{artist},
 		album   => $candidate->{album},
-		synced  => $candidate->{synced} ? 1 : 0,
+		synced  => ($candidate->{synced} || _candidate_is_synced($candidate->{lyrics})) ? 1 : 0,
 		lyrics  => _clean_candidate_text($candidate->{lyrics}),
 		preview => do {
 			my $preview = _clean_candidate_text($candidate->{preview});
-			my $lines = $candidate->{synced}
+			my $lines = ($candidate->{synced} || _candidate_is_synced($candidate->{lyrics}))
 				? _candidate_lrc_lines(_clean_candidate_text($candidate->{lyrics}))
 				: [];
 			if ( @$lines ) {
@@ -1374,7 +1382,7 @@ sub _candidate_json {
 			}
 			$preview;
 		},
-		lines   => $candidate->{synced} ? _candidate_lrc_lines(_clean_candidate_text($candidate->{lyrics})) : [],
+		lines   => ($candidate->{synced} || _candidate_is_synced($candidate->{lyrics})) ? _candidate_lrc_lines(_clean_candidate_text($candidate->{lyrics})) : [],
 	};
 }
 
