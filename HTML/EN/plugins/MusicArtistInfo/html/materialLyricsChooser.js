@@ -85,7 +85,10 @@
 		syncTimer: null,
 		queueHeight: 0,
 		windowHeight: 0,
-		onWindowResize: null
+		onWindowResize: null,
+		centerTimer: null,
+		lastManualScroll: 0,
+		programmaticScroll: false
 	};
 
 	function addStyle() {
@@ -290,6 +293,7 @@
 			var next = startHeight - (point.clientY - startY);
 			next = Math.max(72, Math.min(next, panelHeight - 140));
 			state.preview.style.flex = '0 0 ' + next + 'px';
+			schedulePreviewCenter();
 			event.preventDefault();
 		}
 		function end() {
@@ -397,6 +401,14 @@
 		state.preview.className = 'mai-lq-lyrics np-info-lyrics';
 		state.preview.id = 'mai-lq-lyrics';
 		state.preview.style.flex = '0 0 33.333%';
+		state.preview.addEventListener('scroll', function () {
+			if (state.programmaticScroll) {
+				state.programmaticScroll = false;
+				return;
+			}
+			state.lastManualScroll = Date.now();
+			schedulePreviewCenter();
+		});
 		panel.appendChild(state.preview);
 
 		initPreviewResizer(panel);
@@ -466,6 +478,7 @@
 	function deactivate() {
 		cancelSearch(false, '');
 		stopSync();
+		if (state.centerTimer) { clearTimeout(state.centerTimer); state.centerTimer = null; }
 		state.open = false;
 		state.active = false;
 		if (state.queueView) {
@@ -791,6 +804,7 @@
 		state.candidates = [];
 		state.selectedHash = '';
 		stopSync();
+		if (state.centerTimer) { clearTimeout(state.centerTimer); state.centerTimer = null; }
 		if (state.preview) state.preview.innerHTML = '';
 		state.searchDone = false;
 		state.cancelled = false;
@@ -974,6 +988,26 @@
 		state.preview.textContent = isSynced(candidate) ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
 		stopSync();
 	}
+	function schedulePreviewCenter() {
+		if (state.centerTimer) clearTimeout(state.centerTimer);
+		state.centerTimer = setTimeout(function () {
+			state.centerTimer = null;
+			centerPreviewLine();
+		}, 3000);
+	}
+	function centerPreviewLine() {
+		if (!state.preview || !state.lines.length || state.currentLine < 0) return;
+		var nodes = state.preview.querySelectorAll('.mai-lq-line');
+		var node = nodes[state.currentLine];
+		if (!node) return;
+		var pRect = state.preview.getBoundingClientRect();
+		var nRect = node.getBoundingClientRect();
+		var delta = (nRect.top - pRect.top) - (state.preview.clientHeight - nRect.height) / 2;
+		if (Math.abs(delta) > 1) {
+			state.programmaticScroll = true;
+			state.preview.scrollTop += delta;
+		}
+	}
 	function updateCurrentLine(scroll) {
 		if (!state.lines.length || !state.preview) return;
 		var index = -1;
@@ -988,9 +1022,8 @@
 		Array.prototype.forEach.call(nodes, function (node, i) {
 			node.classList.toggle('lyrics-current-line', i === index);
 		});
-		if (nodes[index] && scroll) {
-			try { nodes[index].scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
-		}
+		if (nodes[index] && scroll) centerPreviewLine();
+		else if (nodes[index]) schedulePreviewCenter();
 	}
 	function fetchPlaybackTime() {
 		if (!state.playerId || !state.open) return;

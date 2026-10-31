@@ -45,7 +45,10 @@
 		busy: false,
 		lines: [],
 		currentLine: -1,
-		syncTimer: null
+		syncTimer: null,
+		centerTimer: null,
+		lastManualScroll: 0,
+		programmaticScroll: false
 	};
 
 	function text(value) {
@@ -265,6 +268,27 @@
 		preview.textContent = isSynced(candidate) ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
 		stopSync();
 	}
+	function schedulePreviewCenter() {
+		if (state.centerTimer) clearTimeout(state.centerTimer);
+		state.centerTimer = setTimeout(function () {
+			state.centerTimer = null;
+			centerPreviewLine();
+		}, 3000);
+	}
+	function centerPreviewLine() {
+		var preview = document.getElementById('maiLyricsPreview');
+		if (!preview || !state.lines.length || state.currentLine < 0) return;
+		var nodes = preview.querySelectorAll('.mai-lyrics-sync-line');
+		var node = nodes[state.currentLine];
+		if (!node) return;
+		var pRect = preview.getBoundingClientRect();
+		var nRect = node.getBoundingClientRect();
+		var delta = (nRect.top - pRect.top) - (preview.clientHeight - nRect.height) / 2;
+		if (Math.abs(delta) > 1) {
+			state.programmaticScroll = true;
+			preview.scrollTop += delta;
+		}
+	}
 	function updateCurrentLine(scroll) {
 		if (!state.lines.length || !state.player) return;
 		var time = state.currentTime || 0;
@@ -280,9 +304,8 @@
 		Array.prototype.forEach.call(nodes, function (node, i) {
 			node.classList.toggle('mai-lyrics-sync-current', i === index);
 		});
-		if (nodes[index] && scroll) {
-			try { nodes[index].scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
-		}
+		if (nodes[index] && scroll) centerPreviewLine();
+		else if (nodes[index]) schedulePreviewCenter();
 	}
 	function stopSync() {
 		if (state.syncTimer) { clearInterval(state.syncTimer); state.syncTimer = null; }
@@ -482,6 +505,7 @@
 		}
 
 		stopSync();
+		if (state.centerTimer) { clearTimeout(state.centerTimer); state.centerTimer = null; }
 		state.lines = [];
 		if (state.overlay && state.overlay.parentNode) {
 			state.overlay.parentNode.removeChild(state.overlay);
@@ -510,6 +534,7 @@
 			var next = startHeight - (point.clientY - startY);
 			next = Math.max(72, Math.min(next, bodyHeight - 120));
 			preview.style.flex = '0 0 ' + next + 'px';
+			schedulePreviewCenter();
 			event.preventDefault();
 		}
 		function end() {
@@ -578,6 +603,14 @@
 		list.id = 'maiLyricsCandidateList';
 		var preview = el('div', 'mai-lyrics-preview');
 		preview.id = 'maiLyricsPreview';
+		preview.addEventListener('scroll', function () {
+			if (state.programmaticScroll) {
+				state.programmaticScroll = false;
+				return;
+			}
+			state.lastManualScroll = Date.now();
+			schedulePreviewCenter();
+		});
 
 		body.appendChild(list);
 		var resizer = el('div', 'mai-lyrics-resizer');
