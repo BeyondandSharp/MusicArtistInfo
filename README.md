@@ -8,3 +8,7 @@ The information presented by this plugin are sourced from:
 * [Last.fm](https://last.fm)
 * [Discogs](https://discogs.com)
 * [MusicBrainz](https://musicbrainz.org)
+
+## Local text files
+
+Local lyrics (`.lrc`/`.txt`) and text documents (`.txt`, `.nfo`, `.md`, `.html`) are decoded automatically. UTF-8 (with or without BOM), UTF-16/UTF-32 with BOM, and common legacy encodings are supported; invalid or ambiguous input falls back to a best-effort Windows-1252/ISO-8859-1 decode. Files written by the plugin remain UTF-8 without a BOM.

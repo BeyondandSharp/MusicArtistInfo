@@ -4,7 +4,7 @@ use strict;
 
 use Async::Util;
 use File::Basename qw(dirname);
-use File::Slurp qw(read_file write_file);
+use File::Slurp qw(write_file);
 use File::Spec::Functions qw(catfile catdir);
 
 use Slim::Menu::TrackInfo;
@@ -16,6 +16,7 @@ use Slim::Utils::Prefs;
 use Plugins::MusicArtistInfo::API;
 use Plugins::MusicArtistInfo::Common qw(CLICOMMAND isDirWritable);
 use Plugins::MusicArtistInfo::Parser::LRC;
+use Plugins::MusicArtistInfo::Text;
 
 my $log = logger('plugin.musicartistinfo');
 my $onlineLog = logger('plugin.musicartistinfo.online');
@@ -379,9 +380,10 @@ sub _getCachedLyrics {
 
 		if (-f $lyricsFile) {
 			main::INFOLOG && $log->is_info && $log->info("Found cached lyrics!");
-			my $lyrics = read_file($lyricsFile);
-			utf8::decode($lyrics);
-			return $lyrics;
+			return Plugins::MusicArtistInfo::Text->read_file(
+				$lyricsFile,
+				{ hints => [ $args->{artist}, $args->{title} ] },
+			);
 		}
 	}
 
@@ -436,11 +438,11 @@ sub _getLocalLyrics {
 
 		foreach my $file (@files) {
 			if (-r $file) {
-				$lyrics = File::Slurp::read_file($file);
-				if ($lyrics) {
-					utf8::decode($lyrics);
-					last;
-				}
+				$lyrics = Plugins::MusicArtistInfo::Text->read_file(
+					$file,
+					{ hints => [ $args->{artist}, $args->{title} ] },
+				);
+				last if defined $lyrics && $lyrics ne '';
 			}
 		}
 
@@ -470,11 +472,11 @@ sub _getLocalLyrics {
 					foreach (@$candidates) {
 						if ( my $file = $files{lc($_)} ) {
 
-							$lyrics = File::Slurp::read_file(catfile($lyricsCacheFolder, $file));
-							if ($lyrics) {
-								utf8::decode($lyrics);
-								last;
-							}
+							$lyrics = Plugins::MusicArtistInfo::Text->read_file(
+								catfile($lyricsCacheFolder, $file),
+								{ hints => [ $args->{artist}, $args->{title} ] },
+							);
+							last if defined $lyrics && $lyrics ne '';
 						}
 					}
 				}
@@ -489,6 +491,8 @@ sub _renderLyricsResponse {
 	my ($lyrics, $request, $args) = @_;
 
 	my $client = $request->client();
+
+	$lyrics = Plugins::MusicArtistInfo::Text->ensure_text($lyrics);
 
 	$lyrics =~ s/\\n/\n/g;
 	$lyrics =~ s/\r\n/\n/g;

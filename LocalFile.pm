@@ -6,6 +6,8 @@ use File::Next;
 use File::Spec::Functions qw(catdir);
 use Digest::MD5 qw(md5_hex);
 
+use Plugins::MusicArtistInfo::Text;
+
 use HTTP::Status qw(
 	RC_FORBIDDEN
 	RC_PRECONDITION_FAILED
@@ -419,14 +421,14 @@ sub getFileContent {
 	}
 	elsif ( $type =~ /html/ && !$isWebBrowser ) {
 		require HTML::FormatText;
-		$content = HTML::FormatText->format_file(
-			$path,
+		my $html = Plugins::MusicArtistInfo::Text->read_file($path);
+		$content = HTML::FormatText->format_string(
+			$html || '',
 			leftmargin => 0,
 		);
 	}
 	elsif ( $type =~ /text/ ) {
-		require File::Slurp;
-		$content = File::Slurp::read_file($path);
+		$content = Plugins::MusicArtistInfo::Text->read_file($path);
 	}
 
 	if ($content) {

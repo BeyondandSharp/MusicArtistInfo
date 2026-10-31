@@ -10,6 +10,7 @@ use Slim::Menu::GlobalSearch;
 use Slim::Utils::Strings qw(string cstring);
 use Slim::Utils::Log;
 
+use Plugins::MusicArtistInfo::Text;
 use Plugins::MusicArtistInfo::Common qw(CLICOMMAND CAN_IMAGEPROXY CAN_LMS_ARTIST_ARTWORK validateLanguage);
 use Plugins::MusicArtistInfo::Discogs;
 use Plugins::MusicArtistInfo::LFM;
@@ -236,6 +237,7 @@ sub getBiography {
 						}
 
 						utf8::decode($content);
+						$content = Plugins::MusicArtistInfo::Text->ensure_text($content);
 						$content .= "\n\n<span class=\"maiAIHint\">" . cstring($client, 'PLUGIN_MUSICARTISTINFO_GENAI_NOTE') . "</span>";
 
 						require Plugins::MusicArtistInfo::Parser::Markdown;

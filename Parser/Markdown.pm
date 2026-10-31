@@ -2,14 +2,18 @@ package Plugins::MusicArtistInfo::Parser::Markdown;
 
 use strict;
 
-use File::Slurp;
 use HTML::FormatText;
 use Text::MultiMarkdown;
 
+use Plugins::MusicArtistInfo::Text;
+
 sub parseToHTML {
 	my ($class, $path) = @_;
-	my $content = ref $path ? $$path : File::Slurp::read_file($path);
-	return Text::MultiMarkdown->new->markdown($content);
+	my $content = ref $path
+		? Plugins::MusicArtistInfo::Text->ensure_text($$path)
+		: Plugins::MusicArtistInfo::Text->read_file($path);
+
+	return Text::MultiMarkdown->new->markdown($content || '');
 }
 
 sub parse {
