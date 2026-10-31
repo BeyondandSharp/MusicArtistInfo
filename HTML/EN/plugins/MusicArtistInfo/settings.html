@@ -64,8 +64,12 @@
 			<input type="text" class="stdedit selectFolder" name="pref_bioFolder" id="pref_bioFolder" value="[% prefs.pref_bioFolder %]" size="40">
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER" desc="PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER_DESC" %]
+			<input type="text" class="stdedit selectFolder" name="pref_lyricsFolder" id="pref_lyricsFolder" value="[% prefs.pref_lyricsFolder | html %]" size="40">
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_OPTIONS" desc="" %]
-			<a href="[% webroot %]/plugins/MusicArtistInfo/lyrics-settings.html">[% "PLUGIN_MUSICARTISTINFO_LYRICS_OPTIONS_LINK" | string %]</a>
+			<a class="mai-open-options" style="display:inline-block;padding:5px 10px;border:1px solid #888;text-decoration:none;" href="[% webroot %]/plugins/MusicArtistInfo/lyrics-settings.html">[% "PLUGIN_MUSICARTISTINFO_LYRICS_OPTIONS_LINK" | string %]</a>
 		[% END %]
 
 		[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE" desc="PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE_DESC" %]

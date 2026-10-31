@@ -15,7 +15,7 @@ sub name {
 }
 
 sub prefs {
-	my @prefs = ($prefs, qw(runImporter lookupArtistPictures lookupCoverArt reviewFolder artistImageFolder bioFolder
+	my @prefs = ($prefs, qw(runImporter lookupArtistPictures lookupCoverArt reviewFolder artistImageFolder bioFolder lyricsFolder
 		lookupAlbumArtistPicturesOnly saveMissingArtistPicturePlaceholder replaceOnlineGenres useAIGeneratedContent preferredLanguage
 		hidextramenusitems));
 

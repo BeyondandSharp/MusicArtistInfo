@@ -1,7 +1,10 @@
 <style>
-.mai-lyrics-settings .mai-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid #888; margin:8px 0 14px; }
-.mai-lyrics-settings .mai-tab { background:transparent; border:1px solid transparent; border-bottom:0; color:inherit; cursor:pointer; padding:7px 13px; }
+.mai-lyrics-settings .mai-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid #888; margin:22px 0 14px; }
+.mai-lyrics-settings .mai-tab { background:transparent; border:1px solid transparent; border-bottom:0; color:inherit; cursor:pointer; padding:7px 13px; line-height:1.3; }
 .mai-lyrics-settings .mai-tab.active { border-color:#888; background:#fff; color:#000; }
+.mai-lyrics-settings .settingGroup label { display:inline-block; min-width:190px; vertical-align:middle; margin:2px 0; }
+.mai-lyrics-settings .settingGroup input.stdedit, .mai-lyrics-settings .settingGroup select.stdedit { vertical-align:middle; margin:2px 0; }
+.mai-lyrics-settings .settingGroup input[type=checkbox], .mai-lyrics-settings .settingGroup input[type=range] { vertical-align:middle; }
 .mai-lyrics-settings .mai-panel { display:none; }
 .mai-lyrics-settings .mai-panel.active { display:block; }
 .mai-lyrics-settings .mai-rules { width:100%; border-collapse:collapse; margin:6px 0 10px; }
@@ -9,7 +12,12 @@
 .mai-lyrics-settings .mai-rules input[type=text], .mai-lyrics-settings .mai-rules select { width:100%; box-sizing:border-box; }
 .mai-lyrics-settings .mai-source-list { list-style:none; padding:0; margin:6px 0; }
 .mai-lyrics-settings .mai-source-list li { border:1px solid #aaa; padding:5px 8px; margin:3px 0; display:flex; gap:8px; align-items:center; }
-.mai-lyrics-settings .mai-source-list .mai-source-name { flex:1; }
+.mai-lyrics-settings .mai-source-list .mai-source-name { flex:1; min-width:0; }
+.mai-lyrics-settings .mai-source-list .mai-src-enabled { flex:0 0 auto; }
+.mai-lyrics-settings .mai-src-buttons { display:flex; gap:3px; flex:0 0 auto; }
+.mai-lyrics-settings .mai-src-buttons button, .mai-lyrics-settings .mai-rule-delete { min-width:26px; height:26px; line-height:24px; padding:0 5px; border:1px solid #888; background:#eee; color:#111; cursor:pointer; }
+.mai-lyrics-settings .mai-rule-delete { width:28px; }
+.mai-lyrics-settings .mai-open-options { display:inline-block; padding:5px 10px; border:1px solid #888; text-decoration:none; }
 .mai-lyrics-settings .mai-preview { font-family:monospace; background:#eee; color:#111; padding:6px; margin-top:4px; white-space:pre-wrap; word-break:break-all; }
 .mai-lyrics-settings .mai-hint { opacity:.75; font-size:90%; }
 </style>
@@ -17,8 +25,6 @@
 [% PROCESS settings/header.html %]
 
 <div class="mai-lyrics-settings">
-<h2>[% "PLUGIN_MUSICARTISTINFO_LYRICS_OPTIONS" | string %]</h2>
-
 [% IF !fb2kFormatAvailable %]
 <div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>
 [% END %]
@@ -55,7 +61,6 @@
 				<option value="[% mode.0 %]" [% IF prefs.pref_lyricsResultMode == mode.0 %]selected [% END %]>[% mode.1 | string %]</option>
 			[% END %]
 		</select>
-		<div class="mai-hint"><a href="#sources" class="mai-go-tab" data-tab="sources">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_SETTINGS" | string %]</a></div>
 	[% END %]
 </div>
 
@@ -63,10 +68,15 @@
 	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES_DESC" %]
 		<ul class="mai-source-list" id="maiSourceList">
 			[% FOREACH source IN lyricsSourceOptions %]
-			<li data-source-id="[% source.id | html %]"><span class="mai-source-name">[% source.label | html %]</span><button type="button" class="mai-src-up">↑</button><button type="button" class="mai-src-down">↓</button></li>
+			<li data-source-id="[% source.id | html %]">
+				<input type="checkbox" class="mai-src-enabled" checked title="[% source.desc | html %]" />
+				<span class="mai-source-name" title="[% source.desc | html %]">[% source.label | html %]</span>
+				<span class="mai-src-buttons"><button type="button" class="mai-src-up" title="Up">&#8593;</button><button type="button" class="mai-src-down" title="Down">&#8595;</button></span>
+			</li>
 			[% END %]
 		</ul>
 		<input type="hidden" name="pref_lyricsSourceOrder" id="pref_lyricsSourceOrder" value="[% lyricsSourceOrder | html %]" />
+		<input type="hidden" name="pref_lyricsSourceDisabled" id="pref_lyricsSourceDisabled" value="[% lyricsSourceDisabled | html %]" />
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES_ORDER_HINT" | string %]</div>
 		<br/>
 		<input type="checkbox" class="stdedit" name="pref_enableCustomLyricsSources" id="pref_enableCustomLyricsSources" value="1" [% IF prefs.pref_enableCustomLyricsSources %]checked [% END %] />
@@ -132,10 +142,17 @@
 	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SETTINGS" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SETTINGS_DESC" %]
 		<label for="pref_lyricsSaveMode">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_MODE" | string %]</label>
 		<select class="stdedit" name="pref_lyricsSaveMode" id="pref_lyricsSaveMode">
-			[% FOREACH mode IN [ ['immediate','PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_IMMEDIATE'], ['auto_60','PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_60'], ['auto_60_or_third','PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_60_OR_THIRD'], ['manual','PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_MANUAL'] ] %]
-				<option value="[% mode.0 %]" [% IF prefs.pref_lyricsSaveMode == mode.0 %]selected [% END %]>[% mode.1 | string %]</option>
-			[% END %]
+			<option value="fixed_time" [% IF prefs.pref_lyricsSaveMode != 'fixed_ratio' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FIXED_TIME" | string %]</option>
+			<option value="fixed_ratio" [% IF prefs.pref_lyricsSaveMode == 'fixed_ratio' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FIXED_RATIO" | string %]</option>
 		</select>
+		<span id="maiSaveSecondsWrap">
+			<label for="pref_lyricsSaveSeconds">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SECONDS" | string %]</label>
+			<input type="number" min="1" max="3600" class="stdedit" name="pref_lyricsSaveSeconds" id="pref_lyricsSaveSeconds" value="[% prefs.pref_lyricsSaveSeconds || 60 %]" size="6" />
+		</span>
+		<span id="maiSaveRatioWrap">
+			<label for="pref_lyricsSaveRatio">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_RATIO" | string %]</label>
+			<input type="number" min="1" max="99" class="stdedit" name="pref_lyricsSaveRatio" id="pref_lyricsSaveRatio" value="[% prefs.pref_lyricsSaveRatio || 33 %]" size="6" /> %
+		</span>
 		<br/>
 		<label for="pref_lyricsSaveEncoding">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_ENCODING" | string %]</label>
 		<select class="stdedit" name="pref_lyricsSaveEncoding" id="pref_lyricsSaveEncoding">
@@ -143,8 +160,10 @@
 			<option value="utf8bom" [% IF prefs.pref_lyricsSaveEncoding == 'utf8bom' %]selected [% END %]>UTF-8 + BOM</option>
 		</select>
 		<br/>
-		<input type="checkbox" class="stdedit" name="pref_saveLyricsWithSong" id="pref_saveLyricsWithSong" value="1" [% IF prefs.pref_saveLyricsWithSong %]checked [% END %] />
-		<label for="pref_saveLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_ENABLE" | string %]</label>
+		<span id="maiSaveNextWrap">
+			<input type="checkbox" class="stdedit" name="pref_saveLyricsWithSong" id="pref_saveLyricsWithSong" value="1" [% IF prefs.pref_saveLyricsWithSong %]checked [% END %] />
+			<label for="pref_saveLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_ENABLE" | string %]</label>
+		</span>
 		<br/>
 		<input type="checkbox" class="stdedit" name="pref_overwriteLyricsWithSong" id="pref_overwriteLyricsWithSong" value="1" [% IF prefs.pref_overwriteLyricsWithSong %]checked [% END %] />
 		<label for="pref_overwriteLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_OVERWRITE" | string %]</label>
@@ -155,26 +174,31 @@
 		<input type="checkbox" class="stdedit" name="pref_lyricsSaveApplyProcessing" id="pref_lyricsSaveApplyProcessing" value="1" [% IF prefs.pref_lyricsSaveApplyProcessing %]checked [% END %] />
 		<label for="pref_lyricsSaveApplyProcessing" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_APPLY_PROCESSING" | string %]</label>
 		<br/>
-		<label for="pref_lyricsFolder">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER" | string %]</label>
-		<input type="text" class="stdedit selectFolder" name="pref_lyricsFolder" id="pref_lyricsFolder" value="[% prefs.pref_lyricsFolder | html %]" size="40" />
-		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER_DESC" | string %]</div>
-	[% END %]
-
-	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_FB2K_FORMAT" desc="PLUGIN_MUSICARTISTINFO_FB2K_FORMAT_DESC" %]
+		<hr/>
 		<input type="checkbox" class="stdedit" name="pref_useFb2kFormat" id="pref_useFb2kFormat" value="1" [% IF prefs.pref_useFb2kFormat %]checked [% END %] [% IF !fb2kFormatAvailable %]disabled [% END %] />
 		<label for="pref_useFb2kFormat" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_FB2K_ENABLE" | string %]</label>
 		[% IF !fb2kFormatAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>[% END %]
-		<br/>
-		<label for="pref_lyricsSavePathFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_PATH" | string %]</label>
-		<input type="text" class="stdedit" name="pref_lyricsSavePathFormat" id="pref_lyricsSavePathFormat" value="[% prefs.pref_lyricsSavePathFormat | html %]" size="70" />
-		<br/>
-		<label for="pref_lyricsSaveFileNameFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FILENAME" | string %]</label>
-		<input type="text" class="stdedit" name="pref_lyricsSaveFileNameFormat" id="pref_lyricsSaveFileNameFormat" value="[% prefs.pref_lyricsSaveFileNameFormat | html %]" size="70" />
-		<br/>
-		<label for="pref_lyricsFileNameFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT" | string %]</label>
-		<input type="text" class="stdedit" name="pref_lyricsFileNameFormat" id="pref_lyricsFileNameFormat" value="[% prefs.pref_lyricsFileNameFormat | html %]" size="40" />
-		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT_DESC" | string %]</div>
-		<br/>
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_FORMAT_DESC" | string %]</div>
+
+		<div id="maiFb2kFields">
+			<label for="pref_lyricsSavePathFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_PATH" | string %]</label>
+			<input type="text" class="stdedit" name="pref_lyricsSavePathFormat" id="pref_lyricsSavePathFormat" value="[% prefs.pref_lyricsSavePathFormat | html %]" size="60" data-lyrics-folder="[% lyricsFolder | html %]" />
+			<select class="stdedit" id="maiSavePathPreset" style="width:auto;">
+				<option value="track">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PATH_TRACK" | string %]</option>
+				<option value="mai">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PATH_MAI" | string %]</option>
+				<option value="custom">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PATH_CUSTOM" | string %]</option>
+			</select>
+			<br/>
+			<label for="pref_lyricsSaveFileNameFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FILENAME" | string %]</label>
+			<input type="text" class="stdedit" name="pref_lyricsSaveFileNameFormat" id="pref_lyricsSaveFileNameFormat" value="[% prefs.pref_lyricsSaveFileNameFormat | html %]" size="70" />
+		</div>
+
+		<div id="maiLmsFilenameField">
+			<label for="pref_lyricsFileNameFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT" | string %]</label>
+			<input type="text" class="stdedit" name="pref_lyricsFileNameFormat" id="pref_lyricsFileNameFormat" value="[% prefs.pref_lyricsFileNameFormat | html %]" size="50" />
+			<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT_DESC" | string %]</div>
+		</div>
+
 		<button type="button" class="stdclick" id="maiPreviewSave">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PREVIEW" | string %]</button>
 		<div class="mai-preview" id="maiSavePreview"></div>
 		<input type="hidden" id="maiPlayerId" value="[% playerId | html %]" />
@@ -221,26 +245,50 @@
 		document.getElementById(id).value = JSON.stringify(value);
 	}
 
-	/* Source ordering */
+	/* Source ordering and enable checkboxes */
 	var srcList = document.getElementById('maiSourceList');
 	var srcOrder = document.getElementById('pref_lyricsSourceOrder');
+	var srcDisabled = document.getElementById('pref_lyricsSourceDisabled');
 	if (srcList && srcOrder) {
 		var saved = readJson('pref_lyricsSourceOrder');
 		if (saved.length) {
 			var rows = {};
 			Array.prototype.forEach.call(srcList.children, function (li) { rows[li.getAttribute('data-source-id')] = li; });
-			saved.forEach(function (id) { if (rows[id]) srcList.appendChild(rows[id]); });
+			saved.forEach(function (id) {
+				if (typeof id === 'object' && id !== null) id = id.id;
+				if (rows[id]) srcList.appendChild(rows[id]);
+			});
 		}
+		var disabled = [];
+		try { disabled = JSON.parse(srcDisabled.value || '[]') || []; } catch (e) { disabled = []; }
+		Array.prototype.forEach.call(srcList.querySelectorAll('li'), function (li) {
+			var cb = li.querySelector('.mai-src-enabled');
+			var id = li.getAttribute('data-source-id');
+			if (cb) cb.checked = disabled.indexOf(id) < 0;
+		});
 		function syncOrder() {
 			writeJson('pref_lyricsSourceOrder', Array.prototype.map.call(srcList.children, function (li) { return li.getAttribute('data-source-id'); }));
 		}
+		function syncDisabled() {
+			if (!srcDisabled) return;
+			var off = [];
+			Array.prototype.forEach.call(srcList.querySelectorAll('li'), function (li) {
+				var cb = li.querySelector('.mai-src-enabled');
+				if (cb && !cb.checked) off.push(li.getAttribute('data-source-id'));
+			});
+			writeJson('pref_lyricsSourceDisabled', off);
+		}
+		Array.prototype.forEach.call(srcList.querySelectorAll('.mai-src-enabled'), function (cb) {
+			cb.addEventListener('change', syncDisabled);
+		});
 		Array.prototype.forEach.call(srcList.querySelectorAll('.mai-src-up'), function (b) {
-			b.addEventListener('click', function () { var li = b.parentNode; if (li.previousElementSibling) srcList.insertBefore(li, li.previousElementSibling); syncOrder(); });
+			b.addEventListener('click', function () { var li = b.closest('li'); if (li && li.previousElementSibling) srcList.insertBefore(li, li.previousElementSibling); syncOrder(); });
 		});
 		Array.prototype.forEach.call(srcList.querySelectorAll('.mai-src-down'), function (b) {
-			b.addEventListener('click', function () { var li = b.parentNode; if (li.nextElementSibling) srcList.insertBefore(li.nextElementSibling, li); syncOrder(); });
+			b.addEventListener('click', function () { var li = b.closest('li'); if (li && li.nextElementSibling) srcList.insertBefore(li.nextElementSibling, li); syncOrder(); });
 		});
 		syncOrder();
+		syncDisabled();
 	}
 
 	/* Generic rule tables */
@@ -265,7 +313,7 @@
 			var tr = document.createElement('tr');
 			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td>' +
 				'<td>' + filterField + '</td><td>' + filterOp + '</td>' +
-				'<td><input type="text" class="mai-rule-value"></td><td><button type="button" class="mai-rule-delete">×</button></td>';
+				'<td><input type="text" class="mai-rule-value"></td><td><button type="button" class="mai-rule-delete">&#215;</button></td>';
 			tr.querySelector('.mai-rule-field').value = v.field || 'title';
 			tr.querySelector('.mai-rule-op').value = v.op || 'contains';
 			tr.querySelector('.mai-rule-value').value = v.value || '';
@@ -295,7 +343,7 @@
 			v = v || {};
 			var tr = document.createElement('tr');
 			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td>' +
-				'<td>' + fpField + '</td><td><input type="text" class="mai-rule-p1"></td><td><input type="text" class="mai-rule-p2"></td><td>' + fpTarget + '</td><td><button type="button" class="mai-rule-delete">×</button></td>';
+				'<td>' + fpField + '</td><td><input type="text" class="mai-rule-p1"></td><td><input type="text" class="mai-rule-p2"></td><td>' + fpTarget + '</td><td><button type="button" class="mai-rule-delete">&#215;</button></td>';
 			tr.querySelector('.mai-rule-op').value = v.op || 'remove_chars';
 			tr.querySelector('.mai-rule-p1').value = v.param1 || '';
 			tr.querySelector('.mai-rule-p2').value = v.param2 || '';
@@ -325,7 +373,7 @@
 		function addProcRow(v) {
 			v = v || {};
 			var tr = document.createElement('tr');
-			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td><td>' + procOp + '</td><td><input type="text" class="mai-rule-name"></td><td><button type="button" class="mai-rule-delete">×</button></td>';
+			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td><td>' + procOp + '</td><td><input type="text" class="mai-rule-name"></td><td><button type="button" class="mai-rule-delete">&#215;</button></td>';
 			tr.querySelector('.mai-rule-op').value = v.op || 'standardize';
 			tr.querySelector('.mai-rule-name').value = v.name || '';
 			procTable.querySelector('tbody').appendChild(tr);
@@ -344,6 +392,60 @@
 		document.getElementById('maiAddProcessing').addEventListener('click', function () { addProcRow(); syncProc(); });
 		syncProc();
 	}
+
+	/* Save settings visibility and presets. */
+	var fb2k = document.getElementById('pref_useFb2kFormat');
+	var fb2kFields = document.getElementById('maiFb2kFields');
+	var lmsFilename = document.getElementById('maiLmsFilenameField');
+	var pathInput = document.getElementById('pref_lyricsSavePathFormat');
+	var pathPreset = document.getElementById('maiSavePathPreset');
+	var saveNextWrap = document.getElementById('maiSaveNextWrap');
+	var saveNext = document.getElementById('pref_saveLyricsWithSong');
+	var saveMode = document.getElementById('pref_lyricsSaveMode');
+	var secondsWrap = document.getElementById('maiSaveSecondsWrap');
+	var ratioWrap = document.getElementById('maiSaveRatioWrap');
+
+	function pathIsTrackFolder(value) {
+		value = (value || '').replace(/\s+/g, '');
+		return value === '' || value === '$directory_path(%path%)' || value === '$directory_path(%_path%)';
+	}
+	function updateSaveFields() {
+		if (!fb2k) return;
+		var use = fb2k.checked && !fb2k.disabled;
+		if (fb2kFields) fb2kFields.style.display = use ? '' : 'none';
+		if (lmsFilename) lmsFilename.style.display = use ? 'none' : '';
+		var track = pathInput ? pathIsTrackFolder(pathInput.value) : true;
+		if (saveNextWrap) saveNextWrap.style.display = track ? '' : 'none';
+		if (!track && saveNext) saveNext.checked = true;
+		if (saveMode) {
+			if (secondsWrap) secondsWrap.style.display = saveMode.value === 'fixed_time' ? '' : 'none';
+			if (ratioWrap) ratioWrap.style.display = saveMode.value === 'fixed_ratio' ? '' : 'none';
+		}
+	}
+	if (fb2k) fb2k.addEventListener('change', updateSaveFields);
+	if (saveMode) saveMode.addEventListener('change', updateSaveFields);
+	if (pathInput) {
+		pathInput.addEventListener('input', function () {
+			if (pathPreset) {
+				if (pathIsTrackFolder(pathInput.value)) pathPreset.value = 'track';
+				else if (pathPreset.value !== 'mai') pathPreset.value = 'custom';
+			}
+			updateSaveFields();
+		});
+		var folder = pathInput.getAttribute('data-lyrics-folder') || '';
+		if (pathPreset) {
+			if (pathIsTrackFolder(pathInput.value)) pathPreset.value = 'track';
+			else if (folder && pathInput.value === folder) pathPreset.value = 'mai';
+			else pathPreset.value = 'custom';
+			pathPreset.addEventListener('change', function () {
+				if (pathPreset.value === 'track') pathInput.value = '$directory_path(%path%)';
+				else if (pathPreset.value === 'mai') pathInput.value = folder;
+				else { pathInput.focus(); return; }
+				updateSaveFields();
+			});
+		}
+	}
+	updateSaveFields();
 
 	/* Save target preview against the current player's playing track. */
 	var previewButton = document.getElementById('maiPreviewSave');

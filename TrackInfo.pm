@@ -124,9 +124,14 @@ sub _autoSearchNewsong {
 
 	return if Plugins::MusicArtistInfo::Lyrics::SearchSettings->skip_auto_search($args);
 
-	my $local = eval { $track->lyrics }
-		|| eval { _getCachedLyrics($args) }
-		|| eval { _getLocalLyrics($args) };
+	my $local;
+	foreach my $source (_local_source_ids()) {
+		$local = $source eq 'TagLyrics'
+			? eval { $track->lyrics }
+			: eval { _getLocalLyrics($args) };
+		last if $local;
+	}
+	$local ||= eval { _getCachedLyrics($args) };
 
 	return if $local && $prefs->get('lyricsStopExternalOnLocal');
 
@@ -171,19 +176,30 @@ sub _schedule_auto_sidecar {
 	return unless $candidate && defined $candidate->{lyrics} && $candidate->{lyrics} =~ /\S/;
 	return if $prefs->get('lyricsSaveSyncOnly') && !$candidate->{synced};
 
-	my $mode = $prefs->get('lyricsSaveMode') || 'immediate';
+	my $mode = $prefs->get('lyricsSaveMode') || 'fixed_time';
 	return if $mode eq 'manual';
+
+	my $duration = $args->{duration} || eval { $track->secs } || 0;
+	my $delay;
 
 	if ( $mode eq 'immediate' ) {
 		_save_lyrics_next_to_song($args, $candidate->{lyrics}, $candidate, 0);
 		return;
 	}
-
-	my $duration = $args->{duration} || eval { $track->secs } || 0;
-	my $delay = 60;
-	if ( $mode eq 'auto_60_or_third' && $duration > 0 ) {
-		my $third = $duration / 3;
-		$delay = $third < $delay ? $third : $delay;
+	elsif ( $mode eq 'fixed_time' ) {
+		$delay = $prefs->get('lyricsSaveSeconds') || 60;
+		$delay = 60 if $delay <= 0;
+	}
+	elsif ( $mode eq 'fixed_ratio' ) {
+		my $ratio = $prefs->get('lyricsSaveRatio') || 33;
+		$delay = $duration > 0 ? $duration * $ratio / 100 : 60;
+	}
+	elsif ( $mode eq 'auto_60' ) {
+		$delay = 60;
+	}
+	else { # auto_60_or_third / legacy
+		$delay = 60;
+		$delay = $duration / 3 if $duration > 0 && $duration / 3 < $delay;
 	}
 
 	my $trackId = $track->id;
@@ -344,10 +360,17 @@ sub getSongLyricsCLI {
 	main::INFOLOG && $log->is_info && $log->info("Getting lyrics for " . $args->{title} . ' by ' . $args->{artist});
 
 	my $forceOnlineLookup = main::DEBUGLOG && $onlineLog->is_debug;
-	if ( !$forceOnlineLookup && $args->{track} && (my $lyrics = $args->{track}->lyrics) ) {
-		_renderLyricsResponse($lyrics, $request, $args);
-		$request->setStatusDone();
-		return;
+	if ( !$forceOnlineLookup ) {
+		foreach my $source (_local_source_ids()) {
+			my $lyrics = $source eq 'TagLyrics'
+				? ($args->{track} ? $args->{track}->lyrics : undef)
+				: _getLocalLyrics($args);
+			next unless defined $lyrics && $lyrics =~ /\S/;
+			main::INFOLOG && $log->is_info && $log->info("Found $source lyrics for " . $args->{title} . ' by ' . $args->{artist});
+			_renderLyricsResponse($lyrics, $request, $args);
+			$request->setStatusDone();
+			return;
+		}
 	}
 
 	if ( !$forceOnlineLookup && (my $lyrics = $chosenCache->get($args)) ) {
@@ -360,13 +383,6 @@ sub getSongLyricsCLI {
 	if ( !$forceOnlineLookup && (my $lyrics = _getCachedLyrics($args)) ) {
 		main::INFOLOG && $log->is_info && $log->info("Found cached lyrics for " . $args->{title} . ' by ' . $args->{artist});
 		_save_lyrics_next_to_song($args, $lyrics, undef, 0);
-		_renderLyricsResponse($lyrics, $request, $args);
-		$request->setStatusDone();
-		return;
-	}
-
-	if ( !$forceOnlineLookup && (my $lyrics = _getLocalLyrics($args)) ) {
-		main::INFOLOG && $log->is_info && $log->info("Found local lyrics for " . $args->{title} . ' by ' . $args->{artist});
 		_renderLyricsResponse($lyrics, $request, $args);
 		$request->setStatusDone();
 		return;
@@ -507,27 +523,79 @@ $lyricsProvider = {
 	}
 };
 
-sub _lyrics_source_ids {
-	my @available = @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
-	push @available, 'PerlScripts' if Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled;
+sub _source_disabled {
+	my %disabled;
+	my $raw = $prefs->get('lyricsSourceDisabled');
+	return \%disabled unless defined $raw && $raw ne '';
+	my $decoded = eval { JSON::PP->new->decode($raw) };
+	if ( ref $decoded eq 'ARRAY' ) {
+		$disabled{$_} = 1 for @$decoded;
+	}
+	elsif ( ref $decoded eq 'HASH' ) {
+		$disabled{$_} = 1 for grep { !$decoded->{$_} } keys %$decoded;
+	}
+	return \%disabled;
+}
 
-	my %available = map { $_ => 1 } @available;
+sub _source_enabled {
+	my $id = shift;
+	my $disabled = _source_disabled();
+	return !$disabled->{$id};
+}
+
+sub _source_order {
+	my @available = @_;
 	my @saved;
 	my $raw = $prefs->get('lyricsSourceOrder');
 	if ( defined $raw && $raw ne '' ) {
 		my $decoded = eval { JSON::PP->new->decode($raw) };
-		@saved = @$decoded if ref $decoded eq 'ARRAY';
+		if ( ref $decoded eq 'ARRAY' ) {
+			foreach my $item (@$decoded) {
+				if ( ref $item eq 'HASH' ) {
+					push @saved, $item->{id} if defined $item->{id};
+				}
+				else {
+					push @saved, $item;
+				}
+			}
+		}
 	}
 
+	my %available = map { $_ => 1 } @available;
 	my %seen;
 	my @order;
 	foreach my $id (@saved, @available) {
-		next if !$available{$id} || $seen{$id}++;
+		next if !defined $id || !$available{$id} || $seen{$id}++;
+		next unless _source_enabled($id);
 		push @order, $id;
 	}
-
 	return @order;
 }
+
+sub _perl_script_file {
+	my $name = shift;
+	foreach my $source (@{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources }) {
+		return $source->{file} if $source->{id} eq "PerlScripts:$name";
+	}
+	return;
+}
+
+sub _online_source_ids {
+	my @available = @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
+	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
+		push @available, map { $_->{id} } @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
+	}
+	return _source_order(@available);
+}
+
+sub _local_source_ids {
+	return _source_order('TagLyrics', 'LocalLyrics');
+}
+
+sub _lyrics_source_ids {
+	return _online_source_ids();
+}
+
 
 sub _fetchLyrics {
 	my ($args, $cb, $ecb) = @_;
@@ -535,11 +603,20 @@ sub _fetchLyrics {
 	my $lyricsResult;
 	my $lookupArgs = Plugins::MusicArtistInfo::Lyrics::SearchSettings->prepare_args($args);
 
-	my $handlerPipeline = [
-		grep { $_ }
-		map { $lyricsProvider->{$_} }
-		_lyrics_source_ids()
-	];
+	my @handlers;
+	foreach my $id (_online_source_ids()) {
+		if ( $id =~ /^PerlScripts:(.+)$/ ) {
+			my $file = _perl_script_file($1);
+			next unless $file;
+			push @handlers, sub {
+				Plugins::MusicArtistInfo::Lyrics::PerlScripts->getLyrics(shift, shift, $file);
+			};
+		}
+		elsif ( $lyricsProvider->{$id} ) {
+			push @handlers, $lyricsProvider->{$id};
+		}
+	}
+	my $handlerPipeline = \@handlers;
 
 	Async::Util::amap(
 		inputs => $handlerPipeline,
@@ -899,18 +976,20 @@ sub collectCandidates {
 
 	my @sources = _builtin_candidate_sources();
 
-	my $customSource = {
-		id     => 'PerlScripts',
-		label  => 'Perl scripts',
-		custom => 1,
-	};
-
 	my %sourcesById = map { $_->{id} => $_ } @sources;
-	$sourcesById{PerlScripts} = $customSource;
+	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
+		foreach my $script (@{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources }) {
+			$sourcesById{ $script->{id} } = {
+				id     => $script->{id},
+				label  => $script->{label},
+				custom => 1,
+				file   => $script->{file},
+			};
+		}
+	}
 
 	my @ordered;
-	foreach my $id (_lyrics_source_ids()) {
-		next if $id eq 'PerlScripts' && !Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled;
+	foreach my $id (_online_source_ids()) {
 		push @ordered, $sourcesById{$id} if $sourcesById{$id};
 	}
 	@sources = @ordered;
@@ -969,6 +1048,7 @@ sub collectCandidates {
 						$onCandidate->($candidate);
 						$reportProgress->();
 					} : undef,
+					$source->{file},
 				);
 
 				return;
@@ -1251,23 +1331,40 @@ sub _lyricsApi {
 }
 
 sub lyrics_source_options {
-	my @ids = @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
-	push @ids, 'PerlScripts' if $prefs->get('enableCustomLyricsSources')
-		&& !grep { $_ eq 'PerlScripts' } @ids;
+	my @out = (
+		{
+			id    => 'TagLyrics',
+			label => string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_TAG'),
+			desc  => string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_TAG_DESC'),
+		},
+		{
+			id    => 'LocalLyrics',
+			label => string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_LOCAL'),
+			desc  => string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_LOCAL_DESC'),
+		},
+	);
 
-	my %seen;
-	my @out;
-	foreach my $id (@ids) {
-		next if $seen{$id}++;
-		next unless $lyricsProvider->{$id} || $id eq 'PerlScripts';
-		push @out, {
-			id    => $id,
-			label => $lyricsProviderLabels{$id} || $id,
-		};
+	foreach my $id (@{$prefs->get('lyricsProviders') || $lyricsProviderPipeline}) {
+		next if $id eq 'PerlScripts';
+		next unless $lyricsProvider->{$id};
+		my $label = $lyricsProviderLabels{$id} || $id;
+		if ( $id eq 'GeniusNoDot' ) {
+			$label = string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_NODOT');
+		}
+		my $desc = $id eq 'MAILyricsAPI' ? string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_MAI_DESC')
+			: $id eq 'Genius' ? string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_DESC')
+			: $id eq 'GeniusNoDot' ? string('PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_NODOT_DESC')
+			: $label;
+		push @out, { id => $id, label => $label, desc => $desc };
+	}
+
+	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
+		push @out, @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
 	}
 
 	return \@out;
 }
+
 
 sub _handle_save_preview {
 	my ($httpClient, $response, $params) = @_;

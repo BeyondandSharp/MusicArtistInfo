@@ -24,15 +24,15 @@ sub page {
 sub prefs {
 	my @prefs = ($prefs, qw(
 		enableCustomLyricsSources customLyricsSourcesFolder customLyricsSourcesFirst
-		saveLyricsWithSong overwriteLyricsWithSong lyricsFileNameFormat lyricsFolder
+		saveLyricsWithSong overwriteLyricsWithSong lyricsFileNameFormat
 		integrateMaterialSkin
 		useFb2kFormat lyricsSavePathFormat lyricsSaveFileNameFormat lyricsSaveBom lyricsSaveEncoding
-		lyricsSaveMode lyricsSaveSyncOnly lyricsSaveApplyProcessing
+		lyricsSaveMode lyricsSaveSeconds lyricsSaveRatio lyricsSaveSyncOnly lyricsSaveApplyProcessing
 		autoSearchLyrics lyricsMinMatch lyricsStopAfterFirst lyricsStopExternalOnLocal
 		lyricsPreferSynced lyricsResultMode
 		lyricsCustomSearchFields lyricsSearchTitleFormat lyricsSearchArtistFormat
 		lyricsProcessReferenceOnly
-		lyricsSourceOrder lyricsSearchFilters lyricsFieldProcessing lyricsProcessingRules
+		lyricsSourceOrder lyricsSourceDisabled lyricsSearchFilters lyricsFieldProcessing lyricsProcessingRules
 	));
 
 	return @prefs;
@@ -49,7 +49,7 @@ sub handler {
 
 	# Fill in defaults for array settings and make sure malformed JSON
 	# cannot be persisted.
-	foreach my $key (qw(lyricsSourceOrder lyricsSearchFilters lyricsFieldProcessing lyricsProcessingRules)) {
+	foreach my $key (qw(lyricsSourceOrder lyricsSourceDisabled lyricsSearchFilters lyricsFieldProcessing lyricsProcessingRules)) {
 		my $value = $paramRef->{"pref_$key"};
 		$value = $prefs->get($key) if !defined $value;
 		$value = '[]' if !defined $value || $value eq '';
@@ -61,7 +61,9 @@ sub handler {
 	$paramRef->{fb2kFormatAvailable} = $fb2kAvailable;
 	$paramRef->{hanConvertAvailable} = eval { require Plugins::MusicArtistInfo::Lyrics::HanConvert; Plugins::MusicArtistInfo::Lyrics::HanConvert->available } ? 1 : 0;
 	$paramRef->{lyricsSourceOptions} = Plugins::MusicArtistInfo::TrackInfo->lyrics_source_options;
+	$paramRef->{lyricsFolder} = $prefs->get('lyricsFolder') || '';
 	$paramRef->{lyricsSourceOrder} = $prefs->get('lyricsSourceOrder') || '[]';
+	$paramRef->{lyricsSourceDisabled} = $prefs->get('lyricsSourceDisabled') || '[]';
 	$paramRef->{lyricsSearchFilters} = $prefs->get('lyricsSearchFilters') || '[]';
 	$paramRef->{lyricsFieldProcessing} = $prefs->get('lyricsFieldProcessing') || '[]';
 	$paramRef->{lyricsProcessingRules} = $prefs->get('lyricsProcessingRules') || '[]';

@@ -75,12 +75,30 @@ sub scripts {
 	return \@scripts;
 }
 
+sub script_sources {
+	my ($class) = @_;
+
+	return [] unless $class->enabled;
+
+	my @out;
+	foreach my $file (@{ $class->scripts }) {
+		my $name = basename($file);
+		push @out, {
+			id    => "PerlScripts:$name",
+			file  => $file,
+			label => "Perl: $name",
+		};
+	}
+
+	return \@out;
+}
+
 sub getLyrics {
-	my ($class, $args, $cb) = @_;
+	my ($class, $args, $cb, $file) = @_;
 
 	return $cb->() unless $class->enabled;
 
-	my $scripts = $class->scripts;
+	my $scripts = $file ? [ $file ] : $class->scripts;
 	return $cb->() unless @$scripts;
 
 	my $deadline = time() + $TOTAL_TIMEOUT;
@@ -112,11 +130,11 @@ sub getLyrics {
 }
 
 sub getCandidates {
-	my ($class, $args, $cb, $onCandidate) = @_;
+	my ($class, $args, $cb, $onCandidate, $file) = @_;
 
 	return $cb->([]) unless $class->enabled;
 
-	my $scripts = $class->scripts;
+	my $scripts = $file ? [ $file ] : $class->scripts;
 	return $cb->([]) unless @$scripts;
 
 	my $deadline = time() + $TOTAL_TIMEOUT;

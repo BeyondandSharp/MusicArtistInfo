@@ -1170,3 +1170,67 @@ PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FILENAME
 PLUGIN_MUSICARTISTINFO_LYRICS_HANCONVERT_UNAVAILABLE
 	EN	Simplified/traditional Chinese conversion is unavailable. Install Encode::HanConvert or Text::OpenCC to enable these rules.
 	ZH_CN	简体/繁体中文转换不可用。安装 Encode::HanConvert 或 Text::OpenCC 后可启用这些规则。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FIXED_TIME
+	EN	Save after a fixed time
+	ZH_CN	播放固定时间后保存
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FIXED_RATIO
+	EN	Save after a fixed percentage of the track
+	ZH_CN	播放固定时间比例后保存
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SECONDS
+	EN	Seconds
+	ZH_CN	秒
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_RATIO
+	EN	Percent
+	ZH_CN	比例
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PATH_TRACK
+	EN	Track folder
+	ZH_CN	音轨所在目录
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PATH_MAI
+	EN	MusicArtistInfo lyrics folder
+	ZH_CN	MusicArtistInfo 歌词目录
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PATH_CUSTOM
+	EN	Custom
+	ZH_CN	自定义
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PATH_PRESET
+	EN	Preset
+	ZH_CN	预设
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_TAG
+	EN	Tag lyrics
+	ZH_CN	标签歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_TAG_DESC
+	EN	Lyrics embedded in the track tags
+	ZH_CN	歌曲标签中内嵌的歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_LOCAL
+	EN	Local lyrics
+	ZH_CN	本地歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_LOCAL_DESC
+	EN	Local .lrc or .txt files next to the track
+	ZH_CN	歌曲旁的 .lrc / .txt 歌词文件
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_MAI_DESC
+	EN	MusicArtistInfo built-in online lyrics service
+	ZH_CN	MusicArtistInfo 内置在线歌词服务
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_DESC
+	EN	Lyrics from Genius.com
+	ZH_CN	Genius.com 歌词源
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_NODOT
+	EN	Genius (without punctuation retry)
+	ZH_CN	Genius（去标点重试）
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_NODOT_DESC
+	EN	Lyrics from Genius.com, retried after removing punctuation
+	ZH_CN	Genius.com 歌词源：去掉标点后重试
