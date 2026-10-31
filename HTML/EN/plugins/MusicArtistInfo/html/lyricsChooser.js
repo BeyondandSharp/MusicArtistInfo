@@ -224,8 +224,8 @@
 			var m;
 			while ((m = re.exec(raw)) !== null) {
 				var fraction = m[3] ? parseInt(m[3], 10) : 0;
-				if (m[3] && m[3].length === 2) fraction *= 10;
-				else if (m[3] && m[3].length === 3) { /* already ms */ }
+				if (m[3] && m[3].length === 1) fraction *= 100;
+				else if (m[3] && m[3].length === 2) fraction *= 10;
 				times.push(parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + fraction / 1000);
 			}
 			var lineText = raw.replace(re, '').trim();
@@ -243,7 +243,7 @@
 		state.currentLine = -1;
 		if (!candidate) return;
 		if (candidate.synced) {
-			var lines = parseLrc(candidate.lyrics);
+			var lines = Array.isArray(candidate.lines) && candidate.lines.length ? candidate.lines : parseLrc(candidate.lyrics);
 			if (lines.length) {
 				state.lines = lines;
 				lines.forEach(function (line, index) {
@@ -258,7 +258,7 @@
 				return;
 			}
 		}
-		preview.textContent = candidate.lyrics || '';
+		preview.textContent = candidate.synced ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
 		stopSync();
 	}
 	function updateCurrentLine(scroll) {

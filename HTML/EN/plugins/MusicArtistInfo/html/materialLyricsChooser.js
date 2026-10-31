@@ -951,7 +951,7 @@
 		state.currentLine = -1;
 		if (!candidate) return;
 		if (candidate.synced) {
-			var lines = parseLrc(candidate.lyrics);
+			var lines = Array.isArray(candidate.lines) && candidate.lines.length ? candidate.lines : parseLrc(candidate.lyrics);
 			if (lines.length) {
 				state.lines = lines;
 				lines.forEach(function (line, index) {
@@ -966,7 +966,7 @@
 				return;
 			}
 		}
-		state.preview.textContent = candidate.lyrics || '';
+		state.preview.textContent = candidate.synced ? String(candidate.lyrics || '').replace(/\[[^\]]*\]/g, '') : (candidate.lyrics || '');
 		stopSync();
 	}
 	function updateCurrentLine(scroll) {

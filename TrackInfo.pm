@@ -1308,6 +1308,32 @@ sub _clean_candidate_text {
 	return $text;
 }
 
+sub _candidate_lrc_lines {
+	my $lyrics = shift;
+	return [] unless defined $lyrics && !ref $lyrics && $lyrics =~ /\S/;
+
+	my @lines;
+	foreach my $raw (split /\r?\n/, $lyrics) {
+		my @times;
+		while ( $raw =~ /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g ) {
+			my ($min, $sec, $frac) = ($1, $2, $3);
+			my $f = 0;
+			if ( defined $frac ) {
+				my $len = length($frac);
+				$f = $frac / ($len == 3 ? 1000 : $len == 2 ? 100 : 10);
+			}
+			push @times, $min * 60 + $sec + $f;
+		}
+		next unless @times;
+		my $text = $raw;
+		$text =~ s/\[[^\]]*\]//g;
+		$text =~ s/^\s+|\s+$//g;
+		push @lines, map { { time => $_, text => $text } } @times;
+	}
+	@lines = sort { $a->{time} <=> $b->{time} } @lines;
+	return \@lines;
+}
+
 sub _candidate_json {
 	my $candidate = shift || {};
 	return {
@@ -1320,6 +1346,7 @@ sub _candidate_json {
 		synced  => $candidate->{synced} ? 1 : 0,
 		lyrics  => _clean_candidate_text($candidate->{lyrics}),
 		preview => _clean_candidate_text($candidate->{preview}),
+		lines   => $candidate->{synced} ? _candidate_lrc_lines(_clean_candidate_text($candidate->{lyrics})) : [],
 	};
 }
 
