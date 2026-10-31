@@ -81,7 +81,7 @@ sub init {
 		eval {
 			require Slim::Web::Pages;
 			Slim::Web::Pages->addRawFunction(
-				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel|save-preview|script)},
+				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel|save-preview|script|source-test)},
 				\&_lyricsApi,
 			);
 		};
@@ -1334,6 +1334,21 @@ sub _candidate_lrc_lines {
 	return \@lines;
 }
 
+sub _visible_candidate {
+	my $candidate = shift || {};
+	return 0 unless ref $candidate eq 'HASH';
+	my $lyrics = _clean_candidate_text($candidate->{lyrics});
+	return 0 unless $lyrics =~ /\S/;
+	return 0 if $lyrics =~ /(?:AZLyrics|requestforaccess|EnableJavaScript|Enable JavaScript|JavaScriptisdisabled|ClientChallenge|404NotFound|404\s*Not Found|PageNotFound|Page Not Found|LatestLyrics|Latest Lyrics|Searchresultsfor|Search results for|Our systems have detected unusual activity|Pickgenre|Pick genre|LETRAS\.COM|Lololyrics|LyricsMania|Searchresults|Browse\s+Submit\s+New Lyrics|New Lyrics\s+USA Chart|Top Albums|Top Lyric|Lyrics\.com)/i;
+	my $plain = $lyrics;
+	$plain =~ s/\[\d{1,3}:\d{1,3}(?:[.:]\d{1,3})?[^\]]*\]//g;
+	$plain =~ s/^\s*(?:\x{4f5c}\x{8bcd}|\x{4f5c}\x{66f2}|\x{7f16}\x{66f2}|\x{5236}\x{4f5c}|\x{8bcd}|\x{66f2}|lyrics|composer|arranger)\s*[:：].*$//gmi;
+	return 0 if length($lyrics) < 20;
+	return 0 if $plain !~ /\S/;
+	return 0 if $plain !~ /\p{L}/;
+	return 1;
+}
+
 sub _candidate_json {
 	my $candidate = shift || {};
 	return {
@@ -1345,7 +1360,20 @@ sub _candidate_json {
 		album   => $candidate->{album},
 		synced  => $candidate->{synced} ? 1 : 0,
 		lyrics  => _clean_candidate_text($candidate->{lyrics}),
-		preview => _clean_candidate_text($candidate->{preview}),
+		preview => do {
+			my $preview = _clean_candidate_text($candidate->{preview});
+			my $lines = $candidate->{synced}
+				? _candidate_lrc_lines(_clean_candidate_text($candidate->{lyrics}))
+				: [];
+			if ( @$lines ) {
+				$preview = join("\n", map { $_->{text} } @$lines);
+			}
+			elsif ( $candidate->{synced} ) {
+				$preview =~ s/\[[^\]]*\]//g;
+				$preview =~ s/^\s+|\s+$//g;
+			}
+			$preview;
+		},
 		lines   => $candidate->{synced} ? _candidate_lrc_lines(_clean_candidate_text($candidate->{lyrics})) : [],
 	};
 }
@@ -1376,7 +1404,7 @@ sub _search_snapshot {
 	my ($session, $state) = @_;
 
 	$state ||= {};
-	my @out = map { _candidate_json($_) } @{ $state->{candidates} || [] };
+	my @out = map { _candidate_json($_) } grep { _visible_candidate($_) } @{ $state->{candidates} || [] };
 
 	return {
 		search_id => $session,
@@ -1407,6 +1435,10 @@ sub _lyricsApi {
 		for (my $i = 0; $i < @pairs; $i += 2) {
 			$params{$pairs[$i]} = $pairs[$i + 1];
 		}
+	}
+
+	if ( $path =~ m{/lyrics/source-test} ) {
+		return _handle_lyrics_source_test($httpClient, $response, \%params);
 	}
 
 	if ( $path =~ m{/lyrics/script} ) {
@@ -1543,6 +1575,49 @@ sub _append_script_pref_id {
 	_save_script_pref_items('lyricsSourceOrder', \@items);
 }
 
+sub _handle_lyrics_source_test {
+	my ($httpClient, $response, $params) = @_;
+
+	my $id = $params->{id} || '';
+	my $args = {
+		title    => _decode_param($params->{title}),
+		artist   => _decode_param($params->{artist}),
+		album    => _decode_param($params->{album}),
+		duration => _decode_param($params->{duration}),
+		url      => $params->{url} || '',
+		track_id => $params->{track_id},
+	};
+
+	my $done = 0;
+	my $reply = sub {
+		my $result = shift;
+		return if $done++;
+		if ( $result && ref $result eq 'HASH' && !$result->{error} && defined $result->{lyrics} ) {
+			$result->{lyrics} = _clean_candidate_text($result->{lyrics});
+			$result->{synced} = 1 if $result->{lyrics} =~ /^\s*\[\d+:\d+/m;
+			if ( !_visible_candidate($result) ) {
+				$result->{lyrics} = '';
+				$result->{error} = 'No usable lyrics';
+			}
+		}
+		_send_json($httpClient, $response, {
+			id      => $id,
+			result  => $result || {},
+		});
+	};
+
+	if ( $id =~ /^PerlScripts:(.+)$/ ) {
+		my $file = _perl_script_file($1);
+		return _send_json($httpClient, $response, { error => 'Script not found' }, 404) unless $file;
+		Plugins::MusicArtistInfo::Lyrics::PerlScripts->getLyrics($args, $reply, $file);
+		return;
+	}
+
+	my $handler = $lyricsProvider->{$id};
+	return _send_json($httpClient, $response, { error => 'Unknown source' }, 400) unless $handler;
+	$handler->($args, $reply);
+}
+
 sub lyrics_source_options {
 	my @out = (
 		{
@@ -1644,7 +1719,7 @@ sub _handle_lyrics_candidates {
 		my $session = _new_candidate_session($cached->{candidates}, $cached->{save_args} || $saveArgs);
 		return _send_json($httpClient, $response, {
 			session    => $session,
-			candidates => [ map { _candidate_json($_) } @{ $cached->{candidates} } ],
+			candidates => [ map { _candidate_json($_) } grep { _visible_candidate($_) } @{ $cached->{candidates} } ],
 			cached     => 1,
 		});
 	}
@@ -1661,7 +1736,7 @@ sub _handle_lyrics_candidates {
 		_candidate_cache_store($lookupArgs, $candidates, $saveArgs);
 		my $session = _new_candidate_session($candidates, $saveArgs);
 
-		my @out = map { _candidate_json($_) } @$candidates;
+		my @out = map { _candidate_json($_) } grep { _visible_candidate($_) } @$candidates;
 
 		_send_json($httpClient, $response, {
 			session    => $session,

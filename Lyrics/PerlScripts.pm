@@ -403,6 +403,8 @@ sub _valid_result {
 	return 0 unless ref $result eq 'HASH';
 	return 0 if ref $result->{lyrics};
 	return 0 unless defined $result->{lyrics} && $result->{lyrics} =~ /\S/;
+	return 0 if $result->{lyrics} =~ /(?:AZLyrics|requestforaccess|EnableJavaScript|Enable JavaScript|JavaScriptisdisabled|ClientChallenge|404NotFound|404\s*Not Found|PageNotFound|Page Not Found|LatestLyrics|Searchresultsfor|Pickgenre|LETRAS\.COM|Lololyrics|LyricsMania)/i;
+	return 0 if length($result->{lyrics}) < 20;
 	return 1;
 }
 
