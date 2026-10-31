@@ -304,7 +304,10 @@
 		Array.prototype.forEach.call(nodes, function (node, i) {
 			node.classList.toggle('mai-lyrics-sync-current', i === index);
 		});
-		if (nodes[index]) centerPreviewLine();
+		if (nodes[index]) {
+			if (Date.now() - state.lastManualScroll >= 3000) centerPreviewLine();
+			else if (!state.centerTimer) schedulePreviewCenter();
+		}
 	}
 	function stopSync() {
 		if (state.syncTimer) { clearInterval(state.syncTimer); state.syncTimer = null; }

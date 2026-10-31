@@ -1022,7 +1022,10 @@
 		Array.prototype.forEach.call(nodes, function (node, i) {
 			node.classList.toggle('lyrics-current-line', i === index);
 		});
-		if (nodes[index]) centerPreviewLine();
+		if (nodes[index]) {
+			if (Date.now() - state.lastManualScroll >= 3000) centerPreviewLine();
+			else if (!state.centerTimer) schedulePreviewCenter();
+		}
 	}
 	function fetchPlaybackTime() {
 		if (!state.playerId || !state.open) return;
