@@ -16,8 +16,11 @@ sub build {
 
 	return { error => 'Missing track' } unless $track;
 
-	my $useFb2k = $opts->{use_fb2k} ? 1 : 0;
-	$useFb2k = 0 unless Plugins::MusicArtistInfo::Lyrics::Format->available;
+	my $language = $opts->{template_language}
+		|| $opts->{use_fb2k} && 'fb2k'
+		|| Plugins::MusicArtistInfo::Lyrics::Format->language;
+	$language = 'lms' unless $language =~ /^(?:lms|fb2k|textxslate)$/;
+	$language = 'lms' unless Plugins::MusicArtistInfo::Lyrics::Format->available_for($language);
 
 	my $pathFormat = defined $opts->{path_format} ? $opts->{path_format} : '';
 	my $fileFormat = defined $opts->{file_format} ? $opts->{file_format} : '';
@@ -27,16 +30,16 @@ sub build {
 	my $filename;
 	my $formatter = 'lms';
 
-	if ( $useFb2k && $pathFormat ne '' ) {
-		my $result = Plugins::MusicArtistInfo::Lyrics::Format->format_track($track, $pathFormat);
+	if ( $language ne 'lms' && $pathFormat ne '' ) {
+		my $result = Plugins::MusicArtistInfo::Lyrics::Format->format_track($track, $pathFormat, $language);
 		if ( !$result->{error} && defined $result->{text} && $result->{text} ne '' ) {
 			$path = $result->{text};
-			$formatter = 'fb2k';
+			$formatter = $language;
 		}
 	}
 
-	if ( $useFb2k && $fileFormat ne '' ) {
-		my $result = Plugins::MusicArtistInfo::Lyrics::Format->format_track($track, $fileFormat);
+	if ( $language ne 'lms' && $fileFormat ne '' ) {
+		my $result = Plugins::MusicArtistInfo::Lyrics::Format->format_track($track, $fileFormat, $language);
 		if ( !$result->{error} && defined $result->{text} && $result->{text} ne '' ) {
 			$filename = $result->{text};
 		}

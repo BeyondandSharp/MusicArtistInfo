@@ -66,7 +66,10 @@ sub prepare_args {
 	my $title  = defined $out{title}  ? $out{title}  : '';
 	my $artist = defined $out{artist} ? $out{artist} : '';
 
-	if ( $prefs->get('lyricsCustomSearchFields') && $prefs->get('useFb2kFormat') && Plugins::MusicArtistInfo::Lyrics::Format->available ) {
+	my $language = $prefs->get('templateLanguage') || 'lms';
+	if ( $prefs->get('lyricsCustomSearchFields')
+		&& $language ne 'lms'
+		&& Plugins::MusicArtistInfo::Lyrics::Format->available_for($language) ) {
 		my $fields = {
 			title  => $title,
 			artist => $artist,
@@ -74,8 +77,14 @@ sub prepare_args {
 			path   => $out{url} || $out{path} || '',
 		};
 
-		$title = _format_field($fields, $prefs->get('lyricsSearchTitleFormat') || '%title%', $title);
-		$artist = _format_field($fields, $prefs->get('lyricsSearchArtistFormat') || '[%artist%]', $artist);
+		my $titleFormat  = $prefs->get('lyricsSearchTitleFormat')  || '%title%';
+		my $artistFormat = $prefs->get('lyricsSearchArtistFormat') || '[%artist%]';
+		if ( $language eq 'textxslate' ) {
+			$titleFormat  = '<: $title :>'  if $titleFormat  eq '%title%';
+			$artistFormat = '<: $artist :>' if $artistFormat eq '[%artist%]';
+		}
+		$title = _format_field($fields, $titleFormat, $title, $language);
+		$artist = _format_field($fields, $artistFormat, $artist, $language);
 	}
 
 	my $script = $class->_run_script({
@@ -97,9 +106,9 @@ sub prepare_args {
 }
 
 sub _format_field {
-	my ($fields, $template, $fallback) = @_;
+	my ($fields, $template, $fallback, $language) = @_;
 
-	my $result = Plugins::MusicArtistInfo::Lyrics::Format->format_fields($fields, $template);
+	my $result = Plugins::MusicArtistInfo::Lyrics::Format->format_fields($fields, $template, $language);
 	return $fallback if !$result || $result->{error} || !defined $result->{text};
 	return $result->{text} ne '' ? $result->{text} : $fallback;
 }

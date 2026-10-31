@@ -63,15 +63,19 @@
 <link rel="stylesheet" href="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-tomorrow.min.css">
 
 <div class="mai-lyrics-settings">
-[% IF !fb2kFormatAvailable %]
-<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>
-[% END %]
-
-[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_FB2K_FORMAT" desc="PLUGIN_MUSICARTISTINFO_FB2K_FORMAT_DESC" %]
-	<input type="checkbox" class="stdedit" name="pref_useFb2kFormat" id="pref_useFb2kFormat" value="1" [% IF prefs.pref_useFb2kFormat %]checked [% END %] [% IF !fb2kFormatAvailable %]disabled [% END %] />
-	<label for="pref_useFb2kFormat" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_FB2K_ENABLE" | string %]</label>
+[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_TEMPLATE_LANGUAGE" desc="PLUGIN_MUSICARTISTINFO_TEMPLATE_LANGUAGE_DESC" %]
+	<label for="pref_templateLanguage">[% "PLUGIN_MUSICARTISTINFO_TEMPLATE_LANGUAGE" | string %]</label>
+	<select class="stdedit" name="pref_templateLanguage" id="pref_templateLanguage">
+		<option value="lms" [% IF templateLanguage == 'lms' %]selected [% END %]>LMS</option>
+		<option value="fb2k" [% IF templateLanguage == 'fb2k' %]selected [% END %] [% IF !fb2kFormatAvailable %]disabled [% END %]>Foobar2000</option>
+		<option value="textxslate" [% IF templateLanguage == 'textxslate' %]selected [% END %] [% IF !textxslateFormatAvailable %]disabled [% END %]>Text::Xslate</option>
+	</select>
 	[% IF !fb2kFormatAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>[% END %]
-	<div class="mai-hint"><a href="http://chronial.de/misc/foobar_titleformat/titleformat_help_new.html" target="_blank" rel="noopener">[% "PLUGIN_MUSICARTISTINFO_FB2K_REFERENCE" | string %]</a></div>
+	[% IF !textxslateFormatAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_TEXTXSLATE_UNAVAILABLE" | string %]</div>[% END %]
+	<div class="mai-hint">
+		<a href="http://chronial.de/misc/foobar_titleformat/titleformat_help_new.html" target="_blank" rel="noopener">[% "PLUGIN_MUSICARTISTINFO_FB2K_REFERENCE" | string %]</a>
+		· <a href="https://metacpan.org/pod/Text::Xslate" target="_blank" rel="noopener">[% "PLUGIN_MUSICARTISTINFO_TEXTXSLATE_REFERENCE" | string %]</a>
+	</div>
 [% END %]
 
 <div class="mai-tabs" id="maiLyricsTabs">
@@ -438,7 +442,7 @@
 	}
 
 	/* Save settings visibility and presets. */
-	var fb2k = document.getElementById('pref_useFb2kFormat');
+	var languageSelect = document.getElementById('pref_templateLanguage');
 	var fb2kFields = document.getElementById('maiFb2kFields');
 	var lmsFilename = document.getElementById('maiLmsFilenameField');
 	var pathInput = document.getElementById('pref_lyricsSavePathFormat');
@@ -454,8 +458,8 @@
 		return value === '' || value === '$directory_path(%path%)' || value === '$directory_path(%_path%)';
 	}
 	function updateSaveFields() {
-		if (!fb2k) return;
-		var use = fb2k.checked && !fb2k.disabled;
+		if (!languageSelect) return;
+		var use = languageSelect.value !== 'lms';
 		if (fb2kFields) fb2kFields.style.display = use ? '' : 'none';
 		if (lmsFilename) lmsFilename.style.display = use ? 'none' : '';
 		if (saveNextWrap) saveNextWrap.style.display = use ? 'none' : 'block';
@@ -464,7 +468,19 @@
 			if (ratioWrap) ratioWrap.style.display = saveMode.value === 'fixed_ratio' ? '' : 'none';
 		}
 	}
-	if (fb2k) fb2k.addEventListener('change', updateSaveFields);
+	if (languageSelect) languageSelect.addEventListener('change', function () {
+		var lang = languageSelect.value;
+		var fileInput = document.getElementById('pref_lyricsSaveFileNameFormat');
+		if (lang === 'textxslate') {
+			if (pathInput && (pathInput.value === '' || pathInput.value === '$directory_path(%path%)')) pathInput.value = '<: $directory :>';
+			if (fileInput && fileInput.value === '') fileInput.value = '<: $title :>';
+		}
+		else if (lang === 'fb2k') {
+			if (pathInput && pathInput.value === '<: $directory :>') pathInput.value = '$directory_path(%path%)';
+			if (fileInput && fileInput.value === '<: $title :>') fileInput.value = '';
+		}
+		updateSaveFields();
+	});
 	if (saveMode) saveMode.addEventListener('change', updateSaveFields);
 	if (pathInput) {
 		pathInput.addEventListener('input', function () {
@@ -498,7 +514,7 @@
 			if (player) p.set('player', player);
 			p.set('path_format', document.getElementById('pref_lyricsSavePathFormat').value || '');
 			p.set('file_format', document.getElementById('pref_lyricsSaveFileNameFormat').value || '');
-			p.set('use_fb2k', document.getElementById('pref_useFb2kFormat').checked ? 1 : 0);
+			p.set('language', document.getElementById('pref_templateLanguage').value);
 			fetch('/plugins/MusicArtistInfo/lyrics/save-preview?' + p.toString(), {credentials:'same-origin'})
 				.then(function (r) { return r.json(); })
 				.then(function (data) {
@@ -652,9 +668,9 @@
 
 
 	/* Remove the empty trailing line LMS adds after the global FB2K group. */
-	var fb2kInput = document.getElementById('pref_useFb2kFormat');
-	if (fb2kInput) {
-		var fb2kGroup = fb2kInput.closest('.settingGroup');
+	var languageInput = document.getElementById('pref_templateLanguage');
+	if (languageInput) {
+		var fb2kGroup = languageInput.closest('.settingGroup');
 		if (fb2kGroup) {
 			fb2kGroup.classList.add('mai-fb2k-group');
 			var fb2kPrefs = fb2kGroup.querySelector('.prefs');

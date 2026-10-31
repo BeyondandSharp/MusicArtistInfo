@@ -31,7 +31,7 @@ sub prefs {
 		customLyricsSourcesFolder
 		saveLyricsWithSong overwriteLyricsWithSong lyricsFileNameFormat
 		integrateMaterialSkin
-		useFb2kFormat lyricsSavePathFormat lyricsSaveFileNameFormat lyricsSaveBom lyricsSaveEncoding
+		templateLanguage lyricsSavePathFormat lyricsSaveFileNameFormat lyricsSaveBom lyricsSaveEncoding
 		lyricsSaveMode lyricsSaveSeconds lyricsSaveRatio lyricsSaveSyncOnly lyricsSaveApplyProcessing
 		autoSearchLyrics lyricsMinMatch lyricsStopAfterFirst lyricsStopExternalOnLocal
 		lyricsPreferSynced lyricsResultMode
@@ -47,10 +47,11 @@ sub handler {
 	my ($class, $client, $paramRef, $pageSetup) = @_;
 
 	my $fb2kAvailable = Plugins::MusicArtistInfo::Lyrics::Format->available;
-
-	if ( !$fb2kAvailable ) {
-		$paramRef->{pref_useFb2kFormat} = 0;
-	}
+	my $xslateAvailable = Plugins::MusicArtistInfo::Lyrics::Format->textxslate_available;
+	my $language = $prefs->get('templateLanguage') || 'lms';
+	$language = 'lms' if $language eq 'fb2k' && !$fb2kAvailable;
+	$language = 'lms' if $language eq 'textxslate' && !$xslateAvailable;
+	$paramRef->{pref_templateLanguage} = $language;
 
 	# Fill in defaults for array settings and make sure malformed JSON
 	# cannot be persisted.
@@ -64,6 +65,8 @@ sub handler {
 	}
 
 	$paramRef->{fb2kFormatAvailable} = $fb2kAvailable;
+	$paramRef->{textxslateFormatAvailable} = $xslateAvailable;
+	$paramRef->{templateLanguage} = $language;
 	$paramRef->{hanConvertAvailable} = eval { require Plugins::MusicArtistInfo::Lyrics::HanConvert; Plugins::MusicArtistInfo::Lyrics::HanConvert->available } ? 1 : 0;
 	$paramRef->{lyricsSourceOptions} = Plugins::MusicArtistInfo::TrackInfo->lyrics_source_options;
 	$paramRef->{lyricsFolder} = $prefs->get('lyricsFolder') || '';

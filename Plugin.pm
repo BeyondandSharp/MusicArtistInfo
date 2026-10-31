@@ -56,7 +56,7 @@ sub initPlugin {
 		lyricsFileNameFormat => 'FILE',
 		customLyricsSourcesFolder => '',
 		integrateMaterialSkin => 1,
-		useFb2kFormat => 0,
+		templateLanguage => 'lms',
 		lyricsSavePathFormat => '$directory_path(%path%)',
 		lyricsSaveFileNameFormat => '',
 		lyricsSaveBom => 0,

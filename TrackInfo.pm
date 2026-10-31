@@ -821,7 +821,7 @@ sub _save_lyrics_next_to_song {
 	return unless $audioPath && -f $audioPath;
 
 	my $target = Plugins::MusicArtistInfo::Lyrics::SaveTarget->build($track, {
-		use_fb2k       => $prefs->get('useFb2kFormat'),
+		template_language => $prefs->get('templateLanguage') || 'lms',
 		path_format    => $prefs->get('lyricsSavePathFormat'),
 		file_format    => $prefs->get('lyricsSaveFileNameFormat'),
 		lms_file_format => $prefs->get('lyricsFileNameFormat') || 'FILE',
@@ -1504,12 +1504,12 @@ sub _handle_save_preview {
 		return _send_json($httpClient, $response, { error => 'No current track' }, 400);
 	}
 
-	my $useFb2k = defined $params->{use_fb2k}
-		? $params->{use_fb2k}
-		: $prefs->get('useFb2kFormat');
+	my $language = defined $params->{language}
+		? $params->{language}
+		: $prefs->get('templateLanguage') || 'lms';
 
 	my $target = Plugins::MusicArtistInfo::Lyrics::SaveTarget->build($track, {
-		use_fb2k        => $useFb2k,
+		template_language => $language,
 		path_format     => defined $params->{path_format}
 			? $params->{path_format}
 			: $prefs->get('lyricsSavePathFormat'),

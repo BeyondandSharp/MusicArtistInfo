@@ -1306,3 +1306,19 @@ PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_DELETE_CONFIRM
 PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_ERROR
 	EN	Could not update script.
 	ZH_CN	无法更新脚本。
+
+PLUGIN_MUSICARTISTINFO_TEMPLATE_LANGUAGE
+	EN	Template language
+	ZH_CN	模板语言
+
+PLUGIN_MUSICARTISTINFO_TEMPLATE_LANGUAGE_DESC
+	EN	Choose the template engine used for save paths, filenames and search fields.
+	ZH_CN	选择保存路径、文件名和搜索字段使用的模板引擎。
+
+PLUGIN_MUSICARTISTINFO_TEXTXSLATE_UNAVAILABLE
+	EN	Text::Xslate plugin or Perl module is not available.
+	ZH_CN	Text::Xslate 插件或 Perl 模块不可用。
+
+PLUGIN_MUSICARTISTINFO_TEXTXSLATE_REFERENCE
+	EN	Text::Xslate reference
+	ZH_CN	Text::Xslate 参考
