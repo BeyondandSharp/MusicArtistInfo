@@ -1,6 +1,7 @@
 #!/bin/sh
 # Release preflight hook for MusicArtistInfo.
-# Mirrors the convention of lms-plugin-CodecSwitch/.forgejo/release/preflight.sh.
+# Version has a single source of truth: VERSION. install.xml is a template
+# containing @VERSION@ and is rendered only when packaging a release.
 set -eu
 
 cd "${GITHUB_WORKSPACE:-$(pwd)}"
@@ -21,30 +22,29 @@ fi
 
 echo "[preflight] version=$version tag=$tag"
 
-# Version convention: VERSION is optional; install.xml is the source of truth.
-if [ -f VERSION ]; then
+# 1. VERSION is the only place the version is written.
+if [ ! -f VERSION ]; then
+  err "缺少 VERSION 文件"
+else
   version_file=$(head -n 1 VERSION | tr -d '[:space:]')
   if [ "$version_file" = "$version" ]; then
     ok "VERSION = $version"
   else
     err "VERSION 是 '${version_file:-<未找到>}'，应更新为 $version"
   fi
-else
-  warn "没有 VERSION 文件；以 install.xml 的 <version> 为准"
 fi
 
+# 2. The manifest must be a template, not a second version definition.
 install="install.xml"
 if [ ! -f "$install" ]; then
   err "找不到 $install"
+elif grep -q '<version>@VERSION@</version>' "$install"; then
+  ok "$install 使用 @VERSION@ 占位符"
 else
-  manifest_version=$(sed -n 's:.*<version>\([^<]*\)</version>.*:\1:p' "$install" | head -n 1)
-  if [ "$manifest_version" = "$version" ]; then
-    ok "$install 版本 = $version"
-  else
-    err "$install 版本是 '${manifest_version:-<未找到>}'，应更新为 $version"
-  fi
+  err "$install 缺少 <version>@VERSION@</version> 占位符"
 fi
 
+# 3. HEAD is the tagged commit.
 head_sha=$(git rev-parse HEAD 2>/dev/null || true)
 if [ -z "$expected_sha" ]; then
   warn "RELEASE_SHA 未设置，跳过 HEAD 校验"
