@@ -17,7 +17,7 @@ my $prefs  = preferences('plugin.musicartistinfo');
 
 my $PER_SCRIPT_TIMEOUT = 10;
 my $TOTAL_TIMEOUT      = 25;
-my $MAX_SCRIPTS        = 20;
+my $MAX_SCRIPTS        = 100;
 my $MAX_SCRIPT_SIZE    = 1024 * 1024;
 
 my %SCRIPT_CACHE;
