@@ -39,7 +39,7 @@
 .mai-lyrics-settings .mai-code-keyword { color:#569cd6; }
 .mai-lyrics-settings .mai-code-number { color:#b5cea8; }
 .mai-lyrics-settings .mai-codejar-wrap { display:flex; border:1px solid #888; background:#1e1e1e; color:#d4d4d4; font-family:monospace; font-size:13px; line-height:19px; overflow:hidden; margin:4px 0; }
-.mai-lyrics-settings .mai-codejar-gutter { flex:0 0 auto; margin:0; padding:6px 8px; text-align:right; color:#858585; background:#252526; user-select:none; overflow:hidden; white-space:pre; }
+.mai-lyrics-settings .mai-codejar-gutter { flex:0 0 auto; align-self:stretch; height:100%; box-sizing:border-box; margin:0; padding:6px 8px; text-align:right; color:#858585; background:#252526; user-select:none; overflow:hidden; white-space:pre; }
 .mai-lyrics-settings .mai-codejar { flex:1 1 auto; min-width:0; padding:6px 8px; font-family:monospace; font-size:13px; line-height:19px; white-space:pre !important; overflow-wrap:normal !important; word-break:normal !important; overflow:auto; outline:none; background:transparent; color:#d4d4d4; box-sizing:border-box; }
 .mai-lyrics-settings .mai-codejar .token.comment { color:#6a9955; }
 .mai-lyrics-settings .mai-codejar .token.string { color:#ce9178; }
@@ -589,6 +589,7 @@
 		editor.setAttribute('role', 'textbox');
 		editor.setAttribute('aria-multiline', 'true');
 		editor.style.height = (rows * 19 + 12) + 'px';
+		wrap.style.height = (rows * 19 + 12) + 'px';
 		wrap.appendChild(gutter);
 		wrap.appendChild(editor);
 		area.parentNode.insertBefore(wrap, area);
