@@ -4,11 +4,8 @@
 .mai-lyrics-settings .mai-tab.active { border:0 !important; background:transparent !important; color:var(--active-color, #ffb74d) !important; font-weight:700 !important; }
 .mai-lyrics-settings .settingGroup label { display:inline-block; min-width:190px; vertical-align:top; line-height:26px; margin:2px 0; }
 .mai-lyrics-settings .prefs { line-height:26px; }
-.mai-lyrics-settings .settingGroup { display:grid !important; grid-template-columns:250px minmax(0,1fr) !important; grid-template-areas:"desc desc" "head prefs"; align-items:start; padding-left:0 !important; position:relative; }
-.mai-lyrics-settings .settingGroup > .prefHead { grid-area:head; position:static !important; float:none !important; top:auto !important; left:auto !important; width:auto !important; margin:2px 0 0 0 !important; padding:0 !important; line-height:26px !important; align-self:start; }
-.mai-lyrics-settings .settingGroup > .prefDesc.hiddenDesc { grid-area:desc; display:block !important; line-height:26px !important; padding-top:0 !important; margin:0 0 10px 0 !important; }
-.mai-lyrics-settings .settingGroup > .prefs { grid-area:prefs; min-width:0; }
-.mai-lyrics-settings .settingGroup > .msk-help-btn { display:none !important; }
+.mai-lyrics-settings .settingGroup .prefHead { top:0; margin-top:0; padding-top:0; line-height:26px !important; }
+.mai-lyrics-settings .settingGroup > .prefDesc.hiddenDesc { display:block !important; line-height:26px !important; padding-top:0 !important; }
 .mai-lyrics-settings .settingGroup input.stdedit, .mai-lyrics-settings .settingGroup select.stdedit { vertical-align:top; margin:2px 0; }
 .mai-lyrics-settings .settingGroup input[type=text].stdedit, .mai-lyrics-settings .settingGroup select.stdedit { height:26px; box-sizing:border-box; }
 .mai-lyrics-settings .settingGroup input[type=checkbox] { vertical-align:middle; margin:0 4px 0 0; }
