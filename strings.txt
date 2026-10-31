@@ -6,6 +6,7 @@ PLUGIN_MUSICARTISTINFO
 	FR	Informations sur la Musique et les Artistes
 	HU	Zenei és előadói információk
 	NL	Muziek en Artiest Informatie
+	ZH_CN	音乐与艺术家信息
 
 PLUGIN_MUSICARTISTINFO_DESC
 	CS	Čtěte recenze alb, biografie interpretů, podobné interprety, prohlížejte obrázky interpretů a mnoho dalšího.
@@ -15,11 +16,13 @@ PLUGIN_MUSICARTISTINFO_DESC
 	FR	Critiques d’albums, biographies d’artistes, photos d'artistes, artistes similaires et bien plus encore.
 	HU	Olvasson albumkritikákat, előadói életrajzokat, kapcsolódó művészeket, tekintse meg az előadók képeit és még sok mást.
 	NL	Album recensies, artiest biografieën, gerelateerde artiesten, foto's van artiesten en nog veel meer.
+	ZH_CN	阅读专辑评论、艺术家传记、相关艺术家，查看艺术家图片以及更多内容。
 
 PLUGIN_MUSICARTISTINFO_REMOTE_DEBUGGING
 	DE	Musik- und Interpreteninformation, Online-Zugriffe erzwingen
 	EN	Music and Artist Information - force online lookups
 	FR	Informations sur la Musique et les Artistes - forcer les recherches en ligne
+	ZH_CN	音乐与艺术家信息 - 强制在线查询
 
 PLUGIN_MUSICARTISTINFO_ARTISTINFO
 	CS	Informace o interpretovi
@@ -29,6 +32,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTINFO
 	FR	Informations sur l'artiste
 	HU	Előadó információk
 	NL	Artiest informatie
+	ZH_CN	艺术家信息
 
 PLUGIN_MUSICARTISTINFO_BIOGRAPHY
 	CS	Biografie
@@ -38,6 +42,7 @@ PLUGIN_MUSICARTISTINFO_BIOGRAPHY
 	FR	Biographie
 	HU	Életrajz
 	NL	Biografie
+	ZH_CN	传记
 
 PLUGIN_MUSICARTISTINFO_ARTISTDETAILS
 	CS	Podrobnosti o interpretovi
@@ -47,6 +52,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTDETAILS
 	FR	Détails sur l'artiste
 	HU	Az előadó adatai
 	NL	Artiest details
+	ZH_CN	艺术家详情
 
 PLUGIN_MUSICARTISTINFO_ARTISTPICTURES
 	CS	Obrázky
@@ -56,6 +62,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTPICTURES
 	FR	Photos
 	HU	Képek
 	NL	Foto's
+	ZH_CN	图片
 
 PLUGIN_MUSICARTISTINFO_ARTISTNEWS
 	CS	Ve zprávách
@@ -65,6 +72,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTNEWS
 	FR	Actualités
 	HU	Hírekben
 	NL	In het nieuws
+	ZH_CN	新闻
 
 PLUGIN_MUSICARTISTINFO_ARTISTBLOGS
 	CS	V blogosféře
@@ -74,6 +82,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTBLOGS
 	FR	Blogosphère
 	HU	Blogbejegyzésekben
 	NL	In de blogosfeer
+	ZH_CN	博客
 
 PLUGIN_MUSICARTISTINFO_ARTISTVIDEOS
 	CS	Videa
@@ -82,6 +91,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTVIDEOS
 	FR	Vidéos
 	HU	Videók
 	NL	Videos
+	ZH_CN	视频
 
 PLUGIN_MUSICARTISTINFO_DISCOGRAPHY
 	CS	Diskografie
@@ -91,6 +101,7 @@ PLUGIN_MUSICARTISTINFO_DISCOGRAPHY
 	FR	Discographie
 	HU	Diskográfia
 	NL	Discografie
+	ZH_CN	唱片目录
 
 PLUGIN_MUSICARTISTINFO_RELATED_ARTISTS
 	CS	Podobní interpreti
@@ -100,6 +111,7 @@ PLUGIN_MUSICARTISTINFO_RELATED_ARTISTS
 	FR	Artistes liés
 	HU	Hasonló előadók
 	NL	Gerelateerde artiesten
+	ZH_CN	相关艺术家
 
 PLUGIN_MUSICARTISTINFO_ALBUMINFO
 	CS	Informace o albu
@@ -109,6 +121,7 @@ PLUGIN_MUSICARTISTINFO_ALBUMINFO
 	FR	Informations sur l'album
 	HU	Album információk
 	NL	Album informatie
+	ZH_CN	专辑信息
 
 PLUGIN_MUSICARTISTINFO_ALBUMDETAILS
 	CS	Podrobnosti o albu
@@ -118,6 +131,7 @@ PLUGIN_MUSICARTISTINFO_ALBUMDETAILS
 	FR	Détails sur l'album
 	HU	Az album részletei
 	NL	Album details
+	ZH_CN	专辑详情
 
 PLUGIN_MUSICARTISTINFO_ALBUMCREDITS
 	CS	Kredity
@@ -126,6 +140,7 @@ PLUGIN_MUSICARTISTINFO_ALBUMCREDITS
 	FR	Crédits
 	HU	Kreditek
 	NL	Credits
+	ZH_CN	制作人员
 
 PLUGIN_MUSICARTISTINFO_ALBUMREVIEW
 	CS	Recenze alba
@@ -135,6 +150,7 @@ PLUGIN_MUSICARTISTINFO_ALBUMREVIEW
 	FR	Critique de l'album
 	HU	Album értékelés
 	NL	Album recensie
+	ZH_CN	专辑评论
 
 PLUGIN_MUSICARTISTINFO_NOT_FOUND
 	CS	Je mi líto, nenašel jsem žádné relevantní informace.
@@ -144,6 +160,7 @@ PLUGIN_MUSICARTISTINFO_NOT_FOUND
 	FR	Malheureusement, aucune information pertinente n'a été trouvée.
 	HU	Sajnálom, nem találtam releváns információt.
 	NL	Helaas is er geen relevante informatie gevonden.
+	ZH_CN	抱歉，未找到相关信息。
 
 PLUGIN_MUSICARTISTINFO_URLS
 	CS	Webové stránky
@@ -153,6 +170,7 @@ PLUGIN_MUSICARTISTINFO_URLS
 	FR	Sites web
 	HU	Websites
 	NL	Websites
+	ZH_CN	网站
 
 PLUGIN_MUSICARTISTINFO_LOCAL_ARTWORK
 	CS	Lokální obrázky
@@ -162,6 +180,7 @@ PLUGIN_MUSICARTISTINFO_LOCAL_ARTWORK
 	FR	Images locales
 	HU	Helyi borítók
 	NL	Lokale afbeeldingen
+	ZH_CN	本地图片
 
 PLUGIN_MUSICARTISTINFO_LOCAL_FILES
 	CS	Textové soubory z hudební složky
@@ -171,6 +190,7 @@ PLUGIN_MUSICARTISTINFO_LOCAL_FILES
 	FR	Documents locaux (PDF et autres)
 	HU	Szöveges fájlok a zenei mappából
 	NL	Lokale tekst en PDF bestanden
+	ZH_CN	音乐文件夹中的文本文件
 
 PLUGIN_MUSICARTISTINFO_ALBUM_COVER
 	CS	Najít obal alba online
@@ -180,6 +200,7 @@ PLUGIN_MUSICARTISTINFO_ALBUM_COVER
 	FR	Rechercher une pochette sur internet
 	HU	Keresse meg az albumborítót az interneten
 	NL	Vind albumhoes online
+	ZH_CN	在线查找专辑封面
 
 PLUGIN_MUSICARTISTINFO_ALBUMS_MISSING_ARTWORK
 	CS	Najít alba s chybějícím obalem
@@ -189,6 +210,7 @@ PLUGIN_MUSICARTISTINFO_ALBUMS_MISSING_ARTWORK
 	FR	Rechercher les albums sans pochette
 	HU	Keressen albumokat a hiányzó borítókkal
 	NL	Vind albums zonder albumhoes
+	ZH_CN	查找缺少封面的专辑
 
 PLUGIN_MUSICARTISTINFO_ALBUMS_SMALL_ARTWORK
 	CS	Najít alba s malým obalem
@@ -198,6 +220,7 @@ PLUGIN_MUSICARTISTINFO_ALBUMS_SMALL_ARTWORK
 	FR	Rechercher les albums avec une petite pochette
 	HU	Keressen albumokat kis borítóval
 	NL	Vind albums met kleine albumhoes
+	ZH_CN	查找封面过小的专辑
 
 PLUGIN_MUSICARTISTINFO_ARTISTPHOTO_PROGRESS
 	CS	Vyhledávání obrázků interpreta online
@@ -207,6 +230,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTPHOTO_PROGRESS
 	FR	Recherche des photos d'artistes en ligne
 	HU	Művész képkeresés
 	NL	Foto's van artiesten opzoeken
+	ZH_CN	艺术家图片在线查询
 
 PLUGIN_MUSICARTISTINFO_ALBUMCOVER_PROGRESS
 	CS	Vyhledávání obalů alb
@@ -216,6 +240,7 @@ PLUGIN_MUSICARTISTINFO_ALBUMCOVER_PROGRESS
 	FR	Recherche des pochettes d'albums
 	HU	Album borítójának keresése
 	NL	Albumhoezen opzoeken
+	ZH_CN	专辑封面查询
 
 PLUGIN_MUSICARTISTINFO_BROWSE_ARTISTPHOTOS
 	CS	Fotografie interpretů
@@ -225,6 +250,7 @@ PLUGIN_MUSICARTISTINFO_BROWSE_ARTISTPHOTOS
 	FR	Photos d'artistes
 	HU	Művészek fényképei
 	NL	Foto's van artiesten
+	ZH_CN	艺术家照片
 
 PLUGIN_MUSICARTISTINFO_GENRE_REPLACEMENT_PROGRESS
 	CS	Vyhledávání žánrů online a jejich nahrazení
@@ -234,6 +260,7 @@ PLUGIN_MUSICARTISTINFO_GENRE_REPLACEMENT_PROGRESS
 	FR	Recherche et remplacement des genres en ligne
 	HU	Online műfajkeresés és csere
 	NL	Online genre opzoeken en vervangen
+	ZH_CN	在线流派查询与替换
 
 PLUGIN_MUSICARTISTINFO_BROWSE_ARTISTPHOTOS_ON
 	CS	Zobrazit obrázky (může zpomalit prohlížení)
@@ -243,6 +270,7 @@ PLUGIN_MUSICARTISTINFO_BROWSE_ARTISTPHOTOS_ON
 	FR	Afficher les photos (peut ralentir l'affichage)
 	HU	Képek megjelenítése (lassíthatja a böngészést)
 	NL	Toon foto's (kan het bladeren vertragen)
+	ZH_CN	显示图片（可能减慢浏览速度）
 
 PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_FOLDER
 	CS	Složka s fotografiemi interpretů
@@ -252,6 +280,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_FOLDER
 	FR	Dossier pour les photos d'artistes
 	HU	Előadó képeinek mappája
 	NL	Map voor foto's van artiesten
+	ZH_CN	艺术家照片文件夹
 
 PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_FOLDER_DESC
 	CS	Pokud se rozhodnete použít složku pro fotografie interpretů, bude použita jako další zdroj obrázků. Použijte názvy souborů jako %ARTIST.jpg (png, gif, např. „Peter Gabriel.jpg“). Pokud se soubor v této složce najde, nebude použit žádný online zdroj.
@@ -261,6 +290,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_FOLDER_DESC
 	FR	Si vous spécifiez un dossier pour les photos d'artistes, les photos qu'il contient seront utilisées en priorité sur celles trouvées sur internet. Utilisez des noms de fichiers de la forme %ARTIST.jpg (png, gif, par exemple "Peter Gabriel.jpg"), où le nom du fichier doit correspondre exactement au nom de l'artiste dans les fichiers musicaux.
 	HU	Ha úgy dönt, hogy egy mappát használ az előadók fényképeihez, akkor ez a képek további forrásaként fog szerepelni. Használjon olyan fájlneveket, mint a %ARTIST.jpg (png, gif, pl. 'Peter Gabriel.jpg'). Ha egy fájl található ebben a mappában, akkor a rendszer nem használ online forrást.
 	NL	Als je een map gebruikt voor foto's van artiesten, wordt deze gebruikt als een additionele bron voor foto's. Gebruik bestandsnamen als %ARTIST.jpg (png. gif, bijv. 'Peter Gabriel.jpg'). Als er een bestand in de map staat, wordt er geen online bron gebruikt.
+	ZH_CN	如果设置艺术家照片文件夹，它将作为图片的额外来源。文件名格式如 %ARTIST.jpg（也支持 png、gif，例如“Peter Gabriel.jpg”）。如果在此文件夹中找到文件，则不会使用在线来源。
 
 PLUGIN_MUSICARTISTINFO_REVIEWS_FOLDER
 	CS	Složka s recenzemi alb
@@ -270,6 +300,7 @@ PLUGIN_MUSICARTISTINFO_REVIEWS_FOLDER
 	FR	Dossier pour les critiques d'albums
 	HU	Albumismertetők mappa
 	NL	Map voor recensies
+	ZH_CN	专辑评论文件夹
 
 PLUGIN_MUSICARTISTINFO_REVIEWS_FOLDER_DESC
 	CS	Pokud se rozhodnete použít složku pro recenze alb, bude použita jako další zdroj textového obsahu. Použijte názvy souborů jako %ARTIST/%ALBUM.txt (html, nfo, např. „Peter Gabriel/So.html“). Pokud se soubor v této složce najde, nebude použit žádný online zdroj.
@@ -279,6 +310,7 @@ PLUGIN_MUSICARTISTINFO_REVIEWS_FOLDER_DESC
 	FR	Si vous spécifiez un dossier pour les critiques d'albums, les critiques qu'il contient seront utilisées en priorité sur celles trouvées sur internet. Utilisez des noms de fichiers de la forme %ARTIST/%ALBUM.txt (html, nfo, par exemple "Peter Gabriel/So.txt"), où le nom du fichier doit correspondre exactement au nom de l'artiste dans les fichiers musicaux.
 	HU	Ha úgy dönt, hogy egy mappát használ az albumismertetőkhöz, ez a szöveges tartalom további forrásaként fog szolgálni. Használjon olyan fájlneveket, mint a %ARTIST/%ALBUM.txt (html, nfo, pl. 'Peter Gabriel/So.html'). Ha egy fájl található ebben a mappában, akkor a rendszer nem használ online forrást.
 	NL	Als je een map gebruikt voor recensies, wordt deze gebruikt als een additionele bron voor recensies. Gebruik bestandsnamen als %ARTIST/%ALBUM.txt (html, nfo, bijv. 'Peter Gabriel/So.txt'). Als er een bestand in de map staat, wordt er geen online bron gebruikt.
+	ZH_CN	如果设置专辑评论文件夹，它将作为文本内容的额外来源。文件名格式如 %ARTIST/%ALBUM.txt（也支持 html、nfo，例如“Peter Gabriel/So.html”）。如果找到文件，则不会使用在线来源。
 
 PLUGIN_MUSICARTISTINFO_BIOS_FOLDER
 	CS	Složka s biografiemi
@@ -288,6 +320,7 @@ PLUGIN_MUSICARTISTINFO_BIOS_FOLDER
 	FR	Dossier pour les biographies
 	HU	Életrajzok mappa
 	NL	Map voor biografieën
+	ZH_CN	传记文件夹
 
 PLUGIN_MUSICARTISTINFO_BIOS_FOLDER_DESC
 	CS	Pokud se rozhodnete použít složku pro biografie, bude použita jako další zdroj textového obsahu. Použijte názvy souborů jako %ARTIST.txt (html, nfo, např. „Peter Gabriel.html“). Pokud se soubor v této složce najde, nebude použit žádný online zdroj.
@@ -297,6 +330,7 @@ PLUGIN_MUSICARTISTINFO_BIOS_FOLDER_DESC
 	FR	Si vous spécifiez un dossier pour les biographies d'artistes, les biographies qu'il contient seront utilisées en priorité sur celles trouvées sur internet. Utilisez des noms de fichiers de la forme %ARTIST.txt (html, nfo, par exemple "Peter Gabriel.txt"), où le nom du fichier doit correspondre exactement au nom de l'artiste dans les fichiers musicaux.
 	HU	Ha úgy dönt, hogy egy mappát használ az életrajzokhoz, azt a szöveges tartalom további forrásaként fogja használni. Használjon olyan fájlneveket, mint a %ARTIST.txt (html, nfo, pl. 'Peter Gabriel.html'). Ha egy fájl található ebben a mappában, akkor a rendszer nem használ online forrást.
 	NL	Als je een map gebruikt voor biografieën van artiesten, wordt deze gebruikt als een additionele bron voor biografieën. Gebruik bestandsnamen als %ARTIST.txt (html, nfo, bijv. 'Peter Gabriel.txt'). Als er een bestand in de map staat, wordt er geen online bron gebruikt.
+	ZH_CN	如果设置传记文件夹，它将作为文本内容的额外来源。文件名格式如 %ARTIST.txt（也支持 html、nfo，例如“Peter Gabriel.html”）。如果找到文件，则不会使用在线来源。
 
 PLUGIN_MUSICARTISTINFO_GENAI
 	CS	Generování obsahu pomocí AI
@@ -304,6 +338,7 @@ PLUGIN_MUSICARTISTINFO_GENAI
 	EN	Generate content using AI
 	FR	Générer du contenu avec l'IA
 	NL	Inhoud genereren met AI
+	ZH_CN	使用 AI 生成内容
 
 PLUGIN_MUSICARTISTINFO_GENAI_DESC
 	CS	Můžete zapnout experimentální podporu pro generování biografií a recenzí pomocí generativní AI. Tato možnost bude použita, pokud nebude nalezen žádný obsah na Wikipedii. Kvalita se může lišit!
@@ -311,6 +346,7 @@ PLUGIN_MUSICARTISTINFO_GENAI_DESC
 	EN	You can enable experimental support to generate biographies and reviews using generative AI. This option would be used if no content could be found on Wikipedia. Quality can vary!
 	FR	Vous pouvez activer la génération expérimentale des biographies et des critiques à l'aide de l'IA générative. Cette option sera utilisée si aucun contenu ne peut être trouvé sur Wikipédia. La qualité peut varier !
 	NL	Je kunt experimentele ondersteuning inschakelen om biografieën en recensies te genereren met behulp van generatieve AI. Deze optie wordt gebruikt als er geen content op Wikipedia kan worden gevonden. De kwaliteit kan variëren!
+	ZH_CN	可启用实验性支持，使用生成式 AI 生成艺术家传记和专辑评论。当 Wikipedia 上找不到内容时会使用此选项。质量可能参差不齐！
 
 PLUGIN_MUSICARTISTINFO_GENAI_NOTE
 	CS	(Tento obsah byl vytvořen pomocí generativní AI. Nemusí přesně odrážet realitu nebo může obsahovat fiktivní prvky.)
@@ -318,6 +354,7 @@ PLUGIN_MUSICARTISTINFO_GENAI_NOTE
 	EN	(This content was created using generative AI. It may not accurately reflect reality or may contain fictional elements.)
 	FR	(Ce contenu a été créé à l'aide d'une IA générative. Il peut ne pas refléter fidèlement la réalité ou contenir des éléments fictifs.)
 	NL	(Deze inhoud is gemaakt met behulp van generatieve AI. Het kan afwijken van de werkelijkheid of fictieve elementen bevatten.)
+	ZH_CN	（此内容由生成式 AI 创建，可能无法准确反映事实，或包含虚构内容。）
 
 PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_SAVE_DISABLED
 	CS	Obrázky nelze uložit do definované složky. Ujistěte se prosím, že složka existuje a je zapisovatelná Lyrion Music Serverem!
@@ -327,6 +364,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_SAVE_DISABLED
 	FR	L'enregistrement des images téléchargées n'est pas possible ! Assurez-vous que le dossier spécifié existe et qu'il est accessible en écriture pour Lyrion Music Server !
 	HU	A képek nem menthetők a megadott mappába. Kérjük, ellenőrizze, hogy a mappa létezik-e, és a Lyrion Music Server írható-e!
 	NL	Foto's kunnen niet worden opgeslagen in deze map. Zorg ervoor dat de map bestaat en beschrijfbaar is door Lyrion Music Server!
+	ZH_CN	无法将图片保存到指定文件夹。请确保文件夹存在，并且 Lyrion Music Server 有写入权限！
 
 PLUGIN_MUSICARTISTINFO_BROWSE_ARTISTPHOTOS_OFF
 	CS	Nezobrazovat obrázky
@@ -336,6 +374,7 @@ PLUGIN_MUSICARTISTINFO_BROWSE_ARTISTPHOTOS_OFF
 	FR	Ne pas afficher les photos
 	HU	Ne mutasson képeket
 	NL	Toon geen foto's
+	ZH_CN	不显示图片
 
 PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER
 	CS	Složka pro texty písní
@@ -345,6 +384,7 @@ PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER
 	FR	Dossier pour les paroles
 	HU	Dalszövegek mappa
 	NL	Map voor songteksten
+	ZH_CN	歌词文件夹
 
 PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER_DESC
 	CS	Pokud definujete složku pro texty písní, stažené texty budou uloženy do mezipaměti pro pozdější použití.
@@ -354,6 +394,7 @@ PLUGIN_MUSICARTISTINFO_LYRICS_FOLDER_DESC
 	FR	Si vous spécifiez un dossier pour les paroles de chansons, les textes téléchargés y seront stockés pour optimiser les consultations ultérieures.
 	HU	Ha definiál egy mappát a dalszövegekhez, akkor a letöltött dalszövegek gyorsítótárban lesznek későbbi felhasználás céljából.
 	NL	Als je een map kiest voor songteksten, dan worden de songteksten opgeslagen in de cache.
+	ZH_CN	如果设置歌词文件夹，下载的歌词将缓存到该文件夹以供以后使用。
 
 PLUGIN_MUSICARTISTINFO_IMPORTER
 	CS	Nastavení importu
@@ -363,6 +404,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER
 	FR	Paramètres de l'importateur
 	HU	Importőr beállításai
 	NL	Importeer instellingen
+	ZH_CN	导入器设置
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_DESC
 	CS	Při prohledávání vaší hudební knihovny můžeme hledat informace o hudbě a interpretech online.
@@ -372,6 +414,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_DESC
 	FR	Lorsque vous analysez la bibliothèque musicale, vous pouvez rechercher de l'information sur la musique et l'artiste sur internet.
 	HU	Zenei könyvtárának szkennelésekor kereshetünk zenét és előadót az interneten.
 	NL	Als de mediabibliotheek wordt gescand, kan er worden gezocht naar muziek en artiest informatie.
+	ZH_CN	扫描音乐库时，可在线查找音乐和艺术家信息。
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_ENABLE
 	CS	Hledat informace o hudbě a interpretech online během prohledávání knihovny
@@ -381,6 +424,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_ENABLE
 	FR	Rechercher de l'information en ligne pendant l'analyse de la bibliothèque musicale
 	HU	Keressen zenei és előadói információkat az interneten a könyvtári szkennelés során
 	NL	Vind informatie over muziek en artiesten online tijdens het scannen van de mediacollectie
+	ZH_CN	在扫描音乐库时在线查找音乐和艺术家信息
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_PRECACHE
 	CS	Stáhnout a uložit obrázky interpretů z online zdrojů do mezipaměti
@@ -390,6 +434,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_PRECACHE
 	FR	Télécharger des photos d'artistes à partir de sources en ligne et les mettre en cache
 	HU	Töltse le és gyorsítótárazza az előadók képeit online forrásokból
 	NL	Download en cache foto's van artiesten van online bronnen
+	ZH_CN	从在线来源下载并预缓存艺术家图片
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_PRECACHE_DESC
 	CS	Stahování a ukládání obrázků interpretů do mezipaměti může být časově náročné, ale výrazně urychlí procházení podle interpretů.
@@ -399,6 +444,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_PRECACHE_DESC
 	FR	Le téléchargement et la mise en cache des photos peuvent prendre un certain temps, mais accélèrent considérablement la navigation par artiste.
 	HU	Az előadóképek letöltése és előzetes gyorsítótárazása meglehetősen időigényes lehet, de jelentősen felgyorsítja a böngészést az előadók által.
 	NL	Downloaden en cachen van foto's van artiesten kan erg lang duren, maar zal het bladeren op artiest flink versnellen.
+	ZH_CN	下载并预缓存艺术家图片可能耗时较长，但会显著加快按艺术家浏览的速度。
 
 PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_FOLDER_MISSING
 	CS	Pokud povolíte stahování obrázků interpretů, ujistěte se prosím, že jste níže definovali cílovou složku, kam se mají obrázky ukládat.
@@ -406,6 +452,7 @@ PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_FOLDER_MISSING
 	EN	If you enable artist artwork download, then please make sure you define a target folder where to save the images - see below.
 	FR	Si vous activez le téléchargement des photos d'artistes, veuillez vous assurer de définir un dossier cible où enregistrer les images (voir ci-dessous).
 	NL	Als je het downloaden van artiestenfoto's inschakelt, zorg er dan voor dat je een doelmap definieert waar de afbeeldingen worden opgeslagen (zie hieronder).
+	ZH_CN	如果启用艺术家图片下载，请务必在下方指定用于保存图片的目标文件夹。
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_ALBUMARTIST_ONLY
 	CS	Stáhnout obrázky pouze pro hlavní interprety, ne pro všechny přispěvatele (skladatelé, dirigenti atd.)
@@ -415,6 +462,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_ALBUMARTIST_ONLY
 	FR	Télécharger des photos uniquement pour les artistes principaux, mais pas pour les autres artistes tels que les compositeurs, les chefs d'orchestre, etc.
 	HU	Csak a fő előadók, de nem minden közreműködő (zeneszerzők, karmesterek stb.) képei tölthetők le.
 	NL	Download alleen foto's van artiesten, maar niet van andere uitvoerenden (componisten, dirigenten, etc).
+	ZH_CN	仅为主要艺术家下载图片，而不是所有贡献者（作曲、指挥等）
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_PLACEHOLDER_0
 	CS	Neukládat žádný zástupný soubor.
@@ -422,6 +470,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_PLACEHOLDER_0
 	EN	Don't store any placeholder file.
 	FR	Ne pas enregistrer de fichier de remplacement.
 	NL	Maak geen ("artist.missing") bestanden aan.
+	ZH_CN	不保存任何占位文件。
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_PLACEHOLDER_1
 	CS	Uložit zástupný soubor („artist.missing“), pokud mají být staženy obrázky interpretů, ale nemohou být nalezeny.
@@ -431,6 +480,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_PLACEHOLDER_1
 	FR	Enregistrer un fichier "artiste.missing" pour les artistes dont la photo a été recherchée mais pas trouvée.
 	HU	Tárolja a helyőrző fájlt ("artist.missing"), ha az előadói képeket le kell tölteni, de nem találhatók.
 	NL	Maak een bestand ("artist.missing") aan, als de foto van de artiest dient te worden gedownload maar niet kan worden gevonden.
+	ZH_CN	如果需要下载艺术家图片但找不到时，保存占位文件（“artist.missing”）。
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_PLACEHOLDER_2
 	CS	Uložit zástupný soubor nejen pro hlavní interprety, ale pro všechny přispěvatele (skladatelé, solisté atd.).
@@ -438,6 +488,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_PLACEHOLDER_2
 	EN	Store placeholder not only for the main artist, but for all contributors (composers, soloists, etc.).
 	FR	Enregistrer un fichier "artiste.missing" non seulement pour l'artiste principal, mais aussi pour tous les contributeurs (compositeurs, solistes, etc.).
 	NL	Maak een bestand ("artist.missing") aan, niet alleen voor de artiest, maar voor alle uitvoerenden (componisten, solisten, enz.).
+	ZH_CN	不仅为主要艺术家，也为所有贡献者（作曲、独奏者等）保存占位文件。
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_COVERART
 	CS	Stáhnout chybějící obaly alb z online zdrojů
@@ -447,6 +498,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_COVERART
 	FR	Télécharger sur internet et mettre en cache les pochettes d'albums manquantes
 	HU	Töltse le a hiányzó borítót online forrásokból
 	NL	Download albumhoezen van online bronnen
+	ZH_CN	从在线来源下载缺失的专辑封面
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_COVERART_DESC
 	CS	Stahování chybějících obalů alb může být časově náročné. Nalezené obaly budou uloženy lokálně (pokud je to možné), aby mohly být znovu použity při budoucích prohledáváních.
@@ -456,6 +508,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_COVERART_DESC
 	FR	Le téléchargement et la mise en cache des pochettes manquantes peuvent prendre un certain temps. Toutefois, les données récupérées sur internet seront stockées localement (si possible) et réutilisées lors des prochaines analyses.
 	HU	A hiányzó borítók letöltése meglehetősen időigényes lehet. A talált alkotásokat a rendszer helyben tárolja (ha lehetséges), hogy a jövőben újra felhasználhassa őket.
 	NL	Downloaden van albumhoezen kan erg lang duren. Gevonden albumhoezen worden lokaal opgeslagen (indien mogelijk), zodat ze kunnen worden gebruikt bij een nieuwe scan van de mediabibliotheek.
+	ZH_CN	下载缺失的专辑封面可能耗时较长。找到的图片将尽可能保存在本地，以便将来重新扫描时使用。
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_GENRES
 	CS	Vyhledat chybějící žánry pro alba z online hudebních služeb
@@ -465,6 +518,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_GENRES
 	FR	Rechercher les genres manquants pour les albums des services de musique en ligne
 	HU	Keresse meg a hiányzó műfajokat az albumokhoz az online zenei szolgáltatásokból
 	NL	Zoek missende genres op voor albums van online muziekdiensten
+	ZH_CN	从在线音乐服务查找专辑缺失的流派
 
 PLUGIN_MUSICARTISTINFO_IMPORTER_GENRES_DESC
 	CS	Některé online streamovací služby neposkytují žádné informace o žánru alb. Použití této možnosti vám umožní automaticky vyhledat žánry online a použít je v knihovně.
@@ -474,6 +528,7 @@ PLUGIN_MUSICARTISTINFO_IMPORTER_GENRES_DESC
 	FR	Certains services de streaming de musique n'attribuent pas de genre aux albums. Cette option permet de rechercher le genre en ligne et de le stocker en base de données.
 	HU	Egyes online streaming szolgáltatások nem adnak műfaji információkat az albumokhoz. Ezzel az opcióval automatikusan megkeresheti a műfajokat az interneten, és felhasználhatja őket a könyvtárban.
 	NL	Sommige online muziekdiensten hebben geen genre informatie voor albums. Met deze optie worden genres automatisch online opgezocht en is het mogelijk deze te gebruiken in de mediabibliotheek.
+	ZH_CN	某些在线流媒体服务不提供专辑的流派信息。启用此选项后，可以自动在线查找流派并将其用于音乐库。
 
 PLUGIN_MUSICARTISTINFO_ENGLISH_CONTENT_FALLBACK
 	CS	Zobrazit anglický obsah, pokud čeština není k dispozici
@@ -483,6 +538,7 @@ PLUGIN_MUSICARTISTINFO_ENGLISH_CONTENT_FALLBACK
 	FR	Afficher des informations en anglais lorsque le français n'est pas disponible
 	HU	Térjen vissza az angol tartalomhoz, ha az Ön nyelve nem érhető el
 	NL	Toon Engelse informatie als jouw taal niet beschikbaar is
+	ZH_CN	如果您的语言不可用，则回退到英文内容
 
 PLUGIN_MUSICARTISTINFO_HIDEEXTRAMENUITEMS
 	CS	Skrytí položek menu Doplňky
@@ -492,6 +548,7 @@ PLUGIN_MUSICARTISTINFO_HIDEEXTRAMENUITEMS
 	FR	Masquer les éléments du menu "Extras"
 	HU	Extra menüpontok elrejtése
 	NL	Verberg menu items "Extra's"
+	ZH_CN	隐藏额外菜单项
 
 PLUGIN_MUSICARTISTINFO_HIDEEXTRAMENUITEMS_DESC
 	CS	Skrýt položky typu „Najít alba bez obrázků“ z menu Doplňky
@@ -501,6 +558,7 @@ PLUGIN_MUSICARTISTINFO_HIDEEXTRAMENUITEMS_DESC
 	FR	Masquer les éléments "Rechercher les albums sans pochette" et autres du menu "Extras"
 	HU	Az Extra menü „Albumok keresése” elemeinek elrejtése
 	NL	Verberg "Vind albums zonder albumhoes" items in het "Extra's" menu
+	ZH_CN	从“额外”菜单中隐藏“查找缺少封面的专辑”等类似项目
 
 PLUGIN_MUSICARTISTINFO_SORRY
 	CS	Je mi líto, ale abyste mohli využít všech pokročilých funkcí tohoto pluginu (např. obrázky interpretů při procházení interpretů), budete potřebovat Logitech Media Server 7.8 nebo novější.
@@ -510,6 +568,7 @@ PLUGIN_MUSICARTISTINFO_SORRY
 	FR	Je suis désolé, mais pour tirer le meilleur parti de ce plug-in (par exemple, les photos d'artistes lorsque vous naviguez dans votre liste d'artistes), vous devez disposer au moins de Logitech Media Server 7.8.
 	HU	Sajnálom, de ahhoz, hogy tudja használni ennek a beépülő modulnak a fejlett funkcióit (pl. előadóképek az előadók között böngészve), a LMS 7.8 vagy újabb verzióját kell futtatnia.
 	NL	Om alle mogelijkheden van deze plug-in te benutten, heb je Logitech Media Server 7.8 of hoger nodig.
+	ZH_CN	抱歉，要使用此插件的所有高级功能（例如浏览艺术家时显示艺术家图片），需要运行 Logitech Media Server 7.8 或更高版本。
 
 PLUGIN_MUSICARTISTINFO_HIT_RATE_LIMIT
 	CS	Definujte prosím níže složky, kam se mají ukládat obrázky. Zdá se, že opakovaně požadujete stejné informace, což způsobuje zbytečný provoz.
@@ -517,6 +576,7 @@ PLUGIN_MUSICARTISTINFO_HIT_RATE_LIMIT
 	EN	Please define folders where to store pictures below. You seem to repeatedly request the same information, which causes unnecessary traffic.
 	FR	Veuillez définir ci-dessous les dossiers où enregistrer les images. Il semble que vous demandiez à plusieurs reprises la même information, ce qui génère un trafic inutile.
 	NL	Definieer hieronder mappen waar foto's opgeslagen moeten worden. Je lijkt herhaaldelijk dezelfde informatie op te vragen, wat onnodig verkeer veroorzaakt.
+	ZH_CN	请在下方指定用于存储图片的文件夹。您似乎反复请求相同的信息，这会产生不必要的流量。
 
 PLUGIN_MUSICARTISTINFO_MIN_SIZE_X
 	CS	Menší než %s pixelů
@@ -526,6 +586,7 @@ PLUGIN_MUSICARTISTINFO_MIN_SIZE_X
 	FR	Moins de %s pixels
 	HU	Kisebb, mint %s képpont
 	NL	Kleiner dan %s pixels
+	ZH_CN	小于 %s 像素
 
 PLUGIN_MUSICARTISTINFO_MIN_SIZE
 	CS	Minimální velikost obrázku
@@ -535,6 +596,7 @@ PLUGIN_MUSICARTISTINFO_MIN_SIZE
 	FR	Taille minimum
 	HU	Minimális képméret
 	NL	Minimum grootte
+	ZH_CN	最小图片尺寸
 
 PLUGIN_MUSICARTISTINFO_UNSUPPORTED_CT
 	CS	Je mi líto, tento typ souboru není na vašem zařízení podporován.
@@ -544,6 +606,7 @@ PLUGIN_MUSICARTISTINFO_UNSUPPORTED_CT
 	FR	Désolé, ce type de fichier n'est pas pris en charge sur ce périphérique.
 	HU	Sajnáljuk, ez a fájltípus nem támogatott az Ön eszközén.
 	NL	Helaas, dit bestandsformaat wordt niet ondersteund op dit apparaat.
+	ZH_CN	抱歉，您的设备不支持此文件类型。
 
 PLUGIN_MUSICARTISTINFO_READ_MORE
 	CS	Další online zdroje
@@ -554,29 +617,39 @@ PLUGIN_MUSICARTISTINFO_READ_MORE
 
 # The following services must be matched with the backend service's list of supported services
 # These strings don't need to be translated as they represent a brand or web site's name.
+	ZH_CN	更多在线来源
+
 PLUGIN_MUSICARTISTINFO_ALLABOUTJAZZ
 	EN	All About Jazz
+	ZH_CN	All About Jazz
 
 PLUGIN_MUSICARTISTINFO_ALLMUSIC
 	EN	AllMusic
+	ZH_CN	AllMusic
 
 PLUGIN_MUSICARTISTINFO_JAZZMUSICARCHIVES
 	EN	Jazz Music Archives
+	ZH_CN	Jazz Music Archives
 
 PLUGIN_MUSICARTISTINFO_MUSICBRAINZ
 	EN	MusicBrainz
+	ZH_CN	MusicBrainz
 
 PLUGIN_MUSICARTISTINFO_MUSICBRAINZ_RELEASE
 	EN	MusicBrainz (Release)
+	ZH_CN	MusicBrainz（发行版）
 
 PLUGIN_MUSICARTISTINFO_RATEYOURMUSIC
 	EN	Rate Your Music
+	ZH_CN	Rate Your Music
 
 PLUGIN_MUSICARTISTINFO_SOUNDCLOUD
 	EN	SoundCloud
+	ZH_CN	SoundCloud
 
 PLUGIN_MUSICARTISTINFO_WHOSAMPLED
 	EN	WhoSampled
+	ZH_CN	WhoSampled
 
 PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE
 	CS	Přednostní jazyk pro obsah
@@ -584,6 +657,7 @@ PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE
 	EN	Preferred content language
 	FR	Langue préférée pour le contenu
 	NL	Voorkeurstaal voor inhoud
+	ZH_CN	首选内容语言
 
 PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE_DESC
 	CS	Bohužel nejsou všechny jazyky pro stažený obsah k dispozici. Pokud není k dispozici jazyk vašeho systému, bude použita angličtina. Můžete zvolit jiný jazyk než jazyk vašeho systému, pokud chcete.
@@ -591,6 +665,7 @@ PLUGIN_MUSICARTISTINFO_CONTENT_LANGUAGE_DESC
 	EN	Unfortunately not all languages are available for the downloaded content. English will be used if your system language wasn't available. You can select a language different from your system's, if you prefer to do so.
 	FR	Malheureusement, toutes les langues ne sont pas disponibles pour le contenu téléchargé. L'anglais sera utilisé si la langue de votre système n'est pas disponible. Vous pouvez sélectionner une langue différente de celle de votre système, si vous le souhaitez.
 	NL	Helaas zijn niet alle talen beschikbaar voor de gedownloade inhoud. Als de taal van jouw systeem niet beschikbaar is, wordt Engels gebruikt. Je kan een andere taal dan die van jouw systeem selecteren, als je dat wilt.
+	ZH_CN	遗憾的是，并非所有语言都可用于下载的内容。如果系统语言不可用，将使用英文。如果您愿意，也可以选择与系统语言不同的语言。
 
 PLUGIN_MUSICARTISTINFO_LANGUAGE_DEFAULT
 	CS	Automaticky
@@ -598,163 +673,196 @@ PLUGIN_MUSICARTISTINFO_LANGUAGE_DEFAULT
 	EN	Automatic
 	FR	Automatique
 	NL	Automatisch
+	ZH_CN	自动
 
 PLUGIN_MUSICARTISTINFO_INSTRUMENTAL
 	CS	Instrumentální
 	EN	Instrumental
 	NL	Instrumentaal
+	ZH_CN	纯音乐
 
 PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE
 	EN	Save lyrics next to the song file
 	DE	Songtexte neben der Musikdatei speichern
 	NL	Songteksten naast het muziekbestand opslaan
+	ZH_CN	将歌词保存到歌曲文件旁
 
 PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_DESC
 	EN	Downloaded lyrics will also be written as an LRC file next to the local song file. Existing files are left alone unless you enable overwriting.
 	DE	Heruntergeladene Songtexte werden zusätzlich als LRC-Datei neben der lokalen Musikdatei gespeichert. Bestehende Dateien werden nicht überschrieben, solange dies nicht aktiviert ist.
 	NL	Gedownloade songteksten worden ook als LRC-bestand naast het lokale muziekbestand opgeslagen. Bestaande bestanden worden niet overschreven tenzij je dit inschakelt.
+	ZH_CN	下载的歌词还会以 LRC 文件形式写入本地歌曲文件旁。除非启用覆盖，否则不会修改现有文件。
 
 PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_ENABLE
 	EN	Save lyrics next to songs
 	DE	Songtexte neben Musikdateien speichern
 	NL	Songteksten naast muziekbestanden opslaan
+	ZH_CN	将歌词保存到歌曲旁
 
 PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_OVERWRITE
 	EN	Overwrite existing lyrics files
 	DE	Bestehende Songtextdateien überschreiben
 	NL	Bestaande songtekstbestanden overschrijven
+	ZH_CN	覆盖现有歌词文件
 
 PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT
 	EN	Lyrics filename format
 	DE	Dateinamensformat für Songtexte
 	NL	Bestandsnaamformaat voor songteksten
+	ZH_CN	歌词文件名格式
 
 PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT_DESC
 	EN	Uses the Lyrion Music Server title format, e.g. FILE (the song's filename), ARTIST - TITLE, or TRACKNUM - TITLE. Tokens include ARTIST, TITLE, ALBUM, TRACKNUM, DISC, YEAR, GENRE, FILE and EXT.
 	DE	Verwendet das Titelformat von Lyrion Music Server, z. B. FILE (Dateiname des Songs), ARTIST - TITLE oder TRACKNUM - TITLE. Verfügbare Felder: ARTIST, TITLE, ALBUM, TRACKNUM, DISC, YEAR, GENRE, FILE und EXT.
 	NL	Gebruikt het titelformaat van Lyrion Music Server, bijvoorbeeld FILE (de bestandsnaam van het nummer), ARTIST - TITLE of TRACKNUM - TITLE. Beschikbare velden: ARTIST, TITLE, ALBUM, TRACKNUM, DISC, YEAR, GENRE, FILE en EXT.
+	ZH_CN	使用 Lyrion Music Server 标题格式，例如 FILE（歌曲文件名）、ARTIST - TITLE 或 TRACKNUM - TITLE。可用字段包括 ARTIST、TITLE、ALBUM、TRACKNUM、DISC、YEAR、GENRE、FILE 和 EXT。
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES
 	EN	Custom Perl lyrics scripts
 	DE	Eigene Perl-Songtext-Skripte
 	NL	Aangepaste Perl-songtekstscripts
+	ZH_CN	自定义 Perl 歌词脚本
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_DESC
 	EN	Load custom lyrics sources from Perl scripts. Scripts run inside LMS with your permissions, so only use scripts you trust. Node.js is not required.
 	DE	Eigene Songtext-Quellen aus Perl-Skripten laden. Skripte laufen im LMS mit deinen Rechten, daher nur vertrauenswürdige Skripte verwenden. Node.js ist nicht nötig.
 	NL	Laad aangepaste songtekstbronnen uit Perl-scripts. Scripts draaien binnen LMS met jouw rechten, gebruik dus alleen scripts die je vertrouwt. Node.js is niet nodig.
+	ZH_CN	从 Perl 脚本加载自定义歌词来源。脚本在 LMS 内以您的权限运行，因此请仅使用可信脚本。不需要 Node.js。
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_ENABLE
 	EN	Enable custom Perl lyrics scripts
 	DE	Eigene Perl-Songtext-Skripte aktivieren
 	NL	Aangepaste Perl-songtekstscripts inschakelen
+	ZH_CN	启用自定义 Perl 歌词脚本
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER
 	EN	Scripts folder
 	DE	Skript-Ordner
 	NL	Scriptmap
+	ZH_CN	脚本文件夹
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER_DESC
 	EN	Folder containing *.pl scripts. The default folder is created when you enable the feature.
 	DE	Ordner mit *.pl-Skripten. Der Standardordner wird beim Aktivieren angelegt.
 	NL	Map met *.pl-scripts. De standaardmap wordt aangemaakt wanneer je de functie inschakelt.
+	ZH_CN	包含 *.pl 脚本的文件夹。启用该功能时会创建默认文件夹。
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FIRST
 	EN	Before built-in sources
 	DE	Vor den integrierten Quellen
 	NL	Voor ingebouwde bronnen
+	ZH_CN	在内置来源之前
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_LAST
 	EN	After built-in sources
 	DE	Nach den integrierten Quellen
 	NL	Na ingebouwde bronnen
+	ZH_CN	在内置来源之后
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER_MISSING
 	EN	The scripts folder does not exist. Please create it and copy your Perl scripts into it.
 	DE	Der Skript-Ordner existiert nicht. Bitte anlegen und die Perl-Skripte hineinkopieren.
 	NL	De scriptmap bestaat niet. Maak deze aan en kopieer je Perl-scripts erin.
+	ZH_CN	脚本文件夹不存在。请创建该文件夹并将 Perl 脚本复制进去。
 
 PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_HINT
 	EN	Each *.pl script must return a coderef or a hash with name and getLyrics. See script-examples/README.md. Scripts are trusted code and must not block LMS.
 	DE	Jedes *.pl-Skript muss eine Coderef oder einen Hash mit name und getLyrics zurückgeben. Siehe script-examples/README.md. Skripte sind vertrauenswürdiger Code und dürfen LMS nicht blockieren.
 	NL	Elk *.pl-script moet een coderef of een hash met name en getLyrics retourneren. Zie script-examples/README.md. Scripts zijn vertrouwde code en mogen LMS niet blokkeren.
+	ZH_CN	每个 *.pl 脚本必须返回一个代码引用，或返回包含 name 和 getLyrics 的哈希。参见 script-examples/README.md。脚本属于可信代码，不得阻塞 LMS。
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_CHOOSE
 	EN	Choose lyrics
 	DE	Songtext auswählen
 	NL	Songtekst kiezen
+	ZH_CN	选择歌词
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_TITLE
 	EN	Title
 	DE	Titel
 	NL	Titel
+	ZH_CN	标题
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_ARTIST
 	EN	Artist
 	DE	Interpret
 	NL	Artiest
+	ZH_CN	艺术家
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SEARCH
 	EN	Search
 	DE	Suchen
 	NL	Zoeken
+	ZH_CN	搜索
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_USE
 	EN	Use this lyrics
 	DE	Diesen Songtext verwenden
 	NL	Deze songtekst gebruiken
+	ZH_CN	使用此歌词
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_CLOSE
 	EN	Close
 	DE	Schließen
 	NL	Sluiten
+	ZH_CN	关闭
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_LOADING
 	EN	Searching for lyrics...
 	DE	Songtexte werden gesucht...
 	NL	Songteksten worden gezocht...
+	ZH_CN	正在搜索歌词...
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_NONE
 	EN	No lyrics found
 	DE	Keine Songtexte gefunden
 	NL	Geen songteksten gevonden
+	ZH_CN	未找到歌词
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_ERROR
 	EN	Could not load lyrics
 	DE	Songtexte konnten nicht geladen werden
 	NL	Songteksten konden niet worden geladen
+	ZH_CN	无法加载歌词
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SAVED
 	EN	Saved
 	DE	Gespeichert
 	NL	Opgeslagen
+	ZH_CN	已保存
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_CACHED
 	EN	Cached
 	DE	Zwischengespeichert
 	NL	Gecacht
+	ZH_CN	已缓存
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SOURCE
 	EN	Source
 	DE	Quelle
 	NL	Bron
+	ZH_CN	来源
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_SYNCED
 	EN	Synced
 	DE	Synchronisiert
 	NL	Gesynchroniseerd
+	ZH_CN	同步歌词
 
 PLUGIN_MUSICARTISTINFO_LYRICS_CHOOSER_PLAIN
 	EN	Plain text
 	DE	Reiner Text
 	NL	Platte tekst
+	ZH_CN	纯文本
 
 PLUGIN_MUSICARTISTINFO_MATERIAL_SKIN_ENABLE
 	EN	Add lyrics chooser to Material Skin's now-playing settings and queue panel
 	DE	Songtext-Auswahl in den Material-Skin-Wiedergabeeinstellungen und im Warteschlangenbereich anzeigen
 	NL	Songtekstkeuze toevoegen aan de Material Skin-weergave-instellingen en wachtrij
+	ZH_CN	将歌词选择器添加到 Material Skin 的正在播放设置和队列面板
 
 PLUGIN_MUSICARTISTINFO_MATERIAL_SKIN_DESC
 	EN	Adds a Choose lyrics entry to the now-playing settings menu and a lyrics icon next to the queue actions button. The queue panel switches to a lyrics search and candidate list. The plugin manages a small loader block in Material Skin's custom.js; existing custom code is preserved.
 	DE	Fügt einen Eintrag „Songtext auswählen“ zum Wiedergabeeinstellungsmenü und ein Songtext-Symbol neben der Warteschlangen-Aktionsschaltfläche hinzu. Der Warteschlangenbereich wechselt zu Songtextsuche und Kandidatenliste. Das Plugin verwaltet einen kleinen Loader-Block in der custom.js von Material Skin; vorhandener eigener Code bleibt erhalten.
 	NL	Voegt een vermelding „Songtekst kiezen“ toe aan het weergave-instellingenmenu en een songtekstpictogram naast de wachtrij-actieknop. Het wachtrijpaneel schakelt naar songtekst zoeken en een kandidatenlijst. De plugin beheert een klein loaderblok in de custom.js van Material Skin; bestaande eigen code blijft behouden.
+	ZH_CN	在正在播放设置菜单中添加“选择歌词”项，并在队列操作按钮旁添加歌词图标。队列面板将切换为歌词搜索和候选列表。插件会管理 Material Skin 的 custom.js 中的一小段加载代码；现有自定义代码会被保留。
