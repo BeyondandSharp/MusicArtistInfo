@@ -101,7 +101,8 @@
 			'.mai-lyrics-badge{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;background:#eee;color:#666;font-size:11px;vertical-align:middle}' +
 			'.mai-lyrics-badge.mai-lyrics-badge-synced{background:#e3f0fa;color:#145a8a;font-weight:bold}' +
 			'.mai-lyrics-preview{flex:0 0 33.333%;overflow:auto;padding:12px 16px;white-space:pre-wrap;line-height:1.5;min-height:72px;max-height:70%;}' +
-			'.mai-lyrics-resizer{flex:0 0 7px;height:7px;cursor:row-resize;background:#ddd;position:relative;touch-action:none}' +
+			'.mai-lyrics-resizer{flex:0 0 0;height:0;min-height:0;cursor:row-resize;background:transparent;position:relative;overflow:visible;touch-action:none}' +
+			'.mai-lyrics-resizer:before{content:"";position:absolute;left:0;right:0;top:-5px;height:10px;cursor:row-resize}' +
 			'.mai-lyrics-resizer:after{content:"";position:absolute;left:50%;top:2px;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:#999;opacity:.55}' +
 			'.mai-lyrics-footer{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid #ddd;background:#fafafa}' +
 			'.mai-lyrics-status{flex:1;color:#555;font-size:13px;min-height:18px}' +

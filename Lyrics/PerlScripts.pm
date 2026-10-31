@@ -401,6 +401,7 @@ sub _run_script {
 sub _valid_result {
 	my $result = shift;
 	return 0 unless ref $result eq 'HASH';
+	return 0 if ref $result->{lyrics};
 	return 0 unless defined $result->{lyrics} && $result->{lyrics} =~ /\S/;
 	return 1;
 }

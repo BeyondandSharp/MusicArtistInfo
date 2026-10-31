@@ -82,7 +82,10 @@
 		lines: [],
 		currentLine: -1,
 		currentTime: 0,
-		syncTimer: null
+		syncTimer: null,
+		queueHeight: 0,
+		windowHeight: 0,
+		onWindowResize: null
 	};
 
 	function addStyle() {
@@ -102,7 +105,8 @@
 			'.mai-lq-searchbar input::placeholder{color:var(--text-color);opacity:.55}' +
 			'.mai-lq-status{flex:0 0 auto;min-height:24px;padding:4px 14px;font-size:var(--small-font-size,90%);opacity:var(--sub-opacity,.7);white-space:normal}' +
 			'.mai-lq-list{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}' +
-			'.mai-lq-resizer{flex:0 0 7px;min-height:7px;cursor:row-resize;background:var(--border-color);position:relative;touch-action:none}' +
+			'.mai-lq-resizer{flex:0 0 0;height:0;min-height:0;cursor:row-resize;background:transparent;position:relative;overflow:visible;touch-action:none}' +
+			'.mai-lq-resizer:before{content:"";position:absolute;left:0;right:0;top:-5px;height:10px;cursor:row-resize}' +
 			'.mai-lq-resizer:after{content:"";position:absolute;left:50%;top:2px;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:var(--sub-toolbar-text-color);opacity:.45}' +
 			'.mai-lq-item{display:block;width:100%;box-sizing:border-box;text-align:left;border:0;border-bottom:1px solid var(--list-item-border-color);background:transparent;color:inherit;font:inherit;padding:9px 14px 8px;cursor:pointer;outline:none}' +
 			'.mai-lq-item:hover{background:var(--list-hover-color)}' +
@@ -435,7 +439,21 @@
 		}
 
 		var queueHeight = view.getBoundingClientRect().height;
-		if (queueHeight > 0) view.style.height = queueHeight + 'px';
+		if (queueHeight > 0) {
+			state.queueHeight = queueHeight;
+			state.windowHeight = window.innerHeight;
+			view.style.height = queueHeight + 'px';
+		}
+		if (!state.onWindowResize) {
+			state.onWindowResize = function () {
+				if (!state.active || !state.queueView || !state.queueHeight) return;
+				var next = state.queueHeight + (window.innerHeight - state.windowHeight);
+				next = Math.max(240, next);
+				state.queueView.style.height = next + 'px';
+			};
+		}
+		window.removeEventListener('resize', state.onWindowResize);
+		window.addEventListener('resize', state.onWindowResize);
 		view.classList.add('mai-lq-active');
 		state.active = true;
 		return true;
@@ -449,6 +467,7 @@
 		if (state.queueView) {
 			state.queueView.classList.remove('mai-lq-active');
 			state.queueView.style.height = '';
+			if (state.onWindowResize) window.removeEventListener('resize', state.onWindowResize);
 		}
 		if (state.panel) state.panel.style.display = 'none';
 		updateToolbarButton();

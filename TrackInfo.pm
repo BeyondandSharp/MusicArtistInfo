@@ -1300,6 +1300,14 @@ sub _candidate_hash {
 	return md5_hex($key);
 }
 
+sub _clean_candidate_text {
+	my $text = shift;
+	return '' unless defined $text;
+	return '' if ref $text;
+	$text = '' if $text =~ /^HASH\(0x[0-9a-f]+\)$/i;
+	return $text;
+}
+
 sub _candidate_json {
 	my $candidate = shift || {};
 	return {
@@ -1310,8 +1318,8 @@ sub _candidate_json {
 		artist  => $candidate->{artist},
 		album   => $candidate->{album},
 		synced  => $candidate->{synced} ? 1 : 0,
-		lyrics  => $candidate->{lyrics},
-		preview => $candidate->{preview},
+		lyrics  => _clean_candidate_text($candidate->{lyrics}),
+		preview => _clean_candidate_text($candidate->{preview}),
 	};
 }
 
@@ -1874,7 +1882,7 @@ sub _handle_lyrics_select {
 	my $sidecar = _save_lyrics_next_to_song($save, $candidate->{lyrics}, undef, 1);
 
 	_send_json($httpClient, $response, {
-		lyrics  => $candidate->{lyrics},
+		lyrics  => _clean_candidate_text($candidate->{lyrics}),
 		source  => $candidate->{source} || '',
 		cached  => 1,
 		sidecar => $sidecar && $sidecar->{file} ? $sidecar->{file} : '',
