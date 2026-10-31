@@ -127,7 +127,7 @@
 			'.mai-lq-progress{flex:0 0 auto;height:3px;background:var(--border-color);overflow:hidden;opacity:.9}' +
 			'.mai-lq-progress-fill{height:100%;width:0;background:var(--highlight-color,#1976d2);transition:width .2s ease}' +
 			'.mai-lq-progress.indeterminate .mai-lq-progress-fill{width:35%!important;animation:mai-lq-progress 1.1s ease-in-out infinite}' +
-			'.mai-lq-lyrics{flex:0 0 33.333%;min-height:72px;overflow:auto;padding:6px 14px 12px;border-top:1px solid var(--sub-toolbar-border-color);text-align:center;line-height:1.55;white-space:pre-wrap}' +
+			'.mai-lq-lyrics{flex:0 0 33.333%;min-height:72px;overflow:auto;scroll-behavior:smooth;padding:6px 14px 12px;border-top:1px solid var(--sub-toolbar-border-color);text-align:center;line-height:1.55;white-space:pre-wrap}' +
 			'.mai-lq-line{padding:2px 8px;border-radius:4px;white-space:pre-wrap}' +
 			'.mai-lq-line.lyrics-current-line{background:var(--pq-current-color)!important;font-weight:var(--bold-weight)!important}' +
 			'.mai-lq-progress.done .mai-lq-progress-fill{width:100%!important;opacity:.55}' +
@@ -1022,8 +1022,7 @@
 		Array.prototype.forEach.call(nodes, function (node, i) {
 			node.classList.toggle('lyrics-current-line', i === index);
 		});
-		if (nodes[index] && scroll) centerPreviewLine();
-		else if (nodes[index]) schedulePreviewCenter();
+		if (nodes[index]) centerPreviewLine();
 	}
 	function fetchPlaybackTime() {
 		if (!state.playerId || !state.open) return;
