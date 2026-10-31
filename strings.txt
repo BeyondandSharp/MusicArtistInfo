@@ -1266,3 +1266,7 @@ PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT_DESC
 PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING_SCRIPT_HINT
 	EN	Perl code used to process lyrics. Variable: $lyrics. Modify it and the result is returned automatically.
 	ZH_CN	用于处理歌词的 Perl 代码。可用变量：$lyrics。修改后会自动返回结果。
+
+PLUGIN_MUSICARTISTINFO_FB2K_REFERENCE
+	EN	Title formatting reference
+	ZH_CN	标题格式参考

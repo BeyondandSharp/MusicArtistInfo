@@ -2,8 +2,10 @@
 .mai-lyrics-settings .mai-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid #888; margin:22px 0 14px; }
 .mai-lyrics-settings .mai-tab { background:transparent; border:1px solid transparent; border-bottom:0; color:inherit; cursor:pointer; padding:7px 13px; line-height:1.3; }
 .mai-lyrics-settings .mai-tab.active { border-color:#888; background:#fff; color:#000; }
-.mai-lyrics-settings .settingGroup label { display:inline-block; min-width:190px; vertical-align:middle; margin:2px 0; }
-.mai-lyrics-settings .settingGroup input.stdedit, .mai-lyrics-settings .settingGroup select.stdedit { vertical-align:middle; margin:2px 0; }
+.mai-lyrics-settings .settingGroup label { display:inline-block; min-width:190px; vertical-align:top; line-height:26px; margin:2px 0; }
+.mai-lyrics-settings .prefs { line-height:26px; }
+.mai-lyrics-settings .settingGroup input.stdedit, .mai-lyrics-settings .settingGroup select.stdedit { vertical-align:top; margin:2px 0; }
+.mai-lyrics-settings .settingGroup input[type=text].stdedit, .mai-lyrics-settings .settingGroup select.stdedit { height:26px; box-sizing:border-box; }
 .mai-lyrics-settings .settingGroup input[type=checkbox], .mai-lyrics-settings .settingGroup input[type=range] { vertical-align:middle; }
 .mai-lyrics-settings .mai-panel { display:none; }
 .mai-lyrics-settings .mai-panel.active { display:block; }
@@ -15,10 +17,22 @@
 .mai-lyrics-settings .mai-source-list .mai-source-name { flex:1; min-width:0; }
 .mai-lyrics-settings .mai-source-list .mai-src-enabled { flex:0 0 auto; }
 .mai-lyrics-settings .mai-src-buttons { display:flex; gap:3px; flex:0 0 auto; }
-.mai-lyrics-settings .mai-src-buttons button, .mai-lyrics-settings .mai-rule-delete { min-width:auto; height:26px; line-height:24px; padding:0 7px; border:1px solid #888; background:#eee; color:#111; cursor:pointer; white-space:nowrap; }
+.mai-lyrics-settings .mai-src-buttons .stdclick, .mai-lyrics-settings .mai-rule-delete { min-width:auto; height:auto; padding:4px 8px; white-space:nowrap; }
 .mai-lyrics-settings .mai-open-options { display:inline-block; padding:5px 10px; border:1px solid #888; text-decoration:none; }
 .mai-lyrics-settings .mai-preview { font-family:monospace; background:#eee; color:#111; padding:6px; margin-top:4px; white-space:pre-wrap; word-break:break-all; }
 .mai-lyrics-settings .mai-hint { opacity:.75; font-size:90%; }
+.mai-lyrics-settings .mai-code-editor { display:flex; border:1px solid #888; background:#1e1e1e; color:#d4d4d4; font-family:monospace; font-size:13px; line-height:1.45; overflow:hidden; margin:4px 0; }
+.mai-lyrics-settings .mai-code-gutter { flex:0 0 auto; margin:0; padding:6px 8px; text-align:right; color:#858585; background:#252526; user-select:none; overflow:hidden; }
+.mai-lyrics-settings .mai-code-area { position:relative; flex:1 1 auto; min-width:0; }
+.mai-lyrics-settings .mai-code-highlight, .mai-lyrics-settings .mai-code-input { margin:0; padding:6px 8px; font:inherit; line-height:inherit; white-space:pre; tab-size:4; box-sizing:border-box; }
+.mai-lyrics-settings .mai-code-highlight { position:absolute; inset:0; pointer-events:none; overflow:hidden; color:#d4d4d4; background:transparent; }
+.mai-lyrics-settings .mai-code-input { position:relative; z-index:1; display:block; width:100%; border:0; outline:none; resize:none; background:transparent; color:transparent; caret-color:#fff; overflow:auto; }
+.mai-lyrics-settings .mai-code-input::selection { background:#264f78; }
+.mai-lyrics-settings .mai-code-comment { color:#6a9955; }
+.mai-lyrics-settings .mai-code-string { color:#ce9178; }
+.mai-lyrics-settings .mai-code-var { color:#9cdcfe; }
+.mai-lyrics-settings .mai-code-keyword { color:#569cd6; }
+.mai-lyrics-settings .mai-code-number { color:#b5cea8; }
 </style>
 
 [% PROCESS settings/header.html %]
@@ -32,6 +46,7 @@
 	<input type="checkbox" class="stdedit" name="pref_useFb2kFormat" id="pref_useFb2kFormat" value="1" [% IF prefs.pref_useFb2kFormat %]checked [% END %] [% IF !fb2kFormatAvailable %]disabled [% END %] />
 	<label for="pref_useFb2kFormat" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_FB2K_ENABLE" | string %]</label>
 	[% IF !fb2kFormatAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>[% END %]
+	<div class="mai-hint"><a href="http://chronial.de/misc/foobar_titleformat/titleformat_help_new.html" target="_blank" rel="noopener">[% "PLUGIN_MUSICARTISTINFO_FB2K_REFERENCE" | string %]</a></div>
 [% END %]
 
 <div class="mai-tabs" id="maiLyricsTabs">
@@ -76,7 +91,7 @@
 			<li data-source-id="[% source.id | html %]">
 				<input type="checkbox" class="mai-src-enabled" checked title="[% source.desc | html %]" />
 				<span class="mai-source-name" title="[% source.desc | html %]">[% source.label | html %]</span>
-				<span class="mai-src-buttons"><button type="button" class="mai-src-up">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_UP" | string %]</button><button type="button" class="mai-src-down">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_DOWN" | string %]</button></span>
+				<span class="mai-src-buttons"><button type="button" class="stdclick mai-src-up">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_UP" | string %]</button><button type="button" class="stdclick mai-src-down">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_DOWN" | string %]</button></span>
 			</li>
 			[% END %]
 		</ul>
@@ -111,7 +126,7 @@
 		<input type="text" class="stdedit" name="pref_lyricsSearchScriptPath" id="pref_lyricsSearchScriptPath" value="[% prefs.pref_lyricsSearchScriptPath | html %]" size="60" />
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC" | string %]</div>
 		<br/>
-		<textarea class="stdedit" name="pref_lyricsSearchScript" id="pref_lyricsSearchScript" rows="14" style="width:98%;font-family:monospace;">[% lyricsSearchScript | html %]</textarea>
+		<textarea name="pref_lyricsSearchScript" id="pref_lyricsSearchScript" rows="14" class="stdedit mai-code">[% lyricsSearchScript | html %]</textarea>
 	[% END %]
 </div>
 
@@ -121,7 +136,7 @@
 		<input type="text" class="stdedit" name="pref_lyricsProcessingScriptPath" id="pref_lyricsProcessingScriptPath" value="[% prefs.pref_lyricsProcessingScriptPath | html %]" size="60" />
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC" | string %]</div>
 		<br/>
-		<textarea class="stdedit" name="pref_lyricsProcessingScript" id="pref_lyricsProcessingScript" rows="16" style="width:98%;font-family:monospace;">[% lyricsProcessingScript | html %]</textarea>
+		<textarea name="pref_lyricsProcessingScript" id="pref_lyricsProcessingScript" rows="16" class="stdedit mai-code">[% lyricsProcessingScript | html %]</textarea>
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING_SCRIPT_HINT" | string %]</div>
 	[% END %]
 </div>
@@ -299,7 +314,7 @@
 			var tr = document.createElement('tr');
 			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td>' +
 				'<td>' + filterField + '</td><td>' + filterOp + '</td>' +
-				'<td><input type="text" class="mai-rule-value"></td><td><button type="button" class="mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
+				'<td><input type="text" class="mai-rule-value"></td><td><button type="button" class="stdclick mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
 			tr.querySelector('.mai-rule-field').value = v.field || 'title';
 			tr.querySelector('.mai-rule-op').value = v.op || 'contains';
 			tr.querySelector('.mai-rule-value').value = v.value || '';
@@ -329,7 +344,7 @@
 			v = v || {};
 			var tr = document.createElement('tr');
 			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td>' +
-				'<td>' + fpField + '</td><td><input type="text" class="mai-rule-p1"></td><td><input type="text" class="mai-rule-p2"></td><td>' + fpTarget + '</td><td><button type="button" class="mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
+				'<td>' + fpField + '</td><td><input type="text" class="mai-rule-p1"></td><td><input type="text" class="mai-rule-p2"></td><td>' + fpTarget + '</td><td><button type="button" class="stdclick mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
 			tr.querySelector('.mai-rule-op').value = v.op || 'remove_chars';
 			tr.querySelector('.mai-rule-p1').value = v.param1 || '';
 			tr.querySelector('.mai-rule-p2').value = v.param2 || '';
@@ -359,7 +374,7 @@
 		function addProcRow(v) {
 			v = v || {};
 			var tr = document.createElement('tr');
-			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td><td>' + procOp + '</td><td><input type="text" class="mai-rule-name"></td><td><button type="button" class="mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
+			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td><td>' + procOp + '</td><td><input type="text" class="mai-rule-name"></td><td><button type="button" class="stdclick mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
 			tr.querySelector('.mai-rule-op').value = v.op || 'standardize';
 			tr.querySelector('.mai-rule-name').value = v.name || '';
 			procTable.querySelector('tbody').appendChild(tr);
@@ -451,6 +466,94 @@
 				.catch(function (e) { document.getElementById('maiSavePreview').textContent = 'Error: ' + e; });
 		});
 	}
+	/* Small dependency-free code editor: line numbers and Perl highlighting. */
+	function maiEscapeHtml(text) {
+		return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+	}
+	function maiHighlightPerl(code) {
+		var out = '', i = 0, n = code.length;
+		while (i < n) {
+			var c = code.charAt(i);
+			if (c === '#') {
+				var e = code.indexOf('\n', i);
+				if (e < 0) e = n;
+				out += '<span class="mai-code-comment">' + maiEscapeHtml(code.slice(i, e)) + '</span>';
+				i = e;
+			}
+			else if (c === "'" || c === '"') {
+				var q = c, j = i + 1;
+				while (j < n) {
+					if (code.charAt(j) === '\\') { j += 2; continue; }
+					if (code.charAt(j) === q) { j++; break; }
+					j++;
+				}
+				out += '<span class="mai-code-string">' + maiEscapeHtml(code.slice(i, j)) + '</span>';
+				i = j;
+			}
+			else if (c === '$') {
+				var m = code.slice(i).match(/^\$[A-Za-z_][A-Za-z0-9_]*/);
+				if (m) {
+					out += '<span class="mai-code-var">' + maiEscapeHtml(m[0]) + '</span>';
+					i += m[0].length;
+				} else { out += '$'; i++; }
+			}
+			else if (/[0-9]/.test(c)) {
+				var num = code.slice(i).match(/^[0-9]+(?:\.[0-9]+)?/)[0];
+				out += '<span class="mai-code-number">' + num + '</span>';
+				i += num.length;
+			}
+			else {
+				var word = code.slice(i).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+				if (word) {
+					var kw = /^(my|our|use|no|sub|return|if|elsif|else|unless|while|for|foreach|last|next|die|eval|require|package|local|defined|shift|ref)$/;
+					out += kw.test(word[0]) ? '<span class="mai-code-keyword">' + word[0] + '</span>' : maiEscapeHtml(word[0]);
+					i += word[0].length;
+				} else {
+					out += maiEscapeHtml(c); i++;
+				}
+			}
+		}
+		return out;
+	}
+	function maiSetupCodeEditor(area) {
+		if (!area || area.getAttribute('data-mai-code') === '1') return;
+		area.setAttribute('data-mai-code', '1');
+		area.className = area.className.replace(/\bstdedit\b/g, '').trim() + ' mai-code-input';
+		var editor = document.createElement('div');
+		editor.className = 'mai-code-editor';
+		var gutter = document.createElement('pre');
+		gutter.className = 'mai-code-gutter';
+		var wrap = document.createElement('div');
+		wrap.className = 'mai-code-area';
+		var highlight = document.createElement('pre');
+		highlight.className = 'mai-code-highlight';
+		area.parentNode.insertBefore(editor, area);
+		editor.appendChild(gutter);
+		wrap.appendChild(highlight);
+		wrap.appendChild(area);
+		editor.appendChild(wrap);
+		var rows = parseInt(area.getAttribute('rows') || '10', 10) || 10;
+		area.style.height = (rows * 19 + 12) + 'px';
+		function render() {
+			var value = area.value || '';
+			highlight.innerHTML = maiHighlightPerl(value) + '\n';
+			var lines = value.split('\n').length;
+			var nums = '';
+			for (var i = 1; i <= lines; i++) nums += i + '\n';
+			gutter.textContent = nums;
+			sync();
+		}
+		function sync() {
+			gutter.scrollTop = area.scrollTop;
+			highlight.scrollTop = area.scrollTop;
+			highlight.scrollLeft = area.scrollLeft;
+		}
+		area.addEventListener('input', render);
+		area.addEventListener('scroll', sync);
+		render();
+	}
+	Array.prototype.forEach.call(root.querySelectorAll('.mai-code'), maiSetupCodeEditor);
+
 })();
 </script>
 
