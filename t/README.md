@@ -5,7 +5,7 @@
 Run from the repository root:
 
 ```sh
-prove -Ilib -It/lib t/filename.t t/sidecar.t t/chosen_cache.t t/candidates.t t/webui.t t/material_skin.t t/perl_scripts.t
+prove -Ilib -It/lib t/filename.t t/sidecar.t t/chosen_cache.t t/candidates.t t/webui.t t/material_skin.t t/perl_scripts.t t/match.t t/processor.t t/search_settings.t
 ```
 
 These tests use the small LMS stubs in `t/lib`; they do not need a running
@@ -13,6 +13,14 @@ server or network access.  `t/material_skin.t` stubs
 `Slim::Utils::PluginManager` and verifies that the Material Skin `custom.js`
 loader is added and removed without touching user code.  `t/perl_scripts.t`
 covers the custom Perl lyrics provider.
+
+## FB2KFormat plugin test
+
+The optional plugin in `/root/lms-plugin-fb2kFormat` has its own test:
+
+```sh
+prove -Ilib -It/lib t/format.t
+```
 
 ## Live LMS test
 

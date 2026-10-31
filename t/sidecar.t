@@ -60,4 +60,16 @@ like($result->{error}, qr/empty/i, 'empty lyrics rejected');
 
 is($class->normalize("\x{feff}a\r\nb\rc"), "a\nb\nc\n", 'normalize handles BOM and line endings');
 
+# save_path/BOM support
+my $bomFile = catfile($dir, 'WithBom.lrc');
+my $bomResult = $class->save_path($bomFile, 'hello', { overwrite => 1, bom => 1 });
+ok($bomResult->{file}, 'save_path writes BOM file');
+open($read, '<:raw', $bomFile) or die $!;
+$content = <$read>;
+close $read;
+is(substr($content, 0, 3), "\xEF\xBB\xBF", 'UTF-8 BOM written');
+
+$bomResult = $class->save_path(catfile($dir, 'missing-dir', 'x.lrc'), 'x');
+like($bomResult->{error}, qr/not writable/i, 'missing target folder rejected');
+
 done_testing();

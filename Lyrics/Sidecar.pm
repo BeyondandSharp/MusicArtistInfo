@@ -37,25 +37,34 @@ sub normalize {
 sub save {
 	my ($class, $audioPath, $basename, $lyrics, $opts) = @_;
 
-	$opts ||= {};
-
 	return { error => 'Missing audio path' } unless defined $audioPath && $audioPath ne '';
 	return { error => 'Audio file not found' } unless -f $audioPath;
 
 	my $file = $class->path_for($audioPath, $basename);
 	return { error => 'Invalid lyrics filename' } unless $file;
 
-	return { skipped => 'exists', file => $file }
-		if -e $file && !$opts->{overwrite};
+	return $class->save_path($file, $lyrics, $opts);
+}
+
+sub save_path {
+	my ($class, $file, $lyrics, $opts) = @_;
+
+	$opts ||= {};
+
+	return { error => 'Missing lyrics target' } unless defined $file && $file ne '';
 
 	my $dir = dirname($file);
 	return { error => "Lyrics folder not writable: $dir" }
 		unless -d $dir && -w $dir;
 
+	return { skipped => 'exists', file => $file }
+		if -e $file && !$opts->{overwrite};
+
 	my $text = $class->normalize($lyrics);
 	return { error => 'Empty lyrics' } unless $text =~ /\S/;
 
 	my $encoded = Encode::encode('UTF-8', $text);
+	$encoded = "\xEF\xBB\xBF" . $encoded if $opts->{bom};
 
 	my $tmp = eval {
 		File::Temp->new(

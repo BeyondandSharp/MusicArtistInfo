@@ -866,3 +866,307 @@ PLUGIN_MUSICARTISTINFO_MATERIAL_SKIN_DESC
 	DE	Fügt einen Eintrag „Songtext auswählen“ zum Wiedergabeeinstellungsmenü und ein Songtext-Symbol neben der Warteschlangen-Aktionsschaltfläche hinzu. Der Warteschlangenbereich wechselt zu Songtextsuche und Kandidatenliste. Das Plugin verwaltet einen kleinen Loader-Block in der custom.js von Material Skin; vorhandener eigener Code bleibt erhalten.
 	NL	Voegt een vermelding „Songtekst kiezen“ toe aan het weergave-instellingenmenu en een songtekstpictogram naast de wachtrij-actieknop. Het wachtrijpaneel schakelt naar songtekst zoeken en een kandidatenlijst. De plugin beheert een klein loaderblok in de custom.js van Material Skin; bestaande eigen code blijft behouden.
 	ZH_CN	在正在播放设置菜单中添加“选择歌词”项，并在队列操作按钮旁添加歌词图标。队列面板将切换为歌词搜索和候选列表。插件会管理 Material Skin 的 custom.js 中的一小段加载代码；现有自定义代码会被保留。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_OPTIONS
+	EN	Lyrics options
+	ZH_CN	歌词选项
+
+PLUGIN_MUSICARTISTINFO_LYRICS_OPTIONS_LINK
+	EN	Open lyrics options
+	ZH_CN	打开歌词选项
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TAB_SEARCH
+	EN	Lyrics search
+	ZH_CN	歌词搜索
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TAB_SOURCES
+	EN	Lyrics sources
+	ZH_CN	歌词来源
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TAB_SEARCH_SETTINGS
+	EN	Search settings
+	ZH_CN	搜索设置
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TAB_PROCESS
+	EN	Lyrics processing
+	ZH_CN	歌词处理
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TAB_SAVE
+	EN	Save settings
+	ZH_CN	保存设置
+
+PLUGIN_MUSICARTISTINFO_LYRICS_AUTO_SEARCH
+	EN	Lyrics search
+	ZH_CN	歌词搜索
+
+PLUGIN_MUSICARTISTINFO_LYRICS_AUTO_SEARCH_DESC
+	EN	Automatically search for lyrics when a track starts.
+	ZH_CN	音轨开始播放时自动搜索歌词。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_AUTO_SEARCH_ENABLE
+	EN	Search for lyrics automatically when a track starts
+	ZH_CN	音轨开始播放时自动搜索歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_MIN_MATCH
+	EN	Minimum match
+	ZH_CN	歌词最小匹配度
+
+PLUGIN_MUSICARTISTINFO_LYRICS_STOP_AFTER_FIRST
+	EN	Stop searching other sources after lyrics were found
+	ZH_CN	自动搜索时搜索到歌词则不继续搜索其他歌词源
+
+PLUGIN_MUSICARTISTINFO_LYRICS_STOP_EXTERNAL_ON_LOCAL
+	EN	Do not search external sources if local lyrics were found
+	ZH_CN	自动搜索时本地搜索到歌词则不继续搜索外部歌词源
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PREFER_SYNCED
+	EN	Prefer synced lyrics when match is above the threshold
+	ZH_CN	匹配度高于设置值时优先选择同步歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_RESULT_MODE
+	EN	When lyrics are found
+	ZH_CN	搜索到歌词时
+
+PLUGIN_MUSICARTISTINFO_LYRICS_RESULT_BEST
+	EN	Automatically select the best match
+	ZH_CN	自动选择当前最佳匹配歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_RESULT_ALL_MANUAL
+	EN	Search all sources, then select manually
+	ZH_CN	搜索全部歌词源后手动选择
+
+PLUGIN_MUSICARTISTINFO_LYRICS_RESULT_ALL_BEST
+	EN	Search all sources, then select the best match
+	ZH_CN	搜索全部歌词源后自动选择最佳匹配歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_RESULT_MANUAL_IF_NONE
+	EN	Only select manually when no match was found
+	ZH_CN	仅找到未匹配歌词时手动选择
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_SETTINGS
+	EN	Lyrics source settings
+	ZH_CN	歌词源设置
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES
+	EN	Lyrics sources
+	ZH_CN	歌词来源
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES_DESC
+	EN	Order in which lyrics sources are queried.
+	ZH_CN	歌词来源的查询顺序。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES_ORDER_HINT
+	EN	Use the arrows to change the source order.
+	ZH_CN	使用箭头调整来源顺序。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FILTERS
+	EN	Search filters
+	ZH_CN	搜索过滤
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FILTERS_DESC
+	EN	Skip automatic lyric searches when any enabled filter matches.
+	ZH_CN	满足任一启用条件时将不会自动搜索歌词。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_FIELD
+	EN	Field
+	ZH_CN	字段
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CONDITION
+	EN	Condition
+	ZH_CN	条件
+
+PLUGIN_MUSICARTISTINFO_LYRICS_VALUE
+	EN	Value
+	ZH_CN	内容
+
+PLUGIN_MUSICARTISTINFO_LYRICS_ADD
+	EN	Add
+	ZH_CN	新增
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CONTAINS
+	EN	contains
+	ZH_CN	包含
+
+PLUGIN_MUSICARTISTINFO_LYRICS_NOT_CONTAINS
+	EN	does not contain
+	ZH_CN	不包含
+
+PLUGIN_MUSICARTISTINFO_LYRICS_IS
+	EN	is
+	ZH_CN	是
+
+PLUGIN_MUSICARTISTINFO_LYRICS_NOT_IS
+	EN	is not
+	ZH_CN	不是
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FIELDS
+	EN	Search fields
+	ZH_CN	搜索字段
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FIELDS_DESC
+	EN	Optionally build the title and artist used for searching from a format.
+	ZH_CN	可选：使用格式生成搜索用的标题和艺术家。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_CUSTOM_FIELDS
+	EN	Use custom search fields
+	ZH_CN	自定义搜索字段
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_TITLE_FORMAT
+	EN	Title format
+	ZH_CN	标题格式
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_ARTIST_FORMAT
+	EN	Artist format
+	ZH_CN	艺术家格式
+
+PLUGIN_MUSICARTISTINFO_LYRICS_FIELD_PROCESSING
+	EN	Field processing
+	ZH_CN	字段处理
+
+PLUGIN_MUSICARTISTINFO_LYRICS_FIELD_PROCESSING_DESC
+	EN	Clean up search fields before looking for lyrics.
+	ZH_CN	搜索前处理搜索字段，以提高匹配概率。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_OPERATION
+	EN	Operation
+	ZH_CN	操作
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PARAM1
+	EN	Parameter 1
+	ZH_CN	参数 1
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PARAM2
+	EN	Parameter 2
+	ZH_CN	参数 2
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TARGET
+	EN	Field
+	ZH_CN	处理字段
+
+PLUGIN_MUSICARTISTINFO_LYRICS_REMOVE_CHARS
+	EN	Remove characters
+	ZH_CN	移除字符
+
+PLUGIN_MUSICARTISTINFO_LYRICS_REGEX_REMOVE
+	EN	Remove with regex
+	ZH_CN	正则匹配移除字符串
+
+PLUGIN_MUSICARTISTINFO_LYRICS_REGEX_REPLACE
+	EN	Replace with regex
+	ZH_CN	正则匹配替换字符串
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SIMPLIFIED
+	EN	Convert to simplified Chinese
+	ZH_CN	转换为简体
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TRADITIONAL
+	EN	Convert to traditional Chinese
+	ZH_CN	转换为繁体
+
+PLUGIN_MUSICARTISTINFO_LYRICS_ALL
+	EN	All
+	ZH_CN	全部
+
+PLUGIN_MUSICARTISTINFO_LYRICS_TITLE
+	EN	Title
+	ZH_CN	标题
+
+PLUGIN_MUSICARTISTINFO_LYRICS_ARTIST
+	EN	Artist
+	ZH_CN	艺术家
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING
+	EN	Lyrics processing
+	ZH_CN	歌词处理
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING_DESC
+	EN	Apply the following operations to displayed and saved lyrics.
+	ZH_CN	对显示和保存的歌词应用以下处理。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_NAME
+	EN	Name
+	ZH_CN	名称
+
+PLUGIN_MUSICARTISTINFO_LYRICS_STANDARDIZE
+	EN	Standardize format
+	ZH_CN	转换为标准格式
+
+PLUGIN_MUSICARTISTINFO_LYRICS_COMPRESS_BLANK
+	EN	Compress consecutive blank lines
+	ZH_CN	压缩连续空行
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PROCESS_REFERENCE_ONLY
+	EN	When converting Chinese, only convert the reference lyrics if present
+	ZH_CN	繁简转换时存在参照歌词则仅转换参照歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SETTINGS
+	EN	Save settings
+	ZH_CN	保存设置
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SETTINGS_DESC
+	EN	Control when and how lyrics are saved next to the audio file.
+	ZH_CN	控制歌词保存的时机和方式。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_MODE
+	EN	Save strategy
+	ZH_CN	保存策略
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_IMMEDIATE
+	EN	Save immediately
+	ZH_CN	立即保存
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_60
+	EN	Save after 60 seconds
+	ZH_CN	播放 60 秒后自动保存
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_60_OR_THIRD
+	EN	Save after 60 seconds or one third of the track
+	ZH_CN	播放 60 秒或 1/3 长度时自动保存
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_MANUAL
+	EN	Save manually only
+	ZH_CN	仅手动保存
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_ENCODING
+	EN	Encoding
+	ZH_CN	保存编码
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SYNC_ONLY
+	EN	Automatically save synced lyrics only
+	ZH_CN	仅自动保存同步歌词
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_APPLY_PROCESSING
+	EN	Apply lyrics processing when saving
+	ZH_CN	保存时应用歌词处理规则
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PREVIEW
+	EN	Preview
+	ZH_CN	预览
+
+PLUGIN_MUSICARTISTINFO_FB2K_FORMAT
+	EN	Foobar2000 format
+	ZH_CN	Foobar2000 格式
+
+PLUGIN_MUSICARTISTINFO_FB2K_FORMAT_DESC
+	EN	Use the optional FB2KFormat plugin for save paths and filenames.
+	ZH_CN	使用可选的 FB2KFormat 插件生成保存路径和文件名。
+
+PLUGIN_MUSICARTISTINFO_FB2K_ENABLE
+	EN	Use foobar2000 title formatting
+	ZH_CN	使用 foobar2000 标题格式
+
+PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE
+	EN	FB2KFormat plugin not found or not enabled. Install and enable the plugin to use foobar2000 formatting.
+	ZH_CN	未检测到 FB2KFormat 插件或插件未启用。安装并启用该插件后才能使用 foobar2000 格式。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_PATH
+	EN	Save location
+	ZH_CN	保存位置
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FILENAME
+	EN	Save filename
+	ZH_CN	保存文件名
+
+PLUGIN_MUSICARTISTINFO_LYRICS_HANCONVERT_UNAVAILABLE
+	EN	Simplified/traditional Chinese conversion is unavailable. Install Encode::HanConvert or Text::OpenCC to enable these rules.
+	ZH_CN	简体/繁体中文转换不可用。安装 Encode::HanConvert 或 Text::OpenCC 后可启用这些规则。

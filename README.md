@@ -91,3 +91,20 @@ LMS.
 ## Local text files
 
 Local lyrics (`.lrc`/`.txt`) and text documents (`.txt`, `.nfo`, `.md`, `.html`) are decoded automatically. UTF-8 (with or without BOM), UTF-16/UTF-32 with BOM, and common legacy encodings are supported; invalid or ambiguous input falls back to a best-effort Windows-1252/ISO-8859-1 decode. Files written by the plugin remain UTF-8 without a BOM.
+
+## Foobar2000 title formatting and lyrics options
+
+The optional **FB2KFormat** plugin provides a safe subset of the foobar2000
+title-formatting language for save paths, filenames and custom search fields.
+When it is installed and enabled, MusicArtistInfo's lyrics options expose a
+**Use foobar2000 title formatting** switch; otherwise the existing Lyrion
+Music Server filename format is used.
+
+A dedicated **Lyrics options** page groups the automatic search, source order,
+search filters/fields/processing, lyrics processing and save settings. It
+supports save locations such as `$directory_path(%path%)`, UTF-8 BOM output,
+and the example filename template:
+
+```text
+[$num(%discnumber%,1)-][%tracknumber%. ][%artist% - ]$meta(title,0)[ '('cover %origartist%')']
+```

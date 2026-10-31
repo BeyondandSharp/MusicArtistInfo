@@ -138,6 +138,7 @@ sub getCandidates {
 				$result->{source} ||= basename($file);
 				$result->{song}   ||= $args->{title};
 				$result->{artist} ||= $args->{artist};
+				$result->{title}  ||= $result->{song};
 				push @candidates, $result;
 				$onCandidate->($result) if $onCandidate;
 			}

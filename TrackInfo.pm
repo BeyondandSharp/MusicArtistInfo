@@ -24,12 +24,16 @@ use Slim::Utils::Unicode;
 use Plugins::MusicArtistInfo::API;
 use Plugins::MusicArtistInfo::Common qw(CLICOMMAND isDirWritable);
 use Plugins::MusicArtistInfo::Parser::LRC;
+use Plugins::MusicArtistInfo::Lyrics::Processor;
+use Plugins::MusicArtistInfo::Lyrics::Match;
+use Plugins::MusicArtistInfo::Lyrics::SearchSettings;
 use Plugins::MusicArtistInfo::Text;
 use Plugins::MusicArtistInfo::Lyrics::Candidates;
 use Plugins::MusicArtistInfo::Lyrics::ChosenCache;
 use Plugins::MusicArtistInfo::Lyrics::PerlScripts;
 use Plugins::MusicArtistInfo::Lyrics::FileName;
 use Plugins::MusicArtistInfo::Lyrics::Sidecar;
+use Plugins::MusicArtistInfo::Lyrics::SaveTarget;
 use Plugins::MusicArtistInfo::Lyrics::WebUI;
 
 my $log = logger('plugin.musicartistinfo');
@@ -37,6 +41,9 @@ my $onlineLog = logger('plugin.musicartistinfo.online');
 my $prefs = preferences('plugin.musicartistinfo');
 my $cache = Slim::Utils::Cache->new;
 my $chosenCache = Plugins::MusicArtistInfo::Lyrics::ChosenCache->new;
+my $AUTO_SAVE_TOKEN = {};
+my %AUTO_SOURCE_SEEN;
+my $AUTO_SUBSCRIBED = 0;
 
 my $CANDIDATE_SESSION_EXPIRES = 30 * 60;
 my $CANDIDATE_TIMEOUT         = 30;
@@ -63,6 +70,10 @@ sub init {
 #                                                                C  Q  T  F
 	Slim::Control::Request::addDispatch([CLICOMMAND, 'lyrics'], [0, 1, 1, \&getSongLyricsCLI]);
 
+	if ( !$AUTO_SUBSCRIBED++ ) {
+		Slim::Control::Request::subscribe(\&_autoSearchNewsong, [['playlist'], ['newsong']]);
+	}
+
 	Slim::Menu::TrackInfo->registerInfoProvider( moretrackinfo => (
 		func => \&_objInfoHandler,
 		after => 'moreartistinfo',
@@ -72,7 +83,7 @@ sub init {
 		eval {
 			require Slim::Web::Pages;
 			Slim::Web::Pages->addRawFunction(
-				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel)},
+				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel|save-preview)},
 				\&_lyricsApi,
 			);
 		};
@@ -80,6 +91,112 @@ sub init {
 	}
 
 	Slim::Utils::Timers::setTimer(__PACKAGE__, time() + rand(5), \&updateLyricsProviders);
+}
+
+sub _autoSearchNewsong {
+	my $request = shift;
+
+	return unless $prefs->get('autoSearchLyrics');
+
+	my $client = $request->client();
+	return unless $client;
+
+	my $song = eval { $client->playingSong };
+	return unless $song;
+
+	my $track = eval { $song->track };
+	return unless $track;
+
+	Slim::Utils::Timers::killTimers($AUTO_SAVE_TOKEN);
+
+	my $key = ($client->id || '') . ':' . ($track->id || '');
+	return if $AUTO_SOURCE_SEEN{$key}++;
+
+	my $args = {
+		track    => $track,
+		title    => $track->title,
+		artist   => $track->artistName,
+		album    => $track->albumname,
+		duration => $track->secs,
+		url      => $track->url,
+		track_id => $track->id,
+	};
+
+	return if Plugins::MusicArtistInfo::Lyrics::SearchSettings->skip_auto_search($args);
+
+	my $local = eval { $track->lyrics }
+		|| eval { _getCachedLyrics($args) }
+		|| eval { _getLocalLyrics($args) };
+
+	return if $local && $prefs->get('lyricsStopExternalOnLocal');
+
+	my $resultMode = $prefs->get('lyricsResultMode') || 'best';
+
+	collectCandidates($args, sub {
+		my $candidates = shift || [];
+
+		if ( $resultMode eq 'all_manual' ) {
+			$cache->set(
+				'mai_auto_pending_' . md5_hex($key),
+				[ map { { %$_ } } @$candidates ],
+				3600,
+			);
+			return;
+		}
+
+		my $best = Plugins::MusicArtistInfo::Lyrics::Match->best(
+			$candidates,
+			$args,
+			{
+				min           => $prefs->get('lyricsMinMatch') || 0,
+				prefer_synced => $prefs->get('lyricsPreferSynced'),
+			},
+		);
+
+		return unless $best;
+		return if $resultMode eq 'manual_if_none' && $local;
+
+		$chosenCache->save($args, $best->{lyrics});
+		_cacheLyrics($args, $best->{lyrics});
+		_schedule_auto_sidecar($client, $track, $args, $best);
+	}, {
+		stop_after_first => $prefs->get('lyricsStopAfterFirst'),
+	});
+}
+
+sub _schedule_auto_sidecar {
+	my ($client, $track, $args, $candidate) = @_;
+
+	return unless $prefs->get('saveLyricsWithSong');
+	return unless $candidate && defined $candidate->{lyrics} && $candidate->{lyrics} =~ /\S/;
+	return if $prefs->get('lyricsSaveSyncOnly') && !$candidate->{synced};
+
+	my $mode = $prefs->get('lyricsSaveMode') || 'immediate';
+	return if $mode eq 'manual';
+
+	if ( $mode eq 'immediate' ) {
+		_save_lyrics_next_to_song($args, $candidate->{lyrics}, $candidate, 0);
+		return;
+	}
+
+	my $duration = $args->{duration} || eval { $track->secs } || 0;
+	my $delay = 60;
+	if ( $mode eq 'auto_60_or_third' && $duration > 0 ) {
+		my $third = $duration / 3;
+		$delay = $third < $delay ? $third : $delay;
+	}
+
+	my $trackId = $track->id;
+	Slim::Utils::Timers::setTimer(
+		$AUTO_SAVE_TOKEN,
+		time() + $delay,
+		sub {
+			my $current = eval { $client->playingSong };
+			my $currentTrack = $current ? eval { $current->track } : undef;
+			return unless $currentTrack && $currentTrack->id eq $trackId;
+			_save_lyrics_next_to_song($args, $candidate->{lyrics}, $candidate, 0);
+		},
+	);
 }
 
 sub _objInfoHandler {
@@ -390,27 +507,39 @@ $lyricsProvider = {
 	}
 };
 
+sub _lyrics_source_ids {
+	my @available = @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
+	push @available, 'PerlScripts' if Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled;
+
+	my %available = map { $_ => 1 } @available;
+	my @saved;
+	my $raw = $prefs->get('lyricsSourceOrder');
+	if ( defined $raw && $raw ne '' ) {
+		my $decoded = eval { JSON::PP->new->decode($raw) };
+		@saved = @$decoded if ref $decoded eq 'ARRAY';
+	}
+
+	my %seen;
+	my @order;
+	foreach my $id (@saved, @available) {
+		next if !$available{$id} || $seen{$id}++;
+		push @order, $id;
+	}
+
+	return @order;
+}
+
 sub _fetchLyrics {
 	my ($args, $cb, $ecb) = @_;
 
 	my $lyricsResult;
+	my $lookupArgs = Plugins::MusicArtistInfo::Lyrics::SearchSettings->prepare_args($args);
 
 	my $handlerPipeline = [
 		grep { $_ }
 		map { $lyricsProvider->{$_} }
-		@{$prefs->get('lyricsProviders') || $lyricsProviderPipeline}
+		_lyrics_source_ids()
 	];
-
-	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
-		my $scripts = $lyricsProvider->{PerlScripts};
-
-		if ( $prefs->get('customLyricsSourcesFirst') ) {
-			unshift @$handlerPipeline, $scripts;
-		}
-		else {
-			push @$handlerPipeline, $scripts;
-		}
-	}
 
 	Async::Util::amap(
 		inputs => $handlerPipeline,
@@ -422,7 +551,7 @@ sub _fetchLyrics {
 				return;
 			}
 
-			$handler->($args, sub {
+			$handler->($lookupArgs, sub {
 				my $result = shift;
 
 				if ($result && ref $result && keys %$result && !$result->{error}) {
@@ -618,19 +747,28 @@ sub _save_lyrics_next_to_song {
 	my $audioPath = Slim::Utils::Misc::pathFromFileURL($url);
 	return unless $audioPath && -f $audioPath;
 
-	my $format = $prefs->get('lyricsFileNameFormat') || 'FILE';
-	my $basename = eval {
-		Plugins::MusicArtistInfo::Lyrics::FileName->lyrics_filename($track, $format)
-	};
+	my $target = Plugins::MusicArtistInfo::Lyrics::SaveTarget->build($track, {
+		use_fb2k       => $prefs->get('useFb2kFormat'),
+		path_format    => $prefs->get('lyricsSavePathFormat'),
+		file_format    => $prefs->get('lyricsSaveFileNameFormat'),
+		lms_file_format => $prefs->get('lyricsFileNameFormat') || 'FILE',
+	});
 
-	return unless $basename;
+	unless ( $target && $target->{full_path} ) {
+		$log->warn('Could not determine lyrics save target: ' . ($target->{error} || 'unknown error'));
+		return;
+	}
 
-	my $result = Plugins::MusicArtistInfo::Lyrics::Sidecar->save(
-		$audioPath,
-		$basename,
+	if ( $prefs->get('lyricsSaveApplyProcessing') ) {
+		$lyrics = Plugins::MusicArtistInfo::Lyrics::Processor->process($lyrics);
+	}
+
+	my $result = Plugins::MusicArtistInfo::Lyrics::Sidecar->save_path(
+		$target->{full_path},
 		$lyrics,
 		{
 			overwrite => $force || $prefs->get('overwriteLyricsWithSong'),
+			bom       => ($prefs->get('lyricsSaveEncoding') || '') eq 'utf8bom' ? 1 : 0,
 		},
 	);
 
@@ -719,9 +857,11 @@ sub collectCandidates {
 	my ($lookupArgs, $cb, $opts) = @_;
 
 	$opts ||= {};
+	$lookupArgs = Plugins::MusicArtistInfo::Lyrics::SearchSettings->prepare_args($lookupArgs);
 
 	my $onCandidate = $opts->{on_candidate};
 	my $onProgress  = $opts->{on_progress};
+	my $stopAfterFirst = $opts->{stop_after_first};
 
 	my @candidates;
 	my $done = 0;
@@ -759,20 +899,21 @@ sub collectCandidates {
 
 	my @sources = _builtin_candidate_sources();
 
-	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
-		my $custom = {
-			id     => 'PerlScripts',
-			label  => 'Perl scripts',
-			custom => 1,
-		};
+	my $customSource = {
+		id     => 'PerlScripts',
+		label  => 'Perl scripts',
+		custom => 1,
+	};
 
-		if ( $prefs->get('customLyricsSourcesFirst') ) {
-			unshift @sources, $custom;
-		}
-		else {
-			push @sources, $custom;
-		}
+	my %sourcesById = map { $_->{id} => $_ } @sources;
+	$sourcesById{PerlScripts} = $customSource;
+
+	my @ordered;
+	foreach my $id (_lyrics_source_ids()) {
+		next if $id eq 'PerlScripts' && !Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled;
+		push @ordered, $sourcesById{$id} if $sourcesById{$id};
 	}
+	@sources = @ordered;
 
 	$totalSources = scalar @sources;
 	$reportProgress->();
@@ -811,6 +952,10 @@ sub collectCandidates {
 								$candidate->{priority} = $priority;
 								push @candidates, $candidate;
 							}
+						}
+						if ( $stopAfterFirst && @candidates ) {
+							$finish->();
+							return;
 						}
 
 						$sourceDone->();
@@ -851,6 +996,10 @@ sub collectCandidates {
 						push @candidates, $candidate;
 						$onCandidate->($candidate) if $onCandidate && !$done;
 						$reportProgress->();
+						if ( $stopAfterFirst && @candidates ) {
+							$finish->();
+							return;
+						}
 					}
 				}
 
@@ -1082,6 +1231,10 @@ sub _lyricsApi {
 		}
 	}
 
+	if ( $path =~ m{/lyrics/save-preview} ) {
+		return _handle_save_preview($httpClient, $response, \%params);
+	}
+
 	if ( $path =~ m{/lyrics/select} ) {
 		return _handle_lyrics_select($httpClient, $response, \%params);
 	}
@@ -1095,6 +1248,72 @@ sub _lyricsApi {
 	}
 
 	return _handle_lyrics_candidates($httpClient, $response, \%params);
+}
+
+sub lyrics_source_options {
+	my @ids = @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
+	push @ids, 'PerlScripts' if $prefs->get('enableCustomLyricsSources')
+		&& !grep { $_ eq 'PerlScripts' } @ids;
+
+	my %seen;
+	my @out;
+	foreach my $id (@ids) {
+		next if $seen{$id}++;
+		next unless $lyricsProvider->{$id} || $id eq 'PerlScripts';
+		push @out, {
+			id    => $id,
+			label => $lyricsProviderLabels{$id} || $id,
+		};
+	}
+
+	return \@out;
+}
+
+sub _handle_save_preview {
+	my ($httpClient, $response, $params) = @_;
+
+	my $track;
+	if ( defined $params->{track_id} && $params->{track_id} =~ /^\d+$/ ) {
+		$track = Slim::Schema->find('Track', $params->{track_id});
+	}
+	elsif ( $params->{url} ) {
+		$track = eval { Slim::Schema->objectForUrl($params->{url}) };
+	}
+	elsif ( $params->{player} ) {
+		my $client = eval { Slim::Player::Client::getClient($params->{player}) };
+		my $song = $client ? eval { $client->playingSong } : undef;
+		$track = $song ? eval { $song->track } : undef;
+	}
+
+	if ( !$track ) {
+		foreach my $client ( Slim::Player::Client::clients() ) {
+			my $song = eval { $client->playingSong };
+			next unless $song;
+			$track = eval { $song->track };
+			last if $track;
+		}
+	}
+
+	unless ($track) {
+		return _send_json($httpClient, $response, { error => 'No current track' }, 400);
+	}
+
+	my $useFb2k = defined $params->{use_fb2k}
+		? $params->{use_fb2k}
+		: $prefs->get('useFb2kFormat');
+
+	my $target = Plugins::MusicArtistInfo::Lyrics::SaveTarget->build($track, {
+		use_fb2k        => $useFb2k,
+		path_format     => defined $params->{path_format}
+			? $params->{path_format}
+			: $prefs->get('lyricsSavePathFormat'),
+		file_format     => defined $params->{file_format}
+			? $params->{file_format}
+			: $prefs->get('lyricsSaveFileNameFormat'),
+		lms_file_format => $prefs->get('lyricsFileNameFormat') || 'FILE',
+	});
+
+	return _send_json($httpClient, $response, $target);
 }
 
 sub _handle_lyrics_candidates {
@@ -1377,6 +1596,7 @@ sub _renderLyricsResponse {
 	my $client = $request->client();
 
 	$lyrics = Plugins::MusicArtistInfo::Text->ensure_text($lyrics);
+	$lyrics = Plugins::MusicArtistInfo::Lyrics::Processor->process($lyrics);
 
 	$lyrics =~ s/\\n/\n/g;
 	$lyrics =~ s/\r\n/\n/g;

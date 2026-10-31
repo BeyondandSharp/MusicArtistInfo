@@ -57,6 +57,28 @@ sub initPlugin {
 		customLyricsSourcesFirst => 1,
 		customLyricsSourcesFolder => '',
 		integrateMaterialSkin => 1,
+		useFb2kFormat => 0,
+		lyricsSavePathFormat => '$directory_path(%path%)',
+		lyricsSaveFileNameFormat => '',
+		lyricsSaveBom => 0,
+		lyricsSaveEncoding => 'utf8',
+		lyricsSaveMode => 'immediate',
+		lyricsSaveSyncOnly => 0,
+		lyricsSaveApplyProcessing => 1,
+		autoSearchLyrics => 0,
+		lyricsMinMatch => 60,
+		lyricsStopAfterFirst => 1,
+		lyricsStopExternalOnLocal => 1,
+		lyricsPreferSynced => 1,
+		lyricsResultMode => 'best',
+		lyricsCustomSearchFields => 0,
+		lyricsSearchTitleFormat => '%title%',
+		lyricsSearchArtistFormat => '[%artist%]',
+		lyricsProcessReferenceOnly => 0,
+		lyricsSourceOrder => '[]',
+		lyricsSearchFilters => '[]',
+		lyricsFieldProcessing => '[]',
+		lyricsProcessingRules => '[]',
 	});
 
 	$prefs->setChange(\&webPages, 'hidextramenusitems');
@@ -111,6 +133,9 @@ sub initPlugin {
 	if (main::WEBUI) {
 		require Plugins::MusicArtistInfo::Settings;
 		Plugins::MusicArtistInfo::Settings->new();
+
+		require Plugins::MusicArtistInfo::LyricsSettings;
+		Plugins::MusicArtistInfo::LyricsSettings->new();
 	}
 
 	$class->SUPER::initPlugin(shift);
