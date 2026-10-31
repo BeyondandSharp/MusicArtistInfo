@@ -63,8 +63,25 @@ sub save_path {
 	my $text = $class->normalize($lyrics);
 	return { error => 'Empty lyrics' } unless $text =~ /\S/;
 
-	my $encoded = Encode::encode('UTF-8', $text);
-	$encoded = "\xEF\xBB\xBF" . $encoded if $opts->{bom};
+	my $encoding = $opts->{encoding} || ($opts->{bom} ? 'utf8bom' : 'utf8');
+	my %encodings = (
+		utf8     => 'UTF-8',
+		utf8bom  => 'UTF-8',
+		utf16le  => 'UTF-16LE',
+		utf16be  => 'UTF-16BE',
+		gb18030  => 'GB18030',
+	);
+	my $charset = $encodings{$encoding} || 'UTF-8';
+	my $encoded = Encode::encode($charset, $text);
+	if ( $encoding eq 'utf8bom' ) {
+		$encoded = "\xEF\xBB\xBF" . $encoded;
+	}
+	elsif ( $encoding eq 'utf16le' ) {
+		$encoded = "\xFF\xFE" . $encoded;
+	}
+	elsif ( $encoding eq 'utf16be' ) {
+		$encoded = "\xFE\xFF" . $encoded;
+	}
 
 	my $tmp = eval {
 		File::Temp->new(

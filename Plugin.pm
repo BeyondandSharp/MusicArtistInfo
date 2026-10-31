@@ -13,6 +13,7 @@ use Plugins::MusicArtistInfo::Common qw(CAN_IMAGEPROXY CAN_LMS_WORKS CAN_LMS_CAN
 use Plugins::MusicArtistInfo::TrackInfo;
 use Plugins::MusicArtistInfo::LocalFile;
 use Plugins::MusicArtistInfo::Lyrics::MaterialSkin;
+use Plugins::MusicArtistInfo::Lyrics::Scripts;
 
 use constant PLUGIN_TAG => 'musicartistinfo';
 
@@ -53,8 +54,6 @@ sub initPlugin {
 		saveLyricsWithSong => 0,
 		overwriteLyricsWithSong => 0,
 		lyricsFileNameFormat => 'FILE',
-		enableCustomLyricsSources => 0,
-		customLyricsSourcesFirst => 1,
 		customLyricsSourcesFolder => '',
 		integrateMaterialSkin => 1,
 		useFb2kFormat => 0,
@@ -77,6 +76,10 @@ sub initPlugin {
 		lyricsSearchTitleFormat => '%title%',
 		lyricsSearchArtistFormat => '[%artist%]',
 		lyricsProcessReferenceOnly => 0,
+		lyricsSearchScript => Plugins::MusicArtistInfo::Lyrics::Scripts->default_search_script,
+		lyricsSearchScriptPath => '',
+		lyricsProcessingScript => Plugins::MusicArtistInfo::Lyrics::Scripts->default_processing_script,
+		lyricsProcessingScriptPath => '',
 		lyricsSourceOrder => '[]',
 		lyricsSourceDisabled => '[]',
 		lyricsSearchFilters => '[]',

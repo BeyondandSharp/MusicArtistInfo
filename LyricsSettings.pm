@@ -8,6 +8,7 @@ use JSON::PP ();
 use Slim::Utils::Prefs;
 
 use Plugins::MusicArtistInfo::Lyrics::Format;
+use Plugins::MusicArtistInfo::Lyrics::Scripts;
 use Plugins::MusicArtistInfo::Lyrics::MaterialSkin;
 use Plugins::MusicArtistInfo::TrackInfo;
 
@@ -23,7 +24,7 @@ sub page {
 
 sub prefs {
 	my @prefs = ($prefs, qw(
-		enableCustomLyricsSources customLyricsSourcesFolder customLyricsSourcesFirst
+		customLyricsSourcesFolder
 		saveLyricsWithSong overwriteLyricsWithSong lyricsFileNameFormat
 		integrateMaterialSkin
 		useFb2kFormat lyricsSavePathFormat lyricsSaveFileNameFormat lyricsSaveBom lyricsSaveEncoding
@@ -31,8 +32,8 @@ sub prefs {
 		autoSearchLyrics lyricsMinMatch lyricsStopAfterFirst lyricsStopExternalOnLocal
 		lyricsPreferSynced lyricsResultMode
 		lyricsCustomSearchFields lyricsSearchTitleFormat lyricsSearchArtistFormat
-		lyricsProcessReferenceOnly
-		lyricsSourceOrder lyricsSourceDisabled lyricsSearchFilters lyricsFieldProcessing lyricsProcessingRules
+		lyricsSourceOrder lyricsSourceDisabled
+		lyricsSearchScript lyricsSearchScriptPath lyricsProcessingScript lyricsProcessingScriptPath
 	));
 
 	return @prefs;
@@ -49,7 +50,7 @@ sub handler {
 
 	# Fill in defaults for array settings and make sure malformed JSON
 	# cannot be persisted.
-	foreach my $key (qw(lyricsSourceOrder lyricsSourceDisabled lyricsSearchFilters lyricsFieldProcessing lyricsProcessingRules)) {
+	foreach my $key (qw(lyricsSourceOrder lyricsSourceDisabled)) {
 		my $value = $paramRef->{"pref_$key"};
 		$value = $prefs->get($key) if !defined $value;
 		$value = '[]' if !defined $value || $value eq '';
@@ -65,6 +66,8 @@ sub handler {
 	$paramRef->{lyricsSourceOrder} = $prefs->get('lyricsSourceOrder') || '[]';
 	$paramRef->{lyricsSourceDisabled} = $prefs->get('lyricsSourceDisabled') || '[]';
 	$paramRef->{lyricsSearchFilters} = $prefs->get('lyricsSearchFilters') || '[]';
+	$paramRef->{lyricsSearchScript} = $prefs->get('lyricsSearchScript') || Plugins::MusicArtistInfo::Lyrics::Scripts->default_search_script;
+	$paramRef->{lyricsProcessingScript} = $prefs->get('lyricsProcessingScript') || Plugins::MusicArtistInfo::Lyrics::Scripts->default_processing_script;
 	$paramRef->{lyricsFieldProcessing} = $prefs->get('lyricsFieldProcessing') || '[]';
 	$paramRef->{lyricsProcessingRules} = $prefs->get('lyricsProcessingRules') || '[]';
 	$paramRef->{playerId} = eval { $client ? $client->id : '' } || '';

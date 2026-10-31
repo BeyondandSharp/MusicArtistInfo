@@ -55,8 +55,6 @@ my $lyricsProviderPipeline = [
 	# 'LRCLibGet',
 	# 'LRCLibSearch',
 	# 'ChartLyrics',
-	'Genius',
-	'GeniusNoDot',
 ];
 
 my $lyricsProvider;
@@ -581,10 +579,8 @@ sub _perl_script_file {
 }
 
 sub _online_source_ids {
-	my @available = @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
-	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
-		push @available, map { $_->{id} } @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
-	}
+	my @available = grep { !/^Genius/ } @{$prefs->get('lyricsProviders') || $lyricsProviderPipeline};
+	push @available, map { $_->{id} } @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
 	return _source_order(@available);
 }
 
@@ -845,7 +841,7 @@ sub _save_lyrics_next_to_song {
 		$lyrics,
 		{
 			overwrite => $force || $prefs->get('overwriteLyricsWithSong'),
-			bom       => ($prefs->get('lyricsSaveEncoding') || '') eq 'utf8bom' ? 1 : 0,
+			encoding  => $prefs->get('lyricsSaveEncoding') || 'utf8',
 		},
 	);
 
@@ -919,6 +915,7 @@ sub _builtin_candidate_sources {
 
 	foreach my $id (@ids) {
 		next if $id eq 'PerlScripts';
+		next if $id =~ /^Genius/;
 		next unless $lyricsProvider->{$id};
 
 		push @sources, {
@@ -977,15 +974,13 @@ sub collectCandidates {
 	my @sources = _builtin_candidate_sources();
 
 	my %sourcesById = map { $_->{id} => $_ } @sources;
-	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
-		foreach my $script (@{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources }) {
+	foreach my $script (@{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources }) {
 			$sourcesById{ $script->{id} } = {
 				id     => $script->{id},
 				label  => $script->{label},
 				custom => 1,
 				file   => $script->{file},
 			};
-		}
 	}
 
 	my @ordered;
@@ -1346,6 +1341,7 @@ sub lyrics_source_options {
 
 	foreach my $id (@{$prefs->get('lyricsProviders') || $lyricsProviderPipeline}) {
 		next if $id eq 'PerlScripts';
+		next if $id =~ /^Genius/;
 		next unless $lyricsProvider->{$id};
 		my $label = $lyricsProviderLabels{$id} || $id;
 		if ( $id eq 'GeniusNoDot' ) {
@@ -1358,9 +1354,7 @@ sub lyrics_source_options {
 		push @out, { id => $id, label => $label, desc => $desc };
 	}
 
-	if ( Plugins::MusicArtistInfo::Lyrics::PerlScripts->enabled ) {
-		push @out, @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
-	}
+	push @out, @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
 
 	return \@out;
 }

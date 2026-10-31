@@ -7,6 +7,8 @@ use JSON::PP ();
 use Slim::Utils::Prefs;
 
 use Plugins::MusicArtistInfo::Lyrics::Format;
+use Plugins::MusicArtistInfo::Lyrics::ScriptRunner;
+use Plugins::MusicArtistInfo::Lyrics::Scripts;
 
 my $prefs = preferences('plugin.musicartistinfo');
 
@@ -29,34 +31,31 @@ sub processing {
 sub skip_auto_search {
 	my ($class, $args) = @_;
 
-	my $title = lc($args->{title} || '');
-	my $path  = lc($args->{url} || $args->{path} || '');
-	my $instrumental = $args->{instrumental} ? 'true' : '';
-
-	foreach my $rule (@{ $class->filters }) {
-		next unless ref $rule eq 'HASH' && $rule->{enabled};
-		my $field = $rule->{field} || 'title';
-		my $value = $rule->{value} || '';
-		next if $value eq '';
-
-		my $candidate = $field eq 'path' ? $path
-			: $field eq 'instrumental' ? $instrumental
-			: $title;
-
-		my $op = $rule->{op} || 'contains';
-		my $match;
-		if ( $op eq 'is' || $op eq 'not_is' ) {
-			$match = lc($candidate) eq lc($value);
-		}
-		else {
-			$match = index($candidate, lc($value)) >= 0;
-		}
-		$match = !$match if $op eq 'not_contains' || $op eq 'not_is';
-		return 1 if $match;
-	}
-
-	return 0;
+	my $result = $class->_run_script($args || {});
+	return $result && $result->{skip} ? 1 : 0;
 }
+
+sub _run_script {
+	my ($class, $args) = @_;
+
+	my $script = $prefs->get('lyricsSearchScript');
+	$script = Plugins::MusicArtistInfo::Lyrics::Scripts->default_search_script
+		if !defined $script || $script eq '';
+	my $path = $prefs->get('lyricsSearchScriptPath') || '';
+
+	return Plugins::MusicArtistInfo::Lyrics::ScriptRunner->run(
+		$script,
+		$path,
+		{
+			title  => $args->{title}  || '',
+			artist => $args->{artist} || '',
+			album  => $args->{album}  || '',
+			url    => $args->{url}    || '',
+			skip   => 0,
+		},
+	);
+}
+
 
 sub prepare_args {
 	my ($class, $args) = @_;
@@ -67,7 +66,7 @@ sub prepare_args {
 	my $title  = defined $out{title}  ? $out{title}  : '';
 	my $artist = defined $out{artist} ? $out{artist} : '';
 
-	if ( $prefs->get('lyricsCustomSearchFields') && Plugins::MusicArtistInfo::Lyrics::Format->available ) {
+	if ( $prefs->get('lyricsCustomSearchFields') && $prefs->get('useFb2kFormat') && Plugins::MusicArtistInfo::Lyrics::Format->available ) {
 		my $fields = {
 			title  => $title,
 			artist => $artist,
@@ -79,11 +78,16 @@ sub prepare_args {
 		$artist = _format_field($fields, $prefs->get('lyricsSearchArtistFormat') || '[%artist%]', $artist);
 	}
 
-	foreach my $rule (@{ $class->processing }) {
-		next unless ref $rule eq 'HASH' && $rule->{enabled};
-		my $target = $rule->{target} || 'all';
-		$title  = _apply_rule($rule, $title)  if $target eq 'all' || $target eq 'title';
-		$artist = _apply_rule($rule, $artist) if $target eq 'all' || $target eq 'artist';
+	my $script = $class->_run_script({
+		%out,
+		title  => $title,
+		artist => $artist,
+	});
+
+	if ( $script && !$script->{error} ) {
+		$title  = $script->{title}  if defined $script->{title};
+		$artist = $script->{artist} if defined $script->{artist};
+		$out{skip} = 1 if $script->{skip};
 	}
 
 	$out{title}  = $title  if defined $title;

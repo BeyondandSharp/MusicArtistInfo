@@ -2,6 +2,7 @@ package Plugins::MusicArtistInfo::Lyrics::SaveTarget;
 
 use strict;
 
+use Encode qw(FB_CROAK);
 use File::Basename qw(dirname);
 use File::Spec::Functions qw(catfile);
 
@@ -49,6 +50,7 @@ sub build {
 		$filename =~ s/\.lrc$//i;
 	}
 
+	$filename = _utf8_text($filename);
 	$filename = Plugins::MusicArtistInfo::Lyrics::FileName::_sanitize($filename);
 	$filename .= '.lrc' unless $filename =~ /\.lrc$/i;
 
@@ -73,7 +75,8 @@ sub _audio_path {
 	return unless $url =~ m{^file://};
 
 	require Slim::Utils::Misc;
-	return eval { Slim::Utils::Misc::pathFromFileURL($url) };
+	my $path = eval { Slim::Utils::Misc::pathFromFileURL($url) };
+	return _utf8_text($path);
 }
 
 sub _clean_path {
@@ -93,6 +96,14 @@ sub _clean_path {
 	return if $path !~ m{^(?:/|[\\/]{2}|[A-Za-z]:[\\/])};
 
 	return $path;
+}
+
+sub _utf8_text {
+	my $value = shift;
+	return unless defined $value;
+	return $value if utf8::is_utf8($value);
+	my $decoded = eval { Encode::decode('UTF-8', $value, FB_CROAK) };
+	return defined $decoded && !$@ ? $decoded : $value;
 }
 
 1;

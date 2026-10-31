@@ -26,7 +26,6 @@ return {
 SCRIPT
 close $fh;
 
-$prefs->set('enableCustomLyricsSources', 1);
 $prefs->set('customLyricsSourcesFolder', $dir);
 
 require Plugins::MusicArtistInfo::Lyrics::PerlScripts;
@@ -60,9 +59,9 @@ $class->getLyrics({ title => 'T', artist => 'A' }, sub { @result = @_ });
 Slim::Utils::Timers::run_pending();
 like($result[0]{lyrics}, qr/from first/, 'broken script skipped');
 
-$prefs->set('enableCustomLyricsSources', 0);
+$prefs->set('customLyricsSourcesFolder', '/nonexistent/mai-test');
 my $called = 0;
 $class->getLyrics({ title => 'T', artist => 'A' }, sub { $called = 1 });
-ok($called, 'disabled provider calls back');
+ok($called, 'empty script folder calls back');
 
 done_testing();

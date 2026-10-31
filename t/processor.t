@@ -6,7 +6,13 @@ use lib "$Bin/lib";
 use Test::More;
 use Slim::Utils::Prefs;
 my $prefs = preferences('plugin.musicartistinfo');
-$prefs->set('lyricsProcessingRules', '[{"enabled":1,"op":"standardize"},{"enabled":1,"op":"compress_blank"}]');
+$prefs->set('lyricsProcessingScriptPath', '');
+$prefs->set('lyricsProcessingScript', q{
+$lyrics =~ s/\x{feff}//;
+$lyrics =~ s/\r\n?/\n/g;
+$lyrics =~ s/[ \t]+$//mg;
+$lyrics =~ s/\n{3,}/\n\n/g;
+});
 require Plugins::MusicArtistInfo::Lyrics::Processor;
 my $class = 'Plugins::MusicArtistInfo::Lyrics::Processor';
 my $in = "\x{feff}[00:01.00]a  \r\n\n\n\n[00:02.00]b";

@@ -2,9 +2,10 @@ package Plugins::MusicArtistInfo::Lyrics::Processor;
 
 use strict;
 
-use JSON::PP ();
-
 use Slim::Utils::Prefs;
+
+use Plugins::MusicArtistInfo::Lyrics::ScriptRunner;
+use Plugins::MusicArtistInfo::Lyrics::Scripts;
 
 my $prefs = preferences('plugin.musicartistinfo');
 
@@ -22,27 +23,20 @@ sub process {
 	return $lyrics unless defined $lyrics && $lyrics ne '';
 	return $lyrics unless $opts->{enabled} // 1;
 
-	foreach my $rule (@{ $class->rules }) {
-		next unless ref $rule eq 'HASH' && $rule->{enabled};
-		my $op = $rule->{op} || '';
+	my $script = $prefs->get('lyricsProcessingScript');
+	$script = Plugins::MusicArtistInfo::Lyrics::Scripts->default_processing_script
+		if !defined $script || $script eq '';
+	my $path = $prefs->get('lyricsProcessingScriptPath') || '';
 
-		if ( $op eq 'standardize' ) {
-			$lyrics =~ s/^\x{feff}//;
-			$lyrics =~ s/\r\n?/\n/g;
-			$lyrics =~ s/[ \t]+$//mg;
-		}
-		elsif ( $op eq 'compress_blank' ) {
-			$lyrics =~ s/\n{3,}/\n\n/g;
-		}
-		elsif ( $op eq 'simplified' || $op eq 'traditional' ) {
-			if ( eval { require Plugins::MusicArtistInfo::Lyrics::HanConvert; 1 } ) {
-				$lyrics = Plugins::MusicArtistInfo::Lyrics::HanConvert->convert($lyrics, $op)
-					if Plugins::MusicArtistInfo::Lyrics::HanConvert->available;
-			}
-		}
-	}
+	my $result = Plugins::MusicArtistInfo::Lyrics::ScriptRunner->run(
+		$script,
+		$path,
+		{ lyrics => $lyrics },
+	);
 
-	return $lyrics;
+	return $lyrics if !$result || $result->{error} || !defined $result->{lyrics};
+	return $result->{lyrics};
 }
+
 
 1;

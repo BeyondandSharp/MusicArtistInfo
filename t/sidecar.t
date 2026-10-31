@@ -72,4 +72,13 @@ is(substr($content, 0, 3), "\xEF\xBB\xBF", 'UTF-8 BOM written');
 $bomResult = $class->save_path(catfile($dir, 'missing-dir', 'x.lrc'), 'x');
 like($bomResult->{error}, qr/not writable/i, 'missing target folder rejected');
 
+# UTF-16LE output
+my $utf16File = catfile($dir, 'Utf16.lrc');
+my $utf16 = $class->save_path($utf16File, 'hello', { overwrite => 1, encoding => 'utf16le' });
+ok($utf16->{file}, 'utf16le file written');
+open($read, '<:raw', $utf16File) or die $!;
+$content = <$read>;
+close $read;
+is(substr($content, 0, 2), "\xFF\xFE", 'UTF-16LE BOM written');
+
 done_testing();

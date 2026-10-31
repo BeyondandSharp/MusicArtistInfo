@@ -15,8 +15,7 @@
 .mai-lyrics-settings .mai-source-list .mai-source-name { flex:1; min-width:0; }
 .mai-lyrics-settings .mai-source-list .mai-src-enabled { flex:0 0 auto; }
 .mai-lyrics-settings .mai-src-buttons { display:flex; gap:3px; flex:0 0 auto; }
-.mai-lyrics-settings .mai-src-buttons button, .mai-lyrics-settings .mai-rule-delete { min-width:26px; height:26px; line-height:24px; padding:0 5px; border:1px solid #888; background:#eee; color:#111; cursor:pointer; }
-.mai-lyrics-settings .mai-rule-delete { width:28px; }
+.mai-lyrics-settings .mai-src-buttons button, .mai-lyrics-settings .mai-rule-delete { min-width:auto; height:26px; line-height:24px; padding:0 7px; border:1px solid #888; background:#eee; color:#111; cursor:pointer; white-space:nowrap; }
 .mai-lyrics-settings .mai-open-options { display:inline-block; padding:5px 10px; border:1px solid #888; text-decoration:none; }
 .mai-lyrics-settings .mai-preview { font-family:monospace; background:#eee; color:#111; padding:6px; margin-top:4px; white-space:pre-wrap; word-break:break-all; }
 .mai-lyrics-settings .mai-hint { opacity:.75; font-size:90%; }
@@ -27,6 +26,12 @@
 <div class="mai-lyrics-settings">
 [% IF !fb2kFormatAvailable %]
 <div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>
+[% END %]
+
+[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_FB2K_FORMAT" desc="PLUGIN_MUSICARTISTINFO_FB2K_FORMAT_DESC" %]
+	<input type="checkbox" class="stdedit" name="pref_useFb2kFormat" id="pref_useFb2kFormat" value="1" [% IF prefs.pref_useFb2kFormat %]checked [% END %] [% IF !fb2kFormatAvailable %]disabled [% END %] />
+	<label for="pref_useFb2kFormat" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_FB2K_ENABLE" | string %]</label>
+	[% IF !fb2kFormatAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>[% END %]
 [% END %]
 
 <div class="mai-tabs" id="maiLyricsTabs">
@@ -71,16 +76,13 @@
 			<li data-source-id="[% source.id | html %]">
 				<input type="checkbox" class="mai-src-enabled" checked title="[% source.desc | html %]" />
 				<span class="mai-source-name" title="[% source.desc | html %]">[% source.label | html %]</span>
-				<span class="mai-src-buttons"><button type="button" class="mai-src-up" title="Up">&#8593;</button><button type="button" class="mai-src-down" title="Down">&#8595;</button></span>
+				<span class="mai-src-buttons"><button type="button" class="mai-src-up">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_UP" | string %]</button><button type="button" class="mai-src-down">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_DOWN" | string %]</button></span>
 			</li>
 			[% END %]
 		</ul>
 		<input type="hidden" name="pref_lyricsSourceOrder" id="pref_lyricsSourceOrder" value="[% lyricsSourceOrder | html %]" />
 		<input type="hidden" name="pref_lyricsSourceDisabled" id="pref_lyricsSourceDisabled" value="[% lyricsSourceDisabled | html %]" />
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES_ORDER_HINT" | string %]</div>
-		<br/>
-		<input type="checkbox" class="stdedit" name="pref_enableCustomLyricsSources" id="pref_enableCustomLyricsSources" value="1" [% IF prefs.pref_enableCustomLyricsSources %]checked [% END %] />
-		<label for="pref_enableCustomLyricsSources" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_ENABLE" | string %]</label>
 		<br/>
 		<label for="pref_customLyricsSourcesFolder">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER" | string %]</label>
 		<input type="text" class="stdedit selectFolder" name="pref_customLyricsSourcesFolder" id="pref_customLyricsSourcesFolder" value="[% prefs.pref_customLyricsSourcesFolder | html %]" size="40" />
@@ -93,15 +95,6 @@
 </div>
 
 <div class="mai-panel" data-panel="search-settings">
-	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FILTERS" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FILTERS_DESC" %]
-		<table class="mai-rules" id="maiFilterTable">
-			<thead><tr><th></th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_FIELD" | string %]</th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_CONDITION" | string %]</th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_VALUE" | string %]</th><th></th></tr></thead>
-			<tbody></tbody>
-		</table>
-		<button type="button" class="stdclick" id="maiAddFilter">+ [% "PLUGIN_MUSICARTISTINFO_LYRICS_ADD" | string %]</button>
-		<input type="hidden" name="pref_lyricsSearchFilters" id="pref_lyricsSearchFilters" value="[% lyricsSearchFilters | html %]" />
-	[% END %]
-
 	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FIELDS" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_FIELDS_DESC" %]
 		<input type="checkbox" class="stdedit" name="pref_lyricsCustomSearchFields" id="pref_lyricsCustomSearchFields" value="1" [% IF prefs.pref_lyricsCustomSearchFields %]checked [% END %] />
 		<label for="pref_lyricsCustomSearchFields" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_CUSTOM_FIELDS" | string %]</label>
@@ -113,28 +106,23 @@
 		<input type="text" class="stdedit" name="pref_lyricsSearchArtistFormat" id="pref_lyricsSearchArtistFormat" value="[% prefs.pref_lyricsSearchArtistFormat | html %]" size="50" />
 	[% END %]
 
-	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_FIELD_PROCESSING" desc="PLUGIN_MUSICARTISTINFO_LYRICS_FIELD_PROCESSING_DESC" %]
-		<table class="mai-rules" id="maiFieldProcessingTable">
-			<thead><tr><th></th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_OPERATION" | string %]</th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_PARAM1" | string %]</th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_PARAM2" | string %]</th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TARGET" | string %]</th><th></th></tr></thead>
-			<tbody></tbody>
-		</table>
-		<button type="button" class="stdclick" id="maiAddFieldProcessing">+ [% "PLUGIN_MUSICARTISTINFO_LYRICS_ADD" | string %]</button>
-		<input type="hidden" name="pref_lyricsFieldProcessing" id="pref_lyricsFieldProcessing" value="[% lyricsFieldProcessing | html %]" />
+	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT_DESC" %]
+		<label for="pref_lyricsSearchScriptPath">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsSearchScriptPath" id="pref_lyricsSearchScriptPath" value="[% prefs.pref_lyricsSearchScriptPath | html %]" size="60" />
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC" | string %]</div>
+		<br/>
+		<textarea class="stdedit" name="pref_lyricsSearchScript" id="pref_lyricsSearchScript" rows="14" style="width:98%;font-family:monospace;">[% lyricsSearchScript | html %]</textarea>
 	[% END %]
 </div>
 
 <div class="mai-panel" data-panel="process">
 	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING" desc="PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING_DESC" %]
-		<table class="mai-rules" id="maiProcessingTable">
-			<thead><tr><th></th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_OPERATION" | string %]</th><th>[% "PLUGIN_MUSICARTISTINFO_LYRICS_NAME" | string %]</th><th></th></tr></thead>
-			<tbody></tbody>
-		</table>
-		<button type="button" class="stdclick" id="maiAddProcessing">+ [% "PLUGIN_MUSICARTISTINFO_LYRICS_ADD" | string %]</button>
-		<input type="hidden" name="pref_lyricsProcessingRules" id="pref_lyricsProcessingRules" value="[% lyricsProcessingRules | html %]" />
+		<label for="pref_lyricsProcessingScriptPath">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsProcessingScriptPath" id="pref_lyricsProcessingScriptPath" value="[% prefs.pref_lyricsProcessingScriptPath | html %]" size="60" />
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC" | string %]</div>
 		<br/>
-		<input type="checkbox" class="stdedit" name="pref_lyricsProcessReferenceOnly" id="pref_lyricsProcessReferenceOnly" value="1" [% IF prefs.pref_lyricsProcessReferenceOnly %]checked [% END %] />
-		<label for="pref_lyricsProcessReferenceOnly" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PROCESS_REFERENCE_ONLY" | string %]</label>
-		[% IF !hanConvertAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_HANCONVERT_UNAVAILABLE" | string %]</div>[% END %]
+		<textarea class="stdedit" name="pref_lyricsProcessingScript" id="pref_lyricsProcessingScript" rows="16" style="width:98%;font-family:monospace;">[% lyricsProcessingScript | html %]</textarea>
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING_SCRIPT_HINT" | string %]</div>
 	[% END %]
 </div>
 
@@ -142,8 +130,10 @@
 	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SETTINGS" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SETTINGS_DESC" %]
 		<label for="pref_lyricsSaveMode">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_MODE" | string %]</label>
 		<select class="stdedit" name="pref_lyricsSaveMode" id="pref_lyricsSaveMode">
-			<option value="fixed_time" [% IF prefs.pref_lyricsSaveMode != 'fixed_ratio' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FIXED_TIME" | string %]</option>
+			<option value="fixed_time" [% IF prefs.pref_lyricsSaveMode == 'fixed_time' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FIXED_TIME" | string %]</option>
 			<option value="fixed_ratio" [% IF prefs.pref_lyricsSaveMode == 'fixed_ratio' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_FIXED_RATIO" | string %]</option>
+			<option value="immediate" [% IF prefs.pref_lyricsSaveMode == 'immediate' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_IMMEDIATE" | string %]</option>
+			<option value="manual" [% IF prefs.pref_lyricsSaveMode == 'manual' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_MANUAL" | string %]</option>
 		</select>
 		<span id="maiSaveSecondsWrap">
 			<label for="pref_lyricsSaveSeconds">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_SECONDS" | string %]</label>
@@ -156,14 +146,12 @@
 		<br/>
 		<label for="pref_lyricsSaveEncoding">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_ENCODING" | string %]</label>
 		<select class="stdedit" name="pref_lyricsSaveEncoding" id="pref_lyricsSaveEncoding">
-			<option value="utf8" [% IF prefs.pref_lyricsSaveEncoding != 'utf8bom' %]selected [% END %]>UTF-8</option>
+			<option value="utf8" [% IF prefs.pref_lyricsSaveEncoding == 'utf8' || !prefs.pref_lyricsSaveEncoding %]selected [% END %]>UTF-8</option>
 			<option value="utf8bom" [% IF prefs.pref_lyricsSaveEncoding == 'utf8bom' %]selected [% END %]>UTF-8 + BOM</option>
+			<option value="utf16le" [% IF prefs.pref_lyricsSaveEncoding == 'utf16le' %]selected [% END %]>UTF-16 LE + BOM</option>
+			<option value="utf16be" [% IF prefs.pref_lyricsSaveEncoding == 'utf16be' %]selected [% END %]>UTF-16 BE + BOM</option>
+			<option value="gb18030" [% IF prefs.pref_lyricsSaveEncoding == 'gb18030' %]selected [% END %]>GB18030</option>
 		</select>
-		<br/>
-		<span id="maiSaveNextWrap">
-			<input type="checkbox" class="stdedit" name="pref_saveLyricsWithSong" id="pref_saveLyricsWithSong" value="1" [% IF prefs.pref_saveLyricsWithSong %]checked [% END %] />
-			<label for="pref_saveLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_ENABLE" | string %]</label>
-		</span>
 		<br/>
 		<input type="checkbox" class="stdedit" name="pref_overwriteLyricsWithSong" id="pref_overwriteLyricsWithSong" value="1" [% IF prefs.pref_overwriteLyricsWithSong %]checked [% END %] />
 		<label for="pref_overwriteLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_OVERWRITE" | string %]</label>
@@ -174,12 +162,6 @@
 		<input type="checkbox" class="stdedit" name="pref_lyricsSaveApplyProcessing" id="pref_lyricsSaveApplyProcessing" value="1" [% IF prefs.pref_lyricsSaveApplyProcessing %]checked [% END %] />
 		<label for="pref_lyricsSaveApplyProcessing" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_APPLY_PROCESSING" | string %]</label>
 		<br/>
-		<hr/>
-		<input type="checkbox" class="stdedit" name="pref_useFb2kFormat" id="pref_useFb2kFormat" value="1" [% IF prefs.pref_useFb2kFormat %]checked [% END %] [% IF !fb2kFormatAvailable %]disabled [% END %] />
-		<label for="pref_useFb2kFormat" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_FB2K_ENABLE" | string %]</label>
-		[% IF !fb2kFormatAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_UNAVAILABLE" | string %]</div>[% END %]
-		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_FB2K_FORMAT_DESC" | string %]</div>
-
 		<div id="maiFb2kFields">
 			<label for="pref_lyricsSavePathFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_PATH" | string %]</label>
 			<input type="text" class="stdedit" name="pref_lyricsSavePathFormat" id="pref_lyricsSavePathFormat" value="[% prefs.pref_lyricsSavePathFormat | html %]" size="60" data-lyrics-folder="[% lyricsFolder | html %]" />
@@ -197,6 +179,10 @@
 			<label for="pref_lyricsFileNameFormat">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT" | string %]</label>
 			<input type="text" class="stdedit" name="pref_lyricsFileNameFormat" id="pref_lyricsFileNameFormat" value="[% prefs.pref_lyricsFileNameFormat | html %]" size="50" />
 			<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_FILE_NAME_FORMAT_DESC" | string %]</div>
+			<span id="maiSaveNextWrap">
+				<input type="checkbox" class="stdedit" name="pref_saveLyricsWithSong" id="pref_saveLyricsWithSong" value="1" [% IF prefs.pref_saveLyricsWithSong %]checked [% END %] />
+				<label for="pref_saveLyricsWithSong" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE_TO_FILE_ENABLE" | string %]</label>
+			</span>
 		</div>
 
 		<button type="button" class="stdclick" id="maiPreviewSave">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PREVIEW" | string %]</button>
@@ -313,7 +299,7 @@
 			var tr = document.createElement('tr');
 			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td>' +
 				'<td>' + filterField + '</td><td>' + filterOp + '</td>' +
-				'<td><input type="text" class="mai-rule-value"></td><td><button type="button" class="mai-rule-delete">&#215;</button></td>';
+				'<td><input type="text" class="mai-rule-value"></td><td><button type="button" class="mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
 			tr.querySelector('.mai-rule-field').value = v.field || 'title';
 			tr.querySelector('.mai-rule-op').value = v.op || 'contains';
 			tr.querySelector('.mai-rule-value').value = v.value || '';
@@ -343,7 +329,7 @@
 			v = v || {};
 			var tr = document.createElement('tr');
 			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td>' +
-				'<td>' + fpField + '</td><td><input type="text" class="mai-rule-p1"></td><td><input type="text" class="mai-rule-p2"></td><td>' + fpTarget + '</td><td><button type="button" class="mai-rule-delete">&#215;</button></td>';
+				'<td>' + fpField + '</td><td><input type="text" class="mai-rule-p1"></td><td><input type="text" class="mai-rule-p2"></td><td>' + fpTarget + '</td><td><button type="button" class="mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
 			tr.querySelector('.mai-rule-op').value = v.op || 'remove_chars';
 			tr.querySelector('.mai-rule-p1').value = v.param1 || '';
 			tr.querySelector('.mai-rule-p2').value = v.param2 || '';
@@ -373,7 +359,7 @@
 		function addProcRow(v) {
 			v = v || {};
 			var tr = document.createElement('tr');
-			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td><td>' + procOp + '</td><td><input type="text" class="mai-rule-name"></td><td><button type="button" class="mai-rule-delete">&#215;</button></td>';
+			tr.innerHTML = '<td><input type="checkbox" class="mai-rule-enabled"' + (v.enabled ? ' checked' : '') + '></td><td>' + procOp + '</td><td><input type="text" class="mai-rule-name"></td><td><button type="button" class="mai-rule-delete">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button></td>';
 			tr.querySelector('.mai-rule-op').value = v.op || 'standardize';
 			tr.querySelector('.mai-rule-name').value = v.name || '';
 			procTable.querySelector('tbody').appendChild(tr);
@@ -414,9 +400,7 @@
 		var use = fb2k.checked && !fb2k.disabled;
 		if (fb2kFields) fb2kFields.style.display = use ? '' : 'none';
 		if (lmsFilename) lmsFilename.style.display = use ? 'none' : '';
-		var track = pathInput ? pathIsTrackFolder(pathInput.value) : true;
-		if (saveNextWrap) saveNextWrap.style.display = track ? '' : 'none';
-		if (!track && saveNext) saveNext.checked = true;
+		if (saveNextWrap) saveNextWrap.style.display = use ? 'none' : 'block';
 		if (saveMode) {
 			if (secondsWrap) secondsWrap.style.display = saveMode.value === 'fixed_time' ? '' : 'none';
 			if (ratioWrap) ratioWrap.style.display = saveMode.value === 'fixed_ratio' ? '' : 'none';

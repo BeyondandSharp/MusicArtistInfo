@@ -38,7 +38,7 @@ my %SCRIPT_CACHE;
 
 sub enabled {
 	my ($class) = @_;
-	return $prefs->get('enableCustomLyricsSources') ? 1 : 0;
+	return 1;
 }
 
 sub folder {

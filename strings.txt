@@ -1234,3 +1234,35 @@ PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_NODOT
 PLUGIN_MUSICARTISTINFO_LYRICS_SOURCE_GENIUS_NODOT_DESC
 	EN	Lyrics from Genius.com, retried after removing punctuation
 	ZH_CN	Genius.com 歌词源：去掉标点后重试
+
+PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_UP
+	EN	Move up
+	ZH_CN	上移
+
+PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_DOWN
+	EN	Move down
+	ZH_CN	下移
+
+PLUGIN_MUSICARTISTINFO_LYRICS_DELETE
+	EN	Delete
+	ZH_CN	删除
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH
+	EN	Script path (optional)
+	ZH_CN	脚本路径（可选）
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC
+	EN	If set, the script file is used instead of the text below.
+	ZH_CN	如果填写，则使用该脚本文件，忽略下方文本框。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT
+	EN	Search field script
+	ZH_CN	搜索字段脚本
+
+PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT_DESC
+	EN	Perl code used to clean up the title and artist before searching. Variables: $title, $artist, $album, $url, $skip.
+	ZH_CN	搜索前用于处理标题和艺术家的 Perl 代码。可用变量：$title、$artist、$album、$url、$skip。
+
+PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING_SCRIPT_HINT
+	EN	Perl code used to process lyrics. Variable: $lyrics. Modify it and the result is returned automatically.
+	ZH_CN	用于处理歌词的 Perl 代码。可用变量：$lyrics。修改后会自动返回结果。
