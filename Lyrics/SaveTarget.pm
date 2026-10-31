@@ -8,6 +8,7 @@ use File::Spec::Functions qw(catfile);
 
 use Plugins::MusicArtistInfo::Lyrics::FileName;
 use Plugins::MusicArtistInfo::Lyrics::Format;
+use Plugins::MusicArtistInfo::Lyrics::TemplateDefaults;
 
 sub build {
 	my ($class, $track, $opts) = @_;
@@ -22,8 +23,22 @@ sub build {
 	$language = 'lms' unless $language =~ /^(?:lms|fb2k|textxslate)$/;
 	$language = 'lms' unless Plugins::MusicArtistInfo::Lyrics::Format->available_for($language);
 
+	my $defaults = Plugins::MusicArtistInfo::Lyrics::TemplateDefaults->defaults_for($language);
 	my $pathFormat = defined $opts->{path_format} ? $opts->{path_format} : '';
 	my $fileFormat = defined $opts->{file_format} ? $opts->{file_format} : '';
+	$pathFormat = $defaults->{path_format} if $language ne 'lms' && $pathFormat eq '';
+	$fileFormat = $defaults->{file_format} if $language ne 'lms' && $fileFormat eq '';
+	if ( $language eq 'textxslate' ) {
+		$pathFormat = '<: $directory :>' if $pathFormat eq '$directory_path(%path%)'
+			|| ( $pathFormat =~ /%[^%]+%/ && $pathFormat !~ /<:/ );
+		$fileFormat = $defaults->{file_format}
+			if $fileFormat eq '%artist% - %title%'
+			|| ( $fileFormat =~ /%[^%]+%|\$[A-Za-z_]/ && $fileFormat !~ /<:/ );
+	}
+	elsif ( $language eq 'fb2k' ) {
+		$pathFormat = $defaults->{path_format} if $pathFormat =~ /<:/;
+		$fileFormat = $defaults->{file_format} if $fileFormat =~ /<:/;
+	}
 
 	my $audioPath = _audio_path($track);
 	my $path = $audioPath ? dirname($audioPath) : '';

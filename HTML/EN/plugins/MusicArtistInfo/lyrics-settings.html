@@ -74,7 +74,7 @@
 	[% IF !textxslateFormatAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_TEXTXSLATE_UNAVAILABLE" | string %]</div>[% END %]
 	<div class="mai-hint">
 		<a href="http://chronial.de/misc/foobar_titleformat/titleformat_help_new.html" target="_blank" rel="noopener">[% "PLUGIN_MUSICARTISTINFO_FB2K_REFERENCE" | string %]</a>
-		· <a href="https://metacpan.org/pod/Text::Xslate" target="_blank" rel="noopener">[% "PLUGIN_MUSICARTISTINFO_TEXTXSLATE_REFERENCE" | string %]</a>
+		&middot; <a href="https://metacpan.org/pod/Text::Xslate" target="_blank" rel="noopener">[% "PLUGIN_MUSICARTISTINFO_TEXTXSLATE_REFERENCE" | string %]</a>
 	</div>
 [% END %]
 
@@ -453,9 +453,46 @@
 	var secondsWrap = document.getElementById('maiSaveSecondsWrap');
 	var ratioWrap = document.getElementById('maiSaveRatioWrap');
 
+	var templateDefaults = {
+		lms:        { path: '$directory_path(%path%)', file: '', title: '%title%', artist: '[%artist%]' },
+		fb2k:       { path: '$directory_path(%path%)', file: '%artist% - %title%', title: '%title%', artist: '[%artist%]' },
+		textxslate: { path: '<: $directory :>', file: '<: $artist :> - <: $title :>', title: '<: $title :>', artist: '<: $artist :>' }
+	};
 	function pathIsTrackFolder(value) {
 		value = (value || '').replace(/\s+/g, '');
-		return value === '' || value === '$directory_path(%path%)' || value === '$directory_path(%_path%)';
+		return value === '' || value === '$directory_path(%path%)' || value === '$directory_path(%_path%)' || value === '<:$directory:>';
+	}
+	function applyTemplateDefaults(previousLanguage) {
+		if (!languageSelect) return;
+		var lang = languageSelect.value;
+		var defs = templateDefaults[lang] || templateDefaults.lms;
+		var oldDefs = templateDefaults[previousLanguage] || {};
+		var fields = [
+			['pref_lyricsSavePathFormat', 'path'],
+			['pref_lyricsSaveFileNameFormat', 'file'],
+			['pref_lyricsSearchTitleFormat', 'title'],
+			['pref_lyricsSearchArtistFormat', 'artist']
+		];
+		fields.forEach(function (pair) {
+			var el = document.getElementById(pair[0]);
+			if (!el) return;
+			var value = el.value;
+			var isKnown = value === '' || (oldDefs[pair[1]] !== undefined && value === oldDefs[pair[1]]);
+			if (!isKnown) {
+				Object.keys(templateDefaults).forEach(function (key) {
+					if (value === templateDefaults[key][pair[1]]) isKnown = true;
+				});
+			}
+			if (!isKnown && (pair[1] === 'path' || pair[1] === 'file')) {
+				if (lang === 'textxslate' && /%[^%]+%|\$[A-Za-z_]/.test(value) && !/<:/.test(value)) isKnown = true;
+				if (lang === 'fb2k' && /<:/.test(value)) isKnown = true;
+			}
+			if (!isKnown && (pair[1] === 'title' || pair[1] === 'artist')) {
+				if (lang === 'textxslate' && /%[^%]+%/.test(value) && !/<:/.test(value)) isKnown = true;
+				if (lang === 'fb2k' && /<:/.test(value)) isKnown = true;
+			}
+			if (isKnown) el.value = defs[pair[1]];
+		});
 	}
 	function updateSaveFields() {
 		if (!languageSelect) return;
@@ -469,16 +506,8 @@
 		}
 	}
 	if (languageSelect) languageSelect.addEventListener('change', function () {
-		var lang = languageSelect.value;
-		var fileInput = document.getElementById('pref_lyricsSaveFileNameFormat');
-		if (lang === 'textxslate') {
-			if (pathInput && (pathInput.value === '' || pathInput.value === '$directory_path(%path%)')) pathInput.value = '<: $directory :>';
-			if (fileInput && fileInput.value === '') fileInput.value = '<: $title :>';
-		}
-		else if (lang === 'fb2k') {
-			if (pathInput && pathInput.value === '<: $directory :>') pathInput.value = '$directory_path(%path%)';
-			if (fileInput && fileInput.value === '<: $title :>') fileInput.value = '';
-		}
+		applyTemplateDefaults(languageSelect._previousLanguage || '');
+		languageSelect._previousLanguage = languageSelect.value;
 		updateSaveFields();
 	});
 	if (saveMode) saveMode.addEventListener('change', updateSaveFields);
@@ -496,13 +525,15 @@
 			else if (folder && pathInput.value === folder) pathPreset.value = 'mai';
 			else pathPreset.value = 'custom';
 			pathPreset.addEventListener('change', function () {
-				if (pathPreset.value === 'track') pathInput.value = '$directory_path(%path%)';
+				if (pathPreset.value === 'track') pathInput.value = (templateDefaults[languageSelect.value] || templateDefaults.lms).path;
 				else if (pathPreset.value === 'mai') pathInput.value = folder;
 				else { pathInput.focus(); return; }
 				updateSaveFields();
 			});
 		}
 	}
+	applyTemplateDefaults('');
+	if (languageSelect) languageSelect._previousLanguage = languageSelect.value;
 	updateSaveFields();
 
 	/* Save target preview against the current player's playing track. */

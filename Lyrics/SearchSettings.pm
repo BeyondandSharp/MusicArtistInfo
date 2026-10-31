@@ -7,6 +7,7 @@ use JSON::PP ();
 use Slim::Utils::Prefs;
 
 use Plugins::MusicArtistInfo::Lyrics::Format;
+use Plugins::MusicArtistInfo::Lyrics::TemplateDefaults;
 use Plugins::MusicArtistInfo::Lyrics::ScriptRunner;
 use Plugins::MusicArtistInfo::Lyrics::Scripts;
 
@@ -77,11 +78,16 @@ sub prepare_args {
 			path   => $out{url} || $out{path} || '',
 		};
 
-		my $titleFormat  = $prefs->get('lyricsSearchTitleFormat')  || '%title%';
-		my $artistFormat = $prefs->get('lyricsSearchArtistFormat') || '[%artist%]';
+		my $defaults = Plugins::MusicArtistInfo::Lyrics::TemplateDefaults->defaults_for($language);
+		my $titleFormat  = $prefs->get('lyricsSearchTitleFormat')  || $defaults->{search_title};
+		my $artistFormat = $prefs->get('lyricsSearchArtistFormat') || $defaults->{search_artist};
 		if ( $language eq 'textxslate' ) {
 			$titleFormat  = '<: $title :>'  if $titleFormat  eq '%title%';
 			$artistFormat = '<: $artist :>' if $artistFormat eq '[%artist%]';
+		}
+		elsif ( $language eq 'fb2k' ) {
+			$titleFormat  = '%title%'  if $titleFormat  eq '<: $title :>';
+			$artistFormat = '[%artist%]' if $artistFormat eq '<: $artist :>';
 		}
 		$title = _format_field($fields, $titleFormat, $title, $language);
 		$artist = _format_field($fields, $artistFormat, $artist, $language);
