@@ -1,15 +1,16 @@
 <style>
 .mai-lyrics-settings .mai-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid #888; margin:22px 0 14px; }
-.mai-lyrics-settings .mai-tab { background:transparent; border:0; color:inherit; cursor:pointer; padding:7px 13px; line-height:1.3; }
-.mai-lyrics-settings .mai-tab.active { border:0 !important; background:transparent !important; color:#ffb74d !important; font-weight:700 !important; }
+.mai-lyrics-settings .mai-tab { background:transparent !important; border:0 !important; color:var(--text-color, inherit) !important; cursor:pointer; padding:7px 13px; line-height:1.3; }
+.mai-lyrics-settings .mai-tab.active { border:0 !important; background:transparent !important; color:var(--active-color, #ffb74d) !important; font-weight:700 !important; }
 .mai-lyrics-settings .settingGroup label { display:inline-block; min-width:190px; vertical-align:top; line-height:26px; margin:2px 0; }
 .mai-lyrics-settings .prefs { line-height:26px; }
-.mai-lyrics-settings .settingGroup .prefHead { top:0; margin-top:0; padding-top:0; }
-.mai-lyrics-settings .settingGroup > .prefDesc.hiddenDesc { display:none !important; }
-.mai-lyrics-settings .settingGroup > .msk-help-btn { display:none !important; }
+.mai-lyrics-settings .settingGroup .prefHead { top:0; margin-top:0; padding-top:0; line-height:26px !important; }
+.mai-lyrics-settings .settingGroup > .prefDesc.hiddenDesc { display:block !important; line-height:26px !important; padding-top:0 !important; }
 .mai-lyrics-settings .settingGroup input.stdedit, .mai-lyrics-settings .settingGroup select.stdedit { vertical-align:top; margin:2px 0; }
 .mai-lyrics-settings .settingGroup input[type=text].stdedit, .mai-lyrics-settings .settingGroup select.stdedit { height:26px; box-sizing:border-box; }
-.mai-lyrics-settings .settingGroup input[type=checkbox], .mai-lyrics-settings .settingGroup input[type=range] { vertical-align:middle; }
+.mai-lyrics-settings .settingGroup input[type=checkbox] { vertical-align:middle; margin:0 4px 0 0; }
+.mai-lyrics-settings .settingGroup input[type=checkbox] + label { vertical-align:middle; line-height:26px; }
+.mai-lyrics-settings .settingGroup input[type=range] { vertical-align:middle; }
 .mai-lyrics-settings .mai-panel { display:none; }
 .mai-lyrics-settings .mai-panel.active { display:block; }
 .mai-lyrics-settings .mai-rules { width:100%; border-collapse:collapse; margin:6px 0 10px; }
@@ -126,7 +127,7 @@
 
 	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT" desc="PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT_DESC" %]
 		<label for="pref_lyricsSearchScriptPath">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH" | string %]</label>
-		<input type="text" class="stdedit" name="pref_lyricsSearchScriptPath" id="pref_lyricsSearchScriptPath" value="[% prefs.pref_lyricsSearchScriptPath | html %]" size="60" />
+		<input type="text" class="stdedit selectFolder" name="pref_lyricsSearchScriptPath" id="pref_lyricsSearchScriptPath" value="[% prefs.pref_lyricsSearchScriptPath | html %]" size="60" />
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC" | string %]</div>
 		<br/>
 		<textarea name="pref_lyricsSearchScript" id="pref_lyricsSearchScript" rows="14" class="stdedit mai-code">[% lyricsSearchScript | html %]</textarea>
@@ -136,7 +137,7 @@
 <div class="mai-panel" data-panel="process">
 	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING" desc="PLUGIN_MUSICARTISTINFO_LYRICS_PROCESSING_DESC" %]
 		<label for="pref_lyricsProcessingScriptPath">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH" | string %]</label>
-		<input type="text" class="stdedit" name="pref_lyricsProcessingScriptPath" id="pref_lyricsProcessingScriptPath" value="[% prefs.pref_lyricsProcessingScriptPath | html %]" size="60" />
+		<input type="text" class="stdedit selectFolder" name="pref_lyricsProcessingScriptPath" id="pref_lyricsProcessingScriptPath" value="[% prefs.pref_lyricsProcessingScriptPath | html %]" size="60" />
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC" | string %]</div>
 		<br/>
 		<textarea name="pref_lyricsProcessingScript" id="pref_lyricsProcessingScript" rows="16" class="stdedit mai-code">[% lyricsProcessingScript | html %]</textarea>

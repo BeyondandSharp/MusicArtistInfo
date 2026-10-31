@@ -1252,8 +1252,8 @@ PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH
 	ZH_CN	脚本路径（可选）
 
 PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_PATH_DESC
-	EN	If set, the script file is used instead of the text below.
-	ZH_CN	如果填写，则使用该脚本文件，忽略下方文本框。
+	EN	Choose a script file or a folder containing .pl scripts. If set, the text below is ignored.
+	ZH_CN	可选择脚本文件或包含 .pl 脚本的文件夹；填写后忽略下方文本框。
 
 PLUGIN_MUSICARTISTINFO_LYRICS_SEARCH_SCRIPT
 	EN	Search field script

@@ -3,6 +3,7 @@ package Plugins::MusicArtistInfo::Lyrics::ScriptRunner;
 use strict;
 
 use Digest::MD5 qw(md5_hex);
+use File::Spec::Functions qw(catfile);
 
 # Runs a small user-supplied Perl snippet for search in//lyrics processing.
 # The snippet receives lexical variables (title, artist, album, url, lyrics,
@@ -15,6 +16,14 @@ sub run {
 	return { error => 'No script' } if !defined $source && !defined $path;
 
 	my $code = '';
+	if ( defined $path && $path ne '' && -d $path ) {
+		my $dh;
+		if ( opendir($dh, $path) ) {
+			my @files = sort grep { /\.pl$/i } readdir($dh);
+			closedir $dh;
+			$path = catfile($path, $files[0]) if @files;
+		}
+	}
 	if ( defined $path && $path ne '' && -r $path ) {
 		if ( open(my $fh, '<:raw', $path) ) {
 			local $/;
