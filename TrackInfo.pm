@@ -2012,7 +2012,14 @@ sub _renderLyricsResponse {
 	$lyrics =~ s/\n\r/\n/g;
 	$lyrics =~ s/\r/\n/g;
 
-	$lyrics = Plugins::MusicArtistInfo::Parser::LRC->strip($lyrics, $request->getParam('timestamps') && !$args->{radioUrl});
+	my $keepTimestamps = $request->getParam('timestamps') && !$args->{radioUrl};
+	$lyrics = Plugins::MusicArtistInfo::Parser::LRC->strip($lyrics, $keepTimestamps);
+	# Material's LRC parser expects every non-blank line to start with a
+	# timestamp.  Drop translation/plain lines when returning timed LRC so
+	# that a mixed response is not rendered as one timestamped text block.
+	if ( $keepTimestamps && $lyrics =~ /\[\d{1,3}:\d{2}/ ) {
+		$lyrics = join("\n", grep { /^\s*\[/ || /^\s*$/ } split(/\r?\n/, $lyrics));
+	}
 
 	$request->addResult('lyrics', $lyrics) if $lyrics;
 	$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND')) unless $lyrics;
