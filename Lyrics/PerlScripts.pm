@@ -2,6 +2,7 @@ package Plugins::MusicArtistInfo::Lyrics::PerlScripts;
 
 use strict;
 
+use Digest::MD5 qw(md5_hex);
 use File::Basename qw(basename);
 use File::Spec::Functions qw(catdir catfile);
 use Time::HiRes qw(time);
@@ -17,6 +18,8 @@ my $PER_SCRIPT_TIMEOUT = 10;
 my $TOTAL_TIMEOUT      = 25;
 my $MAX_SCRIPTS        = 20;
 my $MAX_SCRIPT_SIZE    = 1024 * 1024;
+
+my %SCRIPT_CACHE;
 
 # Custom lyrics sources are ordinary Perl scripts loaded into the LMS process.
 # A script is a *.pl file returning either a coderef, or a hashref:
@@ -146,16 +149,54 @@ sub getCandidates {
 	$next->(sub { $cb->(\@candidates) });
 }
 
+sub _load_script {
+	my ($class, $file) = @_;
+
+	my $mtime = (stat($file))[9] || 0;
+	my $cached = $SCRIPT_CACHE{$file};
+	return $cached->{definition}
+		if $cached && $cached->{mtime} == $mtime;
+
+	# Load every script into its own package.  Without this, helper
+	# subroutines with the same name in two scripts would overwrite each
+	# other, and reloading a script would emit "Subroutine redefined".
+	my $package = 'Plugins::MusicArtistInfo::Lyrics::PerlScripts::Source_'
+		. md5_hex($file . ':' . $mtime);
+
+	my $source;
+	if ( open(my $fh, '<:raw', $file) ) {
+		local $/;
+		$source = <$fh>;
+		close $fh;
+	}
+
+	unless ( defined $source ) {
+		$log->debug("Custom lyrics script $file could not be read: $!");
+		return;
+	}
+
+	my $definition = eval "package $package;\n" . $source;
+	my $error = $@;
+
+	if ( !$definition ) {
+		$error ||= $! || 'script returned no value';
+		$log->debug("Custom lyrics script $file could not be loaded: $error");
+		return;
+	}
+
+	$SCRIPT_CACHE{$file} = {
+		mtime      => $mtime,
+		definition => $definition,
+	};
+
+	return $definition;
+}
+
 sub _run_script {
 	my ($class, $file, $args, $cb) = @_;
 
-	my $script = do $file;
-
-	if ( !$script ) {
-		my $error = $@ || $! || 'script returned no value';
-		$log->debug("Custom lyrics script $file could not be loaded: $error");
-		return $cb->();
-	}
+	my $script = $class->_load_script($file);
+	return $cb->() unless $script;
 
 	my $name;
 	my $handler;
