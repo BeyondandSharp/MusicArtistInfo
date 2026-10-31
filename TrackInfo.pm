@@ -81,7 +81,7 @@ sub init {
 		eval {
 			require Slim::Web::Pages;
 			Slim::Web::Pages->addRawFunction(
-				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel|save-preview)},
+				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel|save-preview|script)},
 				\&_lyricsApi,
 			);
 		};
@@ -1306,6 +1306,10 @@ sub _lyricsApi {
 		}
 	}
 
+	if ( $path =~ m{/lyrics/script} ) {
+		return _handle_lyrics_script($httpClient, $response, $request, \%params);
+	}
+
 	if ( $path =~ m{/lyrics/save-preview} ) {
 		return _handle_save_preview($httpClient, $response, \%params);
 	}
@@ -1323,6 +1327,117 @@ sub _lyricsApi {
 	}
 
 	return _handle_lyrics_candidates($httpClient, $response, \%params);
+}
+
+sub _handle_lyrics_script {
+	my ($httpClient, $response, $request, $params) = @_;
+
+	my $payload = {};
+	if ( ($request->method || '') eq 'POST' && defined $request->content ) {
+		$payload = eval { JSON::PP->new->utf8->decode($request->content) } || {};
+	}
+
+	my $action = $payload->{action} || $params->{action} || '';
+	my $class = 'Plugins::MusicArtistInfo::Lyrics::PerlScripts';
+
+	if ( $action eq 'template' ) {
+		return _send_json($httpClient, $response, {
+			content => $class->default_script_content,
+		});
+	}
+
+	my $id = $payload->{id} || $params->{id} || '';
+	my $old_name;
+	if ( $action eq 'get' || $action eq 'delete' || $action eq 'save' ) {
+		if ( $id =~ /^PerlScripts:(.+)$/ ) {
+			$old_name = $1;
+		}
+	}
+
+	if ( $action eq 'get' ) {
+		return _send_json($httpClient, $response, { error => 'Invalid script id' }, 400)
+			unless defined $old_name;
+		my $result = $class->read_script($old_name);
+		return _send_json($httpClient, $response, $result, $result->{error} ? 404 : 200);
+	}
+
+	if ( $action eq 'delete' ) {
+		return _send_json($httpClient, $response, { error => 'Invalid script id' }, 400)
+			unless defined $old_name;
+		my $result = $class->delete_script($old_name);
+		if ( !$result->{error} ) {
+			_update_script_pref_id($id, undef);
+		}
+		return _send_json($httpClient, $response, $result, $result->{error} ? 400 : 200);
+	}
+
+	if ( $action eq 'save' ) {
+		my $name    = $payload->{filename} || $params->{filename} || '';
+		my $content = defined $payload->{content} ? $payload->{content}
+			: defined $params->{content} ? $params->{content} : '';
+		my $result = $class->save_script($old_name, $name, $content);
+		if ( !$result->{error} ) {
+			if ( defined $id && $id ne '' ) {
+				_update_script_pref_id($id, $result->{id});
+			}
+			else {
+				_append_script_pref_id($result->{id});
+			}
+		}
+		return _send_json($httpClient, $response, $result, $result->{error} ? 400 : 200);
+	}
+
+	return _send_json($httpClient, $response, { error => 'Unknown action' }, 400);
+}
+
+sub _script_pref_items {
+	my $key = shift;
+	my $raw = $prefs->get($key);
+	my $items = defined $raw && $raw ne '' ? eval { JSON::PP->new->decode($raw) } : [];
+	return ref $items eq 'ARRAY' ? $items : [];
+}
+
+sub _save_script_pref_items {
+	my ($key, $items) = @_;
+	$prefs->set($key, JSON::PP->new->encode($items));
+}
+
+sub _update_script_pref_id {
+	my ($old, $new) = @_;
+
+	foreach my $key (qw(lyricsSourceOrder lyricsSourceDisabled)) {
+		my @items = _script_pref_items($key);
+		my %seen;
+		my @updated;
+		foreach my $item (@items) {
+			my $id = ref $item eq 'HASH' ? $item->{id} : $item;
+			if ( defined $id && $id eq $old ) {
+				if ( defined $new && $new ne '' ) {
+					if ( ref $item eq 'HASH' ) {
+						$item->{id} = $new;
+						push @updated, $item;
+					}
+					else {
+						push @updated, $new;
+					}
+				}
+			}
+			else {
+				push @updated, $item;
+			}
+		}
+		@updated = grep { !$seen{ ref $_ eq 'HASH' ? $_->{id} : $_ }++ } @updated;
+		_save_script_pref_items($key, \@updated);
+	}
+}
+
+sub _append_script_pref_id {
+	my $id = shift;
+	return unless defined $id && $id ne '';
+	my @items = _script_pref_items('lyricsSourceOrder');
+	return if grep { (ref $_ eq 'HASH' ? $_->{id} : $_) eq $id } @items;
+	push @items, $id;
+	_save_script_pref_items('lyricsSourceOrder', \@items);
 }
 
 sub lyrics_source_options {
@@ -1354,7 +1469,7 @@ sub lyrics_source_options {
 		push @out, { id => $id, label => $label, desc => $desc };
 	}
 
-	push @out, @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
+	push @out, map { { %$_, script => 1 } } @{ Plugins::MusicArtistInfo::Lyrics::PerlScripts->script_sources };
 
 	return \@out;
 }

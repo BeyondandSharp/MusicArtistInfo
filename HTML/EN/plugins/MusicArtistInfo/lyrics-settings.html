@@ -48,6 +48,15 @@
 .mai-lyrics-settings .mai-codejar .token.keyword { color:#569cd6; }
 .mai-lyrics-settings .mai-codejar .token.number { color:#b5cea8; }
 .mai-lyrics-settings .mai-codejar .token.operator { color:#d4d4d4; }
+.mai-lyrics-settings .mai-source-add { display:flex; justify-content:flex-end; margin:8px 0 4px; }
+.mai-script-dialog { width:min(900px,92vw); max-height:90vh; border:1px solid #888; background:#1e1e1e; color:#d4d4d4; padding:16px; box-sizing:border-box; }
+.mai-script-dialog::backdrop { background:rgba(0,0,0,.65); }
+.mai-script-dialog h3 { margin:0 0 12px; color:#d4d4d4; }
+.mai-script-dialog label { display:block; margin:8px 0 4px; }
+.mai-script-dialog input[type=text] { width:100%; box-sizing:border-box; padding:6px 8px; background:#252526; color:#d4d4d4; border:1px solid #888; }
+.mai-script-dialog .mai-codejar-wrap { max-height:48vh; }
+.mai-script-dialog .mai-codejar { max-height:calc(48vh - 12px); }
+.mai-script-dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
 </style>
 
 [% PROCESS settings/header.html %]
@@ -107,12 +116,16 @@
 			<li data-source-id="[% source.id | html %]">
 				<input type="checkbox" class="mai-src-enabled" checked title="[% source.desc | html %]" />
 				<span class="mai-source-name" title="[% source.desc | html %]">[% source.label | html %]</span>
-				<span class="mai-src-buttons"><button type="button" class="stdclick mai-src-up">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_UP" | string %]</button><button type="button" class="stdclick mai-src-down">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_DOWN" | string %]</button></span>
+				<span class="mai-src-buttons">
+					[% IF source.script %]<button type="button" class="stdclick mai-src-edit" data-id="[% source.id | html %]">[% "PLUGIN_MUSICARTISTINFO_LYRICS_EDIT" | string %]</button><button type="button" class="stdclick mai-src-delete" data-id="[% source.id | html %]">[% "PLUGIN_MUSICARTISTINFO_LYRICS_DELETE" | string %]</button>[% END %]
+					<button type="button" class="stdclick mai-src-up">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_UP" | string %]</button><button type="button" class="stdclick mai-src-down">[% "PLUGIN_MUSICARTISTINFO_LYRICS_MOVE_DOWN" | string %]</button>
+				</span>
 			</li>
 			[% END %]
 		</ul>
 		<input type="hidden" name="pref_lyricsSourceOrder" id="pref_lyricsSourceOrder" value="[% lyricsSourceOrder | html %]" />
 		<input type="hidden" name="pref_lyricsSourceDisabled" id="pref_lyricsSourceDisabled" value="[% lyricsSourceDisabled | html %]" />
+		<div class="mai-source-add"><button type="button" class="stdclick" id="maiAddScript">[% "PLUGIN_MUSICARTISTINFO_LYRICS_ADD_SCRIPT" | string %]</button></div>
 		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SOURCES_ORDER_HINT" | string %]</div>
 		<br/>
 		<label for="pref_customLyricsSourcesFolder">[% "PLUGIN_MUSICARTISTINFO_CUSTOM_LYRICS_SOURCES_FOLDER" | string %]</label>
@@ -224,6 +237,16 @@
 
 </div>
 
+<dialog id="maiScriptDialog" class="mai-script-dialog mai-lyrics-settings">
+	<h3 id="maiScriptDialogTitle">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_EDIT_TITLE" | string %]</h3>
+	<label for="maiScriptFilename">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_FILENAME" | string %]</label>
+	<input type="text" id="maiScriptFilename" value="" />
+	<textarea id="maiScriptContent" class="mai-code" rows="16"></textarea>
+	<div class="mai-script-dialog-actions">
+		<button type="button" class="stdclick" id="maiScriptSave">[% "PLUGIN_MUSICARTISTINFO_LYRICS_SAVE" | string %]</button>
+		<button type="button" class="stdclick" id="maiScriptCancel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_CANCEL" | string %]</button>
+	</div>
+</dialog>
 <script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-core.min.js"></script>
 <script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-clike.min.js"></script>
 <script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-perl.min.js"></script>
@@ -609,6 +632,8 @@
 			area.value = jar.toString();
 			renderGutter();
 		}
+		area._maiGetCode = function () { return jar.toString(); };
+		area._maiSetCode = function (code) { jar.updateCode(code || ''); area.value = code || ''; renderGutter(); };
 		jar.onUpdate(function (code) {
 			area.value = code;
 			renderGutter();
@@ -642,6 +667,75 @@
 			}
 		}
 	}
+
+	/* Custom lyric source editor. */
+	var scriptDialog = document.getElementById('maiScriptDialog');
+	var scriptFilename = document.getElementById('maiScriptFilename');
+	var scriptTitle = document.getElementById('maiScriptDialogTitle');
+	var scriptContent = document.getElementById('maiScriptContent');
+	var scriptEditId = '';
+	var scriptApi = '[% webroot %]plugins/MusicArtistInfo/lyrics/script';
+	var scriptEditTitle = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_EDIT_TITLE" | string %]';
+	var scriptAddTitle = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_ADD_TITLE" | string %]';
+	var scriptError = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_ERROR" | string %]';
+	var scriptDeleteConfirm = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_DELETE_CONFIRM" | string %]';
+	if (scriptContent) maiSetupCodeJar(scriptContent);
+
+	function setScriptContent(code) {
+		if (scriptContent._maiSetCode) scriptContent._maiSetCode(code || '');
+		else scriptContent.value = code || '';
+	}
+	function getScriptContent() {
+		return scriptContent._maiGetCode ? scriptContent._maiGetCode() : scriptContent.value;
+	}
+	function openScriptEditor(id) {
+		scriptEditId = id || '';
+		scriptTitle.textContent = id ? scriptEditTitle : scriptAddTitle;
+		scriptFilename.value = id ? id.replace(/^PerlScripts:/, '') : 'new-source.pl';
+		var url = scriptApi + (id ? '?action=get&id=' + encodeURIComponent(id) : '?action=template');
+		fetch(url, { credentials: 'same-origin' })
+			.then(function (r) { return r.json(); })
+			.then(function (data) {
+				if (data.error) { alert(data.error); return; }
+				scriptDialog.showModal ? scriptDialog.showModal() : scriptDialog.setAttribute('open', 'open');
+				setScriptContent(data.content || '');
+			})
+			.catch(function () { alert(scriptError); });
+	}
+	function runScriptAction(payload) {
+		return fetch(scriptApi, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		}).then(function (r) { return r.json(); });
+	}
+	var addScript = document.getElementById('maiAddScript');
+	if (addScript) addScript.addEventListener('click', function () { openScriptEditor(''); });
+	Array.prototype.forEach.call(root.querySelectorAll('.mai-src-edit'), function (b) {
+		b.addEventListener('click', function () { openScriptEditor(b.getAttribute('data-id')); });
+	});
+	Array.prototype.forEach.call(root.querySelectorAll('.mai-src-delete'), function (b) {
+		b.addEventListener('click', function () {
+			var id = b.getAttribute('data-id');
+			if (!confirm(scriptDeleteConfirm)) return;
+			runScriptAction({ action: 'delete', id: id }).then(function (data) {
+				if (data.error) { alert(data.error); return; }
+				location.reload();
+			}).catch(function () { alert(scriptError); });
+		});
+	});
+	var scriptCancel = document.getElementById('maiScriptCancel');
+	if (scriptCancel) scriptCancel.addEventListener('click', function () { scriptDialog.close ? scriptDialog.close() : scriptDialog.removeAttribute('open'); });
+	var scriptSave = document.getElementById('maiScriptSave');
+	if (scriptSave) scriptSave.addEventListener('click', function () {
+		var payload = { action: 'save', filename: scriptFilename.value, content: getScriptContent() };
+		if (scriptEditId) payload.id = scriptEditId;
+		runScriptAction(payload).then(function (data) {
+			if (data.error) { alert(data.error); return; }
+			location.reload();
+		}).catch(function () { alert(scriptError); });
+	});
 
 })();
 </script>

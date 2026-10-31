@@ -3,6 +3,7 @@ package Plugins::MusicArtistInfo::Lyrics::PerlScripts;
 use strict;
 
 use Digest::MD5 qw(md5_hex);
+use Encode qw(FB_CROAK);
 use File::Basename qw(basename);
 use File::Spec::Functions qw(catdir catfile);
 use Time::HiRes qw(time);
@@ -91,6 +92,141 @@ sub script_sources {
 	}
 
 	return \@out;
+}
+
+sub script_path {
+	my ($class, $name) = @_;
+
+	$name = $class->normalize_name($name);
+	return unless defined $name;
+
+	my $folder = $class->folder;
+	return catfile($folder, $name);
+}
+
+sub normalize_name {
+	my ($class, $name) = @_;
+
+	return unless defined $name;
+	$name =~ s/^\s+//;
+	$name =~ s/\s+$//;
+	return if $name eq '';
+	return if $name =~ m{[/\\\x00]};
+	return if $name =~ /^\.\.?$/;
+	$name .= '.pl' unless $name =~ /\.pl$/i;
+	return if $name !~ /\.pl$/i;
+	return if length($name) > 200;
+	return $name;
+}
+
+sub read_script {
+	my ($class, $name) = @_;
+
+	my $path = $class->script_path($name);
+	return { error => 'Invalid script name' } unless $path;
+	return { error => 'Script not found' } unless -f $path;
+
+	my $raw = '';
+	if ( open(my $fh, '<:raw', $path) ) {
+		local $/;
+		$raw = <$fh>;
+		close $fh;
+	}
+	else {
+		return { error => "Could not read script: $!" };
+	}
+
+	my $content = eval { Encode::decode('UTF-8', $raw, FB_CROAK) };
+	$content = $raw if !defined $content || $@;
+
+	return {
+		id      => "PerlScripts:$name",
+		name    => $name,
+		file    => $path,
+		content => $content,
+	};
+}
+
+sub save_script {
+	my ($class, $old_name, $name, $content) = @_;
+
+	$name = $class->normalize_name($name);
+	return { error => 'Invalid script name' } unless $name;
+
+	$content = '' unless defined $content;
+	return { error => 'Script is too large' } if length($content) > $MAX_SCRIPT_SIZE;
+
+	my $folder = $class->folder;
+	my $target = catfile($folder, $name);
+	my $old_path;
+	if ( defined $old_name && $old_name ne '' ) {
+		my $old_norm = $class->normalize_name($old_name);
+		$old_path = $old_norm ? catfile($folder, $old_norm) : undef;
+	}
+
+	return { error => 'Another script already uses that name' }
+		if $target ne ($old_path || '') && -e $target;
+
+	unless ( -d $folder ) {
+		require File::Path;
+		eval { File::Path::mkpath($folder) };
+	}
+
+	my $encoded = Encode::encode('UTF-8', $content);
+	my $tmp = $target . '.tmp.' . $$;
+	if ( open(my $fh, '>:raw', $tmp) ) {
+		print $fh $encoded;
+		close $fh;
+	}
+	else {
+		return { error => "Could not write script: $!" };
+	}
+
+	if ( $old_path && $old_path ne $target && -e $old_path ) {
+		unless ( rename($old_path, $target) ) {
+			unlink $tmp;
+			return { error => "Could not rename script: $!" };
+		}
+	}
+
+	unless ( rename($tmp, $target) ) {
+		unlink $tmp;
+		return { error => "Could not save script: $!" };
+	}
+
+	return {
+		id      => "PerlScripts:$name",
+		name    => $name,
+		file    => $target,
+		content => $content,
+	};
+}
+
+sub delete_script {
+	my ($class, $name) = @_;
+
+	my $path = $class->script_path($name);
+	return { error => 'Invalid script name' } unless $path;
+	return { error => 'Script not found' } unless -f $path;
+	unlink($path) or return { error => "Could not delete script: $!" };
+	return { ok => 1, id => "PerlScripts:" . $class->normalize_name($name) };
+}
+
+sub default_script_content {
+	return <<'SCRIPT';
+# Custom lyrics source.
+# Return a hash with a name and a getLyrics callback.
+# The callback receives the lookup arguments and an async callback.
+#
+# return {
+#     name => 'My source',
+#     getLyrics => sub {
+#         my ($args, $cb) = @_;
+#         # ... fetch lyrics asynchronously ...
+#         $cb->({ lyrics => "..." });
+#     },
+# };
+SCRIPT
 }
 
 sub getLyrics {
