@@ -72,6 +72,7 @@ sub build {
 	$html .= ' data-artist="' . $class->_attr($args{artist} || '') . '"';
 	$html .= ' data-album="' . $class->_attr($args{album} || '') . '"';
 	$html .= ' data-duration="' . $class->_attr($args{duration} || '') . '"';
+	$html .= ' data-player="' . $class->_attr($args{player} || '') . '"';
 	$html .= ' data-strings="' . $stringsJson . '"';
 	$html .= ' onclick="' . $onclick . '">' . $buttonLabel . '</button>';
 	$html .= '<span id="maiLyricsPageStatus" class="maiLyricsStatus"></span>';

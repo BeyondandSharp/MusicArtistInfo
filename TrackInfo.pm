@@ -94,8 +94,6 @@ sub init {
 sub _autoSearchNewsong {
 	my $request = shift;
 
-	return unless $prefs->get('autoSearchLyrics');
-
 	my $client = $request->client();
 	return unless $client;
 
@@ -104,6 +102,12 @@ sub _autoSearchNewsong {
 
 	my $track = eval { $song->track };
 	return unless $track;
+
+	# Candidate results for the previous track are only valid while that
+	# track is playing.  Bump the epoch on every new song.
+	$cache->set('mai_lyrics_track_epoch', time() . ':' . rand(), 24 * 3600);
+
+	return unless $prefs->get('autoSearchLyrics');
 
 	Slim::Utils::Timers::killTimers($AUTO_SAVE_TOKEN);
 
@@ -137,6 +141,8 @@ sub _autoSearchNewsong {
 
 	collectCandidates($args, sub {
 		my $candidates = shift || [];
+
+		_candidate_cache_store($args, $candidates, $args);
 
 		if ( $resultMode eq 'all_manual' ) {
 			$cache->set(
@@ -871,6 +877,7 @@ sub _web_lyrics_content {
 		album    => $args->{album},
 		duration  => $args->{duration},
 		endpoint => '/plugins/MusicArtistInfo/lyrics',
+		player   => $client ? $client->id : '',
 		script   => "/plugins/MusicArtistInfo/html/lyricsChooser.js?v=$version",
 		strings  => _lyrics_chooser_strings($client),
 	);
@@ -1205,6 +1212,67 @@ sub _chooser_args {
 	return ($original, \%lookup);
 }
 
+sub _track_cache_key {
+	my $args = shift || {};
+	my $key = join "\x1f",
+		$args->{track_id} || '',
+		$args->{url} || '',
+		$args->{title} || '',
+		$args->{artist} || '',
+		$args->{album} || '';
+	utf8::encode($key);
+	return md5_hex($key);
+}
+
+sub _candidate_cache_key {
+	my $args = shift || {};
+	return 'mai_lyrics_candidates_' . ($cache->get('mai_lyrics_track_epoch') || 'initial') . '_' . _track_cache_key($args);
+}
+
+sub _candidate_cache_get {
+	my $args = shift || {};
+	my $raw = $cache->get(_candidate_cache_key($args));
+	return unless defined $raw && !ref $raw;
+	my $data = eval { JSON::PP->new->utf8->decode($raw) };
+	return unless $data && ref $data eq 'HASH' && ref $data->{candidates} eq 'ARRAY';
+	return $data;
+}
+
+sub _candidate_cache_store {
+	my ($args, $candidates, $saveArgs) = @_;
+	return unless ref $candidates eq 'ARRAY';
+
+	my $save = { %{ $saveArgs || {} } };
+	delete $save->{track};
+
+	my $raw = eval {
+		JSON::PP->new->utf8->encode({
+			candidates => $candidates,
+			save_args  => $save,
+			created    => time(),
+		});
+	};
+	return unless defined $raw;
+	$cache->set(_candidate_cache_key($args), $raw, 6 * 3600);
+}
+
+sub _new_candidate_session {
+	my ($candidates, $saveArgs) = @_;
+
+	my $session = md5_hex(rand() . time() . $$);
+	my $save = { %{ $saveArgs || {} } };
+	delete $save->{track};
+
+	my $sessionData = JSON::PP->new->utf8->encode({
+		candidates => $candidates || [],
+		save_args  => $save,
+		created    => time(),
+	});
+
+	$cache->set("mai_lyrics_chooser_$session", $sessionData, $CANDIDATE_SESSION_EXPIRES);
+	return $session;
+}
+
 sub _send_json {
 	my ($httpClient, $response, $data, $status) = @_;
 
@@ -1536,6 +1604,16 @@ sub _handle_lyrics_candidates {
 		return _handle_lyrics_candidates_async($httpClient, $response, $saveArgs, $lookupArgs);
 	}
 
+	my $cached = _candidate_cache_get($lookupArgs);
+	if ($cached) {
+		my $session = _new_candidate_session($cached->{candidates}, $cached->{save_args} || $saveArgs);
+		return _send_json($httpClient, $response, {
+			session    => $session,
+			candidates => [ map { _candidate_json($_) } @{ $cached->{candidates} } ],
+			cached     => 1,
+		});
+	}
+
 	my $sent = 0;
 
 	my $finish = sub {
@@ -1545,22 +1623,8 @@ sub _handle_lyrics_candidates {
 		$log->debug('Lyrics chooser sending ' . scalar(@{ $candidates || [] }) . ' candidates');
 		return unless $httpClient->connected;
 
-		my $session = md5_hex(rand() . time() . $$);
-
-		my $save = { %$saveArgs };
-		delete $save->{track};
-
-		my $sessionData = JSON::PP->new->utf8->encode({
-			candidates => $candidates,
-			save_args  => $save,
-			created    => time(),
-		});
-
-		$cache->set(
-			"mai_lyrics_chooser_$session",
-			$sessionData,
-			$CANDIDATE_SESSION_EXPIRES,
-		);
+		_candidate_cache_store($lookupArgs, $candidates, $saveArgs);
+		my $session = _new_candidate_session($candidates, $saveArgs);
 
 		my @out = map { _candidate_json($_) } @$candidates;
 
@@ -1584,6 +1648,25 @@ sub _handle_lyrics_candidates {
 
 sub _handle_lyrics_candidates_async {
 	my ($httpClient, $response, $saveArgs, $lookupArgs) = @_;
+
+	my $cached = _candidate_cache_get($lookupArgs);
+	if ($cached) {
+		my $session = md5_hex(rand() . time() . $$);
+		my $save = { %{ $cached->{save_args} || $saveArgs || {} } };
+		delete $save->{track};
+		my $state = {
+			candidates => $cached->{candidates},
+			save_args  => $save,
+			created    => time(),
+			done       => 1,
+			cancelled  => 0,
+			progress   => scalar @{ $cached->{candidates} },
+			total      => scalar @{ $cached->{candidates} },
+			found      => scalar @{ $cached->{candidates} },
+		};
+		_store_search_state($session, $state);
+		return _send_json($httpClient, $response, _search_snapshot($session, $state));
+	}
 
 	my $session = md5_hex(rand() . time() . $$);
 	my $save = { %$saveArgs };
@@ -1643,6 +1726,8 @@ sub _handle_lyrics_candidates_async {
 
 	collectCandidates($lookupArgs, sub {
 		my $final = shift || [];
+
+		_candidate_cache_store($lookupArgs, $final, $saveArgs);
 
 		my $current = _load_search_state($session);
 		return unless $current;

@@ -42,7 +42,10 @@
 		controller: null,
 		candidates: [],
 		selected: -1,
-		busy: false
+		busy: false,
+		lines: [],
+		currentLine: -1,
+		syncTimer: null
 	};
 
 	function text(value) {
@@ -88,22 +91,24 @@
 			'.mai-lyrics-search{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:12px 16px;border-bottom:1px solid #eee;background:#fafafa}' +
 			'.mai-lyrics-search label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#555;min-width:160px;flex:1}' +
 			'.mai-lyrics-search input{padding:6px 8px;border:1px solid #bbb;border-radius:4px;font-size:14px}' +
-			'.mai-lyrics-body{display:flex;gap:0;min-height:320px;flex:1;overflow:hidden}' +
-			'.mai-lyrics-list{width:40%;min-width:240px;max-width:460px;overflow:auto;border-right:1px solid #e5e5e5}' +
+			'.mai-lyrics-body{display:flex;flex-direction:column;gap:0;min-height:320px;flex:1;overflow:hidden}' +
+			'.mai-lyrics-list{width:100%;min-width:0;max-height:40%;overflow:auto;border-bottom:1px solid #e5e5e5;flex:0 1 auto}' +
 			'.mai-lyrics-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;background:#fff;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}' +
 			'.mai-lyrics-item:hover{background:#f2f7fb}' +
 			'.mai-lyrics-item.selected{background:#e3f0fa}' +
 			'.mai-lyrics-item-title{font-weight:bold;display:block;margin-bottom:2px}' +
 			'.mai-lyrics-item-meta{color:#666;font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
 			'.mai-lyrics-badge{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;background:#e8f3e8;color:#286b28;font-size:11px;vertical-align:middle}' +
-			'.mai-lyrics-preview{flex:1;overflow:auto;padding:12px 16px;white-space:pre-wrap;line-height:1.5}' +
+			'.mai-lyrics-preview{flex:1;overflow:auto;padding:12px 16px;white-space:pre-wrap;line-height:1.5;min-height:0}' +
 			'.mai-lyrics-footer{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid #ddd;background:#fafafa}' +
 			'.mai-lyrics-status{flex:1;color:#555;font-size:13px;min-height:18px}' +
 			'.mai-lyrics-status.error{color:#b00020}' +
 			'.mai-lyrics-footer button{padding:7px 14px;border:1px solid #999;border-radius:4px;background:#fff;cursor:pointer;font:inherit}' +
 			'.mai-lyrics-footer button.primary{background:#2b7bb9;border-color:#2b7bb9;color:#fff}' +
 			'.mai-lyrics-footer button:disabled{opacity:.5;cursor:default}' +
-			'.mai-lyrics-empty{padding:16px;color:#666}';
+			'.mai-lyrics-empty{padding:16px;color:#666}' +
+			'.mai-lyrics-sync-line{padding:2px 8px;border-radius:4px;transition:background .15s,color .15s;white-space:pre-wrap}' +
+			'.mai-lyrics-sync-line.mai-lyrics-sync-current{background:#e3f0fa;color:#145a8a;font-weight:bold}';
 		document.head.appendChild(style);
 	}
 
@@ -207,15 +212,100 @@
 		});
 	}
 
+	function parseLrc(text) {
+		var lines = [];
+		var re = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+		String(text || '').split(/\r?\n/).forEach(function (raw) {
+			var times = [];
+			var m;
+			while ((m = re.exec(raw)) !== null) {
+				var fraction = m[3] ? parseInt(m[3], 10) : 0;
+				if (m[3] && m[3].length === 2) fraction *= 10;
+				else if (m[3] && m[3].length === 3) { /* already ms */ }
+				times.push(parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + fraction / 1000);
+			}
+			var lineText = raw.replace(re, '').trim();
+			if (!times.length || /^\[[a-z]+:/i.test(raw)) return;
+			times.forEach(function (time) { lines.push({ time: time, text: lineText }); });
+		});
+		lines.sort(function (a, b) { return a.time - b.time; });
+		return lines;
+	}
+	function renderPreview(candidate) {
+		var preview = document.getElementById('maiLyricsPreview');
+		if (!preview) return;
+		preview.innerHTML = '';
+		state.lines = [];
+		state.currentLine = -1;
+		if (!candidate) return;
+		if (candidate.synced) {
+			var lines = parseLrc(candidate.lyrics);
+			if (lines.length) {
+				state.lines = lines;
+				lines.forEach(function (line, index) {
+					var row = document.createElement('div');
+					row.className = 'mai-lyrics-sync-line';
+					row.setAttribute('data-index', index);
+					row.textContent = line.text || ' ';
+					preview.appendChild(row);
+				});
+				updateCurrentLine(true);
+				startSync();
+				return;
+			}
+		}
+		preview.textContent = candidate.lyrics || '';
+		stopSync();
+	}
+	function updateCurrentLine(scroll) {
+		if (!state.lines.length || !state.player) return;
+		var time = state.currentTime || 0;
+		var index = -1;
+		for (var i = 0; i < state.lines.length; i++) {
+			if (state.lines[i].time <= time) index = i;
+			else break;
+		}
+		if (index < 0) index = 0;
+		if (index === state.currentLine && !scroll) return;
+		state.currentLine = index;
+		var nodes = document.querySelectorAll('#maiLyricsPreview .mai-lyrics-sync-line');
+		Array.prototype.forEach.call(nodes, function (node, i) {
+			node.classList.toggle('mai-lyrics-sync-current', i === index);
+		});
+		if (nodes[index] && scroll) {
+			try { nodes[index].scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+		}
+	}
+	function stopSync() {
+		if (state.syncTimer) { clearInterval(state.syncTimer); state.syncTimer = null; }
+	}
+	function startSync() {
+		stopSync();
+		if (!state.lines.length || !state.player) return;
+		state.syncTimer = setInterval(fetchPlaybackTime, 500);
+		fetchPlaybackTime();
+	}
+	function fetchPlaybackTime() {
+		if (!state.player || !state.overlay) return;
+		fetch('/jsonrpc.js', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'same-origin',
+			body: JSON.stringify({ id: 1, method: 'slim.request', params: [ state.player, ['status', '-', 1, 'tags:'] ] })
+		}).then(function (r) { return r.json(); }).then(function (data) {
+			var result = data && data.result;
+			if (!result || result.time === undefined) return;
+			state.currentTime = Number(result.time) || 0;
+			updateCurrentLine(false);
+		}).catch(function () {});
+	}
+
 	function selectCandidate(index) {
 		state.selected = index;
 		var candidate = state.candidates[index];
 
 		renderCandidates();
-
-		var preview = document.getElementById('maiLyricsPreview');
-		if (!preview) return;
-		preview.textContent = candidate ? candidate.lyrics : '';
+		renderPreview(candidate);
 
 		var use = document.getElementById('maiLyricsUseButton');
 		if (use) use.disabled = state.busy || !candidate;
@@ -383,6 +473,8 @@
 			state.controller = null;
 		}
 
+		stopSync();
+		state.lines = [];
 		if (state.overlay && state.overlay.parentNode) {
 			state.overlay.parentNode.removeChild(state.overlay);
 		}
