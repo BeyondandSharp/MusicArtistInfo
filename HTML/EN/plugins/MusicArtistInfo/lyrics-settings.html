@@ -38,9 +38,19 @@
 .mai-lyrics-settings .mai-code-var { color:#9cdcfe; }
 .mai-lyrics-settings .mai-code-keyword { color:#569cd6; }
 .mai-lyrics-settings .mai-code-number { color:#b5cea8; }
+.mai-lyrics-settings .mai-codejar-wrap { display:flex; border:1px solid #888; background:#1e1e1e; color:#d4d4d4; font-family:monospace; font-size:13px; line-height:19px; overflow:hidden; margin:4px 0; }
+.mai-lyrics-settings .mai-codejar-gutter { flex:0 0 auto; margin:0; padding:6px 8px; text-align:right; color:#858585; background:#252526; user-select:none; overflow:hidden; white-space:pre; }
+.mai-lyrics-settings .mai-codejar { flex:1 1 auto; min-width:0; padding:6px 8px; font-family:monospace; font-size:13px; line-height:19px; white-space:pre !important; overflow-wrap:normal !important; word-break:normal !important; overflow:auto; outline:none; background:transparent; color:#d4d4d4; box-sizing:border-box; }
+.mai-lyrics-settings .mai-codejar .token.comment { color:#6a9955; }
+.mai-lyrics-settings .mai-codejar .token.string { color:#ce9178; }
+.mai-lyrics-settings .mai-codejar .token.variable { color:#9cdcfe; }
+.mai-lyrics-settings .mai-codejar .token.keyword { color:#569cd6; }
+.mai-lyrics-settings .mai-codejar .token.number { color:#b5cea8; }
+.mai-lyrics-settings .mai-codejar .token.operator { color:#d4d4d4; }
 </style>
 
 [% PROCESS settings/header.html %]
+<link rel="stylesheet" href="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-tomorrow.min.css">
 
 <div class="mai-lyrics-settings">
 [% IF !fb2kFormatAvailable %]
@@ -213,6 +223,10 @@
 
 </div>
 
+<script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-core.min.js"></script>
+<script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-clike.min.js"></script>
+<script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-perl.min.js"></script>
+<script src="[% webroot %]plugins/MusicArtistInfo/lib/codejar.min.js"></script>
 <script>
 (function () {
 	var root = document.querySelector('.mai-lyrics-settings');
@@ -520,7 +534,7 @@
 		}
 		return out;
 	}
-	function maiSetupCodeEditor(area) {
+	function maiSetupOverlayEditor(area) {
 		if (!area || area.getAttribute('data-mai-code') === '1') return;
 		area.setAttribute('data-mai-code', '1');
 		area.setAttribute('wrap', 'off');
@@ -560,7 +574,55 @@
 		area.addEventListener('scroll', sync);
 		render();
 	}
-	Array.prototype.forEach.call(root.querySelectorAll('.mai-code'), maiSetupCodeEditor);
+
+	function maiSetupCodeJar(area) {
+		if (!window.CodeJar || !window.Prism || !Prism.languages.perl) {
+			return maiSetupOverlayEditor(area);
+		}
+		var rows = parseInt(area.getAttribute('rows') || '12', 10) || 12;
+		var wrap = document.createElement('div');
+		wrap.className = 'mai-codejar-wrap';
+		var gutter = document.createElement('pre');
+		gutter.className = 'mai-codejar-gutter';
+		var editor = document.createElement('div');
+		editor.className = 'mai-codejar';
+		editor.setAttribute('role', 'textbox');
+		editor.setAttribute('aria-multiline', 'true');
+		editor.style.height = (rows * 19 + 12) + 'px';
+		wrap.appendChild(gutter);
+		wrap.appendChild(editor);
+		area.parentNode.insertBefore(wrap, area);
+		area.style.display = 'none';
+		var jar = new CodeJar(editor, function (el) {
+			var code = el.textContent || '';
+			el.innerHTML = Prism.highlight(code, Prism.languages.perl, 'perl');
+		}, { tab: '    ', spellcheck: false, addClosing: false });
+		function renderGutter() {
+			var count = (jar.toString() || '').split('\n').length;
+			var nums = [];
+			for (var i = 1; i <= count; i++) nums.push(i);
+			gutter.textContent = nums.join('\n') + '\n';
+		}
+		function syncSource() {
+			area.value = jar.toString();
+			renderGutter();
+		}
+		jar.onUpdate(function (code) {
+			area.value = code;
+			renderGutter();
+		});
+		jar.updateCode(area.value || '');
+		renderGutter();
+		editor.addEventListener('input', syncSource);
+		editor.addEventListener('blur', syncSource);
+		var form = area.form || area.closest('form');
+		if (form) form.addEventListener('submit', syncSource);
+		editor.addEventListener('scroll', function () {
+			gutter.scrollTop = editor.scrollTop;
+		});
+	}
+	Array.prototype.forEach.call(root.querySelectorAll('.mai-code'), maiSetupCodeJar);
+
 
 	/* Remove the empty trailing line LMS adds after the global FB2K group. */
 	var fb2kInput = document.getElementById('pref_useFb2kFormat');
