@@ -2,10 +2,10 @@ package Plugins::MusicArtistInfo::Parser::LRC;
 
 use strict;
 
-use File::Slurp qw(read_file);
-
 use Slim::Utils::Log;
 use Slim::Utils::Strings;
+
+use Plugins::MusicArtistInfo::Text;
 
 # parse lyrics file according to https://en.wikipedia.org/wiki/LRC_(file_format)
 
@@ -22,11 +22,13 @@ sub parse {
 		return;
 	}
 
-	return $class->strip(scalar read_file($path))
+	return $class->strip(Plugins::MusicArtistInfo::Text->read_file($path))
 }
 
 sub strip {
 	my ($class, $content, $keepTimestamps) = @_;
+
+	$content = Plugins::MusicArtistInfo::Text->ensure_text($content);
 
 	$instrumentalString ||= Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFO_INSTRUMENTAL');
 

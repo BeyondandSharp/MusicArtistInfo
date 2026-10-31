@@ -3,16 +3,16 @@ package Plugins::MusicArtistInfo::Parser::HTML;
 use strict;
 
 use File::Basename qw(dirname basename);
-use File::Slurp;
 use File::Spec::Functions qw(catfile);
 use HTML::TreeBuilder;
+
+use Plugins::MusicArtistInfo::Text;
 
 sub parse {
 	my ($class, $path) = @_;
 
-	my $html = read_file($path, { binmode => ':utf8' });
-	$html = Slim::Utils::Unicode::utf8on($html);
-	$html = Slim::Utils::Unicode::utf8decode($html);
+	my $html = Plugins::MusicArtistInfo::Text->read_file($path);
+	$html = '' unless defined $html;
 
 	return HTML::TreeBuilder->new_from_content($html);
 }

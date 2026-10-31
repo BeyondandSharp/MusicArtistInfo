@@ -1,11 +1,12 @@
 package Plugins::MusicArtistInfo::Parser::NFO;
 
 use strict;
-use File::Slurp;
 use XML::Simple;
 
 use Slim::Utils::Log;
 use Slim::Utils::Strings qw(cstring);
+
+use Plugins::MusicArtistInfo::Text;
 
 my $types = {
 	review    => 'textarea',
@@ -18,8 +19,8 @@ my $log = logger('plugin.musicartistinfo');
 sub parse {
 	my ($class, $path) = @_;
 
-	my $content = File::Slurp::read_file($path);
-	$content = Slim::Utils::Unicode::utf8decode($content);
+	my $content = Plugins::MusicArtistInfo::Text->read_file($path);
+	$content = '' unless defined $content;
 	
 	# some cleanup, because XBMC's documentation gives invalid XML sample code...
 	$content =~ s/ clear=\w+?>/>/sig;
