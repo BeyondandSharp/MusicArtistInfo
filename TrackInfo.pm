@@ -644,7 +644,7 @@ sub _fetchLyrics {
 				$ecb->($lyricsResult);
 			}
 		},
-		at_a_time => 1,
+		at_a_time => scalar(@$handlerPipeline) || 1,
 	);
 }
 
@@ -1085,7 +1085,7 @@ sub collectCandidates {
 		cb => sub {
 			$finish->();
 		},
-		at_a_time => 4,
+		at_a_time => scalar(@sources) || 1,
 	);
 }
 

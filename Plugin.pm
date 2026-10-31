@@ -3,6 +3,10 @@ package Plugins::MusicArtistInfo::Plugin;
 use strict;
 use base qw(Slim::Plugin::Base);
 
+use Encode qw();
+use File::Path ();
+use File::Spec::Functions qw(catdir catfile);
+
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Strings qw(string cstring);
@@ -37,6 +41,11 @@ Slim::Utils::Log->addLogCategory( {
 
 my $prefs = preferences('plugin.musicartistinfo');
 
+my $DATA_DIR = catdir(Slim::Utils::Prefs::dir(), 'musicartistinfo');
+my $SCRIPTS_DIR = catdir($DATA_DIR, 'lyricsScripts');
+my $PRE_SCRIPT = catfile($DATA_DIR, 'pre_lyrics.pl');
+my $POST_SCRIPT = catfile($DATA_DIR, 'post_lyrics.pl');
+
 our $VERSION;
 
 sub initPlugin {
@@ -54,7 +63,7 @@ sub initPlugin {
 		saveLyricsWithSong => 0,
 		overwriteLyricsWithSong => 0,
 		lyricsFileNameFormat => 'FILE',
-		customLyricsSourcesFolder => '',
+		customLyricsSourcesFolder => $SCRIPTS_DIR,
 		integrateMaterialSkin => 1,
 		templateLanguage => 'lms',
 		lyricsSavePathFormat => '$directory_path(%path%)',
@@ -77,15 +86,29 @@ sub initPlugin {
 		lyricsSearchArtistFormat => '[%artist%]',
 		lyricsProcessReferenceOnly => 0,
 		lyricsSearchScript => Plugins::MusicArtistInfo::Lyrics::Scripts->default_search_script,
-		lyricsSearchScriptPath => '',
+		lyricsSearchScriptPath => $PRE_SCRIPT,
 		lyricsProcessingScript => Plugins::MusicArtistInfo::Lyrics::Scripts->default_processing_script,
-		lyricsProcessingScriptPath => '',
+		lyricsProcessingScriptPath => $POST_SCRIPT,
 		lyricsSourceOrder => '[]',
 		lyricsSourceDisabled => '[]',
 		lyricsSearchFilters => '[]',
 		lyricsFieldProcessing => '[]',
 		lyricsProcessingRules => '[]',
 	});
+
+	# Persistent plugin data belongs in the LMS prefs directory, not in the
+	# plugin/cache directory which can be replaced or cleared.
+	File::Path::mkpath($DATA_DIR) unless -d $DATA_DIR;
+	File::Path::mkpath($SCRIPTS_DIR) unless -d $SCRIPTS_DIR;
+	_ensure_script_file($PRE_SCRIPT, Plugins::MusicArtistInfo::Lyrics::Scripts->default_search_script);
+	_ensure_script_file($POST_SCRIPT, Plugins::MusicArtistInfo::Lyrics::Scripts->default_processing_script);
+
+	$prefs->set('customLyricsSourcesFolder', $SCRIPTS_DIR)
+		if !defined $prefs->get('customLyricsSourcesFolder') || $prefs->get('customLyricsSourcesFolder') eq '';
+	$prefs->set('lyricsSearchScriptPath', $PRE_SCRIPT)
+		if !defined $prefs->get('lyricsSearchScriptPath') || $prefs->get('lyricsSearchScriptPath') eq '';
+	$prefs->set('lyricsProcessingScriptPath', $POST_SCRIPT)
+		if !defined $prefs->get('lyricsProcessingScriptPath') || $prefs->get('lyricsProcessingScriptPath') eq '';
 
 	$prefs->setChange(\&webPages, 'hidextramenusitems');
 
@@ -489,6 +512,18 @@ sub minSize {
 
 sub shutdownPlugin {
 	Plugins::MusicArtistInfo::Lyrics::MaterialSkin->remove;
+}
+
+
+sub _ensure_script_file {
+	my ($path, $content) = @_;
+	return if -s $path;
+	my $dir = $path;
+	$dir =~ s{[/\\][^/\\]+$}{};
+	File::Path::mkpath($dir) if $dir ne '' && ! -d $dir;
+	return unless open(my $fh, '>:raw', $path);
+	print $fh Encode::encode('UTF-8', $content);
+	close $fh;
 }
 
 1;

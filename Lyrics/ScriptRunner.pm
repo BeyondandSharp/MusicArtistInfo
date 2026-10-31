@@ -41,7 +41,9 @@ sub run {
 	return { error => 'Empty script' } if !defined $code || $code !~ /\S/;
 
 	my @names = qw(title artist album url lyrics skip);
-	my $package = 'Plugins::MusicArtistInfo::Lyrics::ScriptRunner::' . md5_hex($code . rand());
+	my $hash_code = $code;
+	utf8::encode($hash_code);
+	my $package = 'Plugins::MusicArtistInfo::Lyrics::ScriptRunner::' . md5_hex($hash_code . rand());
 
 	my $prefix = "package $package;\nuse strict;\nuse warnings;\n"
 		. "my \$ctx = \$Plugins::MusicArtistInfo::Lyrics::ScriptRunner::CONTEXT;\n";
