@@ -29,6 +29,10 @@ else
   tar --exclude=.git --exclude=.forgejo --exclude=dist -cf - . | tar -xf - -C "$DIST/MusicArtistInfo"
 fi
 rm -rf "$DIST/MusicArtistInfo/.forgejo" "$DIST/MusicArtistInfo/dist"
+# t/lib/Plugins/MusicArtistInfo is a recursive symlink used by tests; it must
+# not be traversed by zip (otherwise it runs into "Too many levels of
+# symbolic links").  Tests are not part of the plugin release.
+rm -rf "$DIST/MusicArtistInfo/t"
 
 if ! grep -q '<version>@VERSION@</version>' "$DIST/MusicArtistInfo/install.xml"; then
   echo "[ERROR] $DIST/MusicArtistInfo/install.xml 缺少 @VERSION@ 占位符" >&2
@@ -41,7 +45,7 @@ if grep -q '@VERSION@' "$DIST/MusicArtistInfo/install.xml" 2>/dev/null; then
 fi
 rm -f "$DIST/MusicArtistInfo/VERSION"
 rm -f "$ASSET_ZIP" "$ASSET_TAR"
-cd "$DIST" && zip -qr "$ASSET_ZIP" MusicArtistInfo
+cd "$DIST" && zip -qry "$ASSET_ZIP" MusicArtistInfo
 if [ "true" = "true" ]; then
   if [ "folder" = "folder" ]; then
     tar -C "$DIST" -czf "$ASSET_TAR" MusicArtistInfo
