@@ -864,7 +864,7 @@ sub _save_lyrics_next_to_song {
 sub _web_lyrics_content {
 	my ($client, $args, $lyrics, $error) = @_;
 
-	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '1.30.1';
+	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '0.0.0';
 	my $chooserScript = catfile(dirname(__FILE__), '..', 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsChooser.js');
 	my $chooserMtime = (stat($chooserScript))[9] || 0;
 	$version .= "-$chooserMtime" if $chooserMtime;

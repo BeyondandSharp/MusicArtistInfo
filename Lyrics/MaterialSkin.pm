@@ -26,7 +26,7 @@ sub custom_js_path {
 }
 
 sub _block {
-	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '1.30.1';
+	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '0.0.0';
 
 	# Bust the browser cache when the client script changes, without
 	# changing the plugin version.
