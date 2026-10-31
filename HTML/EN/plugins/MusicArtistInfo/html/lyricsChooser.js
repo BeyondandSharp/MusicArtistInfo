@@ -85,21 +85,22 @@
 		style.id = 'maiLyricsChooserStyle';
 		style.textContent =
 			'.mai-lyrics-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}' +
-			'.mai-lyrics-dialog{background:#fff;color:#222;width:min(1000px,100%);max-height:90vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;font-size:14px}' +
+			'.mai-lyrics-dialog{background:#fff;color:#222;width:min(1000px,100%);height:90vh;max-height:calc(100vh - 32px);border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;font-size:14px}' +
 			'.mai-lyrics-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #ddd;font-weight:bold;font-size:16px}' +
 			'.mai-lyrics-close{border:0;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#555;padding:0 4px}' +
 			'.mai-lyrics-search{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:12px 16px;border-bottom:1px solid #eee;background:#fafafa}' +
 			'.mai-lyrics-search label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#555;min-width:160px;flex:1}' +
 			'.mai-lyrics-search input{padding:6px 8px;border:1px solid #bbb;border-radius:4px;font-size:14px}' +
-			'.mai-lyrics-body{display:flex;flex-direction:column;gap:0;min-height:320px;flex:1;overflow:hidden}' +
-			'.mai-lyrics-list{width:100%;min-width:0;overflow:auto;border-bottom:1px solid #e5e5e5;flex:1 1 auto}' +
+			'.mai-lyrics-body{display:flex;flex-direction:column;gap:0;min-height:0;flex:1 1 0;overflow:hidden}' +
+			'.mai-lyrics-list{width:100%;min-width:0;overflow:auto;border-bottom:1px solid #e5e5e5;flex:1 1 0;min-height:0}' +
 			'.mai-lyrics-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;background:#fff;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}' +
 			'.mai-lyrics-item:hover{background:#f2f7fb}' +
 			'.mai-lyrics-item.selected{background:#e3f0fa}' +
 			'.mai-lyrics-item-title{font-weight:bold;display:block;margin-bottom:2px}' +
 			'.mai-lyrics-item-meta{color:#666;font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-			'.mai-lyrics-badge{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;background:#e8f3e8;color:#286b28;font-size:11px;vertical-align:middle}' +
-			'.mai-lyrics-preview{flex:0 0 33.333%;overflow:auto;padding:12px 16px;white-space:pre-wrap;line-height:1.5;min-height:72px}' +
+			'.mai-lyrics-badge{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;background:#eee;color:#666;font-size:11px;vertical-align:middle}' +
+			'.mai-lyrics-badge.mai-lyrics-badge-synced{background:#e3f0fa;color:#145a8a;font-weight:bold}' +
+			'.mai-lyrics-preview{flex:0 0 33.333%;overflow:auto;padding:12px 16px;white-space:pre-wrap;line-height:1.5;min-height:72px;max-height:70%;}' +
 			'.mai-lyrics-resizer{flex:0 0 7px;height:7px;cursor:row-resize;background:#ddd;position:relative;touch-action:none}' +
 			'.mai-lyrics-resizer:after{content:"";position:absolute;left:50%;top:2px;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:#999;opacity:.55}' +
 			'.mai-lyrics-footer{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid #ddd;background:#fafafa}' +
@@ -194,9 +195,9 @@
 			button.type = 'button';
 
 			var title = el('span', 'mai-lyrics-item-title', text(candidate.title) || text(state.title));
-			if (candidate.synced) {
-				title.appendChild(el('span', 'mai-lyrics-badge', state.strings.synced));
-			}
+			var badge = el('span', 'mai-lyrics-badge' + (candidate.synced ? ' mai-lyrics-badge-synced' : ''),
+				candidate.synced ? state.strings.synced : state.strings.plain);
+			title.appendChild(badge);
 
 			var metaParts = [];
 			if (candidate.artist) metaParts.push(candidate.artist);

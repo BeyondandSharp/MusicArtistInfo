@@ -91,9 +91,9 @@
 		var style = document.createElement('style');
 		style.id = 'maiMaterialQueueStyle';
 		style.textContent =
-			'#queue-view.mai-lq-active{display:flex!important;flex-direction:column!important;min-height:0!important}' +
+			'#queue-view.mai-lq-active{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}' +
 			'#queue-view.mai-lq-active > .lms-list{display:none!important}' +
-			'.mai-lq-panel{display:none;flex:1 1 auto;min-height:0;height:100%;flex-direction:column;background:var(--background-color);color:var(--text-color);overflow:hidden;font:inherit}' +
+			'.mai-lq-panel{display:none;flex:1 1 0;min-height:0;max-height:100%;flex-direction:column;background:var(--background-color);color:var(--text-color);overflow:hidden;font:inherit}' +
 			'#queue-view.mai-lq-active > .mai-lq-panel{display:flex}' +
 			'.mai-lq-searchbar{display:flex;align-items:center;gap:2px;min-height:var(--sub-toolbar-height,48px);padding:0 7px;border-bottom:1px solid var(--sub-toolbar-border-color);background:var(--sub-toolbar-color);color:var(--sub-toolbar-text-color);flex:0 0 auto}' +
 			'.mai-lq-searchbar .mai-lq-inputs{display:flex;gap:12px;flex:1 1 auto;min-width:0;padding:0 2px}' +
@@ -110,6 +110,7 @@
 			'.mai-lq-item:focus{background:var(--list-active-color)}' +
 			'.mai-lq-head{display:flex;align-items:baseline;gap:8px;min-width:0}' +
 			'.mai-lq-badge{flex:0 0 auto;font-size:var(--small-font-size,90%);opacity:var(--sub-opacity,.7);border:1px solid var(--border-color);border-radius:3px;padding:0 4px;line-height:1.5}' +
+			'.mai-lq-badge.mai-lq-badge-synced{color:var(--highlight-color,#1976d2)!important;border-color:var(--highlight-color,#1976d2);opacity:1!important;font-weight:var(--bold-weight,600)}' +
 			'.mai-lq-title{flex:1 1 auto;min-width:0;font-weight:var(--bold-weight,600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
 			'.mai-lq-meta{display:block;font-size:var(--small-font-size,90%);opacity:var(--sub-opacity,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}' +
 			'.mai-lq-preview{display:block;font-size:var(--small-font-size,90%);opacity:.62;white-space:pre-line;overflow:hidden;max-height:2.9em;margin-top:3px}' +
@@ -862,7 +863,7 @@
 			head.className = 'mai-lq-head';
 
 			var badge = document.createElement('span');
-			badge.className = 'mai-lq-badge';
+			badge.className = 'mai-lq-badge' + (candidate.synced ? ' mai-lq-badge-synced' : '');
 			badge.textContent = candidate.synced ? TEXT.synced : TEXT.plain;
 			head.appendChild(badge);
 
