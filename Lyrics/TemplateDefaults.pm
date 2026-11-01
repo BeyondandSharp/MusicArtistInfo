@@ -7,7 +7,7 @@ sub defaults_for {
 
 	return {
 		path_format  => '$directory_path(%path%)',
-		file_format   => '',
+		file_format   => '[%DISC%-][%TRACKNUM%. ][%ARTIST% - ]%TITLE%',
 		search_title  => '%title%',
 		search_artist => '[%artist%]',
 	}
@@ -15,7 +15,7 @@ sub defaults_for {
 
 	return {
 		path_format  => '$directory_path(%path%)',
-		file_format   => '%artist% - %title%',
+		file_format   => q{[$num(%discnumber%,1)-][$num(%tracknumber%,2). ][%artist% - ]$meta(title,0)[ '('cover %origartist%')']},
 		search_title  => '%title%',
 		search_artist => '[%artist%]',
 	}
@@ -23,7 +23,7 @@ sub defaults_for {
 
 	return {
 		path_format  => '<: $directory :>',
-		file_format   => '<: $artist :> - <: $title :>',
+		file_format   => q{<: if $discnumber_padded { :><: $discnumber_padded :>-<: } :><: if $tracknumber_padded { :><: $tracknumber_padded :>. <: } :><: if $artist { :><: $artist :> - <: } :><: $title :><: if $origartist { :> (cover <: $origartist :>)<: } :>},
 		search_title  => '<: $title :>',
 		search_artist => '<: $artist :>',
 	}

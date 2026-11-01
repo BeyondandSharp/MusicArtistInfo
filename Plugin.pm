@@ -62,7 +62,7 @@ sub initPlugin {
 		useAIGeneratedContent => 1,
 		saveLyricsWithSong => 0,
 		overwriteLyricsWithSong => 0,
-		lyricsFileNameFormat => 'FILE',
+		lyricsFileNameFormat => '[%DISC%-][%TRACKNUM%. ][%ARTIST% - ]%TITLE%',
 		customLyricsSourcesFolder => $SCRIPTS_DIR,
 		integrateMaterialSkin => 1,
 		templateLanguage => 'lms',
