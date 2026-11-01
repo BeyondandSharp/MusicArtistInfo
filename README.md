@@ -62,6 +62,50 @@ marked loader block in Material Skin's `custom.js`; existing user code is
 preserved and the block is removed when the setting is disabled or the plugin
 is shut down.
 
+### Translate lyrics
+
+MusicArtistInfo can translate lyrics with an OpenAI-compatible LLM and write
+bilingual LRC files (original block plus translated block).  Enable it in
+**Settings > Plugins > Music and Artist Information > Lyrics options >
+Translation**.
+
+- **API key**: stored in a separate file with permissions `0600` below the LMS
+  preferences folder (`musicartistinfo/lyricsTranslate.key`).  The key is never
+  sent back to the browser after saving; leave the field empty to keep the
+  current key, or tick the clear box to remove it.  The `DEEPSEEK_API_KEY`
+  environment variable is used as a read-only fallback.
+- **Endpoint**: base URL, chat-completions path, model, authentication header
+  and prefix, extra headers and the JSON response format are configurable.
+  Defaults target DeepSeek (`https://api.deepseek.com`, `deepseek-flash`).
+- **Prompts** default to English and support `{{target}}`, `{{json}}`,
+  `{{source}}`, `{{count}}`, `{{path}}`, `{{line}}`, `{{index}}` and
+  `{{total}}` placeholders.  The line-by-line prompt is the batch prompt plus
+  a "The following is for context reference: `{{source}}`" sentence.
+- **When it runs**: translation is queued when a local `.lrc` file is loaded,
+  after lyrics are saved next to the song, and when a candidate is confirmed
+  in the lyrics chooser.  The lyrics page and the Material Skin now-playing
+  menu also have a **Translate lyrics** button.  Lyrics that were never written
+  to a local LRC file (online lyrics with saving disabled) are not translated.
+- **Result**: the file is rewritten as the verbatim original block followed by
+  the translated block.  No translation marker line is written.  The original
+  file is backed up as `<file>.orig` by default.  Bilingual files are detected
+  by their repeated timestamps; files translated by older versions which start
+  with `[re:Deepseek翻译]` are still recognised and skipped.
+- **Language detection**: if the optional `LangID` plugin from
+  `/root/lms-plugin-LangID` is installed, it is used for Chinese, Japanese and
+  Korean targets (lingua-rs based).  Otherwise the plugin falls back to local
+  script rules and, when needed, one small LLM detection request.  **Model
+  confidence weight** (0-1, default 0.2) controls how strongly the model's
+  detection confidence is blended with the local rules when they are
+  inconclusive; 1 trusts the model directly.
+- **Queue**: translations run serially in the background; failed jobs are
+  retried a limited number of times and are not re-queued while cooling down.
+
+The target language is configurable and defaults to Simplified Chinese;
+Chinese/Hant still share the same detection rules.  Changing the target on an
+already translated file requires removing the generated translation block
+first (a v1 limitation).
+
 ### Custom Perl lyrics scripts
 
 The plugin can load custom lyrics sources from ordinary Perl scripts.  Enable

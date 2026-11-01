@@ -39,7 +39,18 @@
 		timeout: IS_ZH ? '搜索超时，请重试' : 'Search timed out. Please try again.',
 		cancel: IS_ZH ? '取消搜索' : 'Cancel search',
 		cancelled: IS_ZH ? '搜索已取消' : 'Search cancelled',
-		found: IS_ZH ? '已找到 %1 条' : '%1 found'
+		found: IS_ZH ? '已找到 %1 条' : '%1 found',
+		use: IS_ZH ? '使用这首歌词' : 'Use this lyrics',
+		preview: IS_ZH ? '预览' : 'Preview',
+		translate: IS_ZH ? '翻译歌词' : 'Translate lyrics',
+		translating: IS_ZH ? '正在翻译歌词...' : 'Translating lyrics...',
+		translated: IS_ZH ? '歌词已翻译' : 'Lyrics translated',
+		translated_queued: IS_ZH ? '翻译已排队' : 'Translation queued',
+		translate_failed: IS_ZH ? '翻译失败' : 'Translation failed',
+		translate_no_file: IS_ZH ? '歌曲旁没有 LRC 文件。请开启歌词保存或先选择歌词。' : 'No LRC file next to the song. Enable saving lyrics or choose lyrics first.',
+		translate_already: IS_ZH ? '歌词已经翻译过。' : 'Lyrics are already translated.',
+		translate_disabled: IS_ZH ? '插件设置中未启用歌词翻译。' : 'Lyrics translation is disabled in the plugin settings.',
+		translate_skipped: IS_ZH ? '已跳过翻译：%1' : 'Translation skipped: %1'
 	};
 
 	var state = {
@@ -69,6 +80,7 @@
 		progressBar: null,
 		progressFill: null,
 		cancelButton: null,
+		useButton: null,
 		total: 0,
 		progress: 0,
 		playerId: '',
@@ -369,6 +381,20 @@
 			cancelSearch(true);
 		});
 		bar.appendChild(state.cancelButton);
+
+		state.useButton = document.createElement('button');
+		state.useButton.type = 'button';
+		state.useButton.className = 'v-btn v-btn--flat v-btn--icon v-btn--small toolbar-button mai-lq-toolbar-btn mai-lq-use';
+		state.useButton.title = TEXT.use;
+		state.useButton.setAttribute('aria-label', TEXT.use);
+		state.useButton.disabled = true;
+		state.useButton.innerHTML = '<i class="v-icon material-icons" aria-hidden="true">check</i>';
+		state.useButton.addEventListener('click', function (event) {
+			event.preventDefault();
+			event.stopPropagation();
+			confirmSelected();
+		});
+		bar.appendChild(state.useButton);
 		panel.appendChild(bar);
 
 		state.progressBar = document.createElement('div');
@@ -552,8 +578,30 @@
 		if (btn) btn.classList.toggle('mai-lq-toggle-active', state.open);
 	}
 
+	function menuItem(className, label, handler) {
+		var item = document.createElement('div');
+		item.className = 'v-list__tile v-list__tile--link ' + className;
+		item.setAttribute('role', 'menuitem');
+		item.setAttribute('tabindex', '0');
+		item.innerHTML = '<div class="v-list__tile__content"><div class="v-list__tile__title"></div></div>';
+		item.querySelector('.v-list__tile__title').textContent = label;
+		item.addEventListener('click', function (event) {
+			event.preventDefault();
+			event.stopPropagation();
+			try {
+				var vm = findNowPlaying(window.app, 0);
+				if (vm && vm.menu) vm.menu.show = false;
+			} catch (e) {}
+			handler();
+		});
+		return item;
+	}
+
 	function addMenuEntry() {
-		if (document.querySelector('.mai-lq-menu-entry')) return;
+		var hasChoose = !!document.querySelector('.mai-lq-menu-entry');
+		var wantTranslate = !!window.__MAI_TRANSLATE_ENABLED;
+		var hasTranslate = !!document.querySelector('.mai-lq-menu-entry-translate');
+		if (hasChoose && (!wantTranslate || hasTranslate)) return;
 
 		var menus = document.querySelectorAll('.v-menu__content');
 		var target = null;
@@ -573,25 +621,6 @@
 
 		var list = target.querySelector('.v-list') || target;
 
-		var item = document.createElement('div');
-		item.className = 'v-list__tile v-list__tile--link mai-lq-menu-entry';
-		item.setAttribute('role', 'menuitem');
-		item.setAttribute('tabindex', '0');
-		item.innerHTML = '<div class="v-list__tile__content"><div class="v-list__tile__title"></div></div>';
-		item.querySelector('.v-list__tile__title').textContent = TEXT.menu;
-		item.addEventListener('click', function (event) {
-			event.preventDefault();
-			event.stopPropagation();
-			try {
-				var vm = findNowPlaying(window.app, 0);
-				if (vm && vm.menu) vm.menu.show = false;
-			} catch (e) {}
-			openQueueLyrics();
-		});
-		// Put "Choose lyrics" in the section above the zoom controls.  The
-		// existing divider between the display options and the zoom header
-		// is kept, so the menu reads: options / Choose lyrics / divider /
-		// zoom.
 		var anchor = null;
 		for (var c = 0; c < list.children.length; c++) {
 			var child = list.children[c];
@@ -606,10 +635,24 @@
 			&& anchor.previousElementSibling.classList.contains('v-divider')) {
 			anchor = anchor.previousElementSibling;
 		}
-		if (anchor) {
-			list.insertBefore(item, anchor);
-		} else {
-			list.insertBefore(item, list.firstChild);
+
+		var insertBefore = anchor || list.firstChild;
+
+		if (!hasChoose) {
+			var chooseItem = menuItem('mai-lq-menu-entry', TEXT.menu, openQueueLyrics);
+			list.insertBefore(chooseItem, insertBefore);
+			insertBefore = chooseItem.nextSibling || insertBefore;
+		}
+
+		if (wantTranslate && !hasTranslate) {
+			var translateItem = menuItem('mai-lq-menu-entry-translate', TEXT.translate, translateCurrent);
+			var chooseAnchor = document.querySelector('.mai-lq-menu-entry');
+			if (chooseAnchor && chooseAnchor.parentNode === list) {
+				list.insertBefore(translateItem, chooseAnchor.nextSibling);
+			}
+			else {
+				list.insertBefore(translateItem, insertBefore);
+			}
 		}
 	}
 
@@ -933,11 +976,15 @@
 			row.addEventListener('click', function (event) {
 				event.preventDefault();
 				event.stopPropagation();
-				applyCandidate(candidate.hash || '', index);
+				selectCandidate(candidate.hash || '', index);
 			});
 
 			state.list.appendChild(row);
 		});
+
+		if (state.useButton) {
+			state.useButton.disabled = state.busy || !state.candidates.length;
+		}
 
 		state.list.scrollTop = scrollTop;
 	}
@@ -1057,6 +1104,139 @@
 		fetchPlaybackTime();
 	}
 
+	function findCandidate(hash, index) {
+		if (hash) {
+			for (var i = 0; i < state.candidates.length; i++) {
+				if (state.candidates[i].hash === hash) {
+					return state.candidates[i];
+				}
+			}
+			return null;
+		}
+		return state.candidates[index] || state.candidates[0] || null;
+	}
+
+	function selectCandidate(hash, index) {
+		var candidate = findCandidate(hash, index);
+		if (!candidate) return;
+
+		state.selectedHash = candidate.hash || '';
+		renderCandidates();
+		renderPreview(candidate);
+		if (state.useButton) state.useButton.disabled = false;
+		setStatus('');
+	}
+
+	function confirmSelected() {
+		if (state.busy || !state.candidates.length) return;
+
+		var candidate = null;
+		if (state.selectedHash) {
+			candidate = findCandidate(state.selectedHash, 0);
+		}
+		if (!candidate) candidate = state.candidates[0];
+
+		var index = state.candidates.indexOf(candidate);
+		applyCandidate(candidate.hash || '', index);
+	}
+
+	function showMessage(message) {
+		try {
+			if (window.bus && typeof window.bus.$emit === 'function') {
+				window.bus.$emit('showMessage', message);
+			}
+		} catch (e) {}
+	}
+
+	function translateError(code) {
+		switch (code) {
+			case 'no-file':
+				return TEXT.translate_no_file;
+			case 'already-translated':
+				return TEXT.translate_already;
+			case 'disabled':
+				return TEXT.translate_disabled;
+			default:
+				return TEXT.translate_failed + (code ? ': ' + code : '');
+		}
+	}
+
+	function watchTranslation(key) {
+		var deadline = Date.now() + 180000;
+
+		function poll() {
+			if (Date.now() > deadline) {
+				showMessage(TEXT.translate_failed);
+				return;
+			}
+
+			requestJson('/plugins/MusicArtistInfo/lyrics/translate-status?' + encodeQuery({
+				key: key,
+				_: Date.now()
+			}), { credentials: 'same-origin' }).then(function (data) {
+				if (!data || data.error) {
+					showMessage(translateError(data && data.error));
+					return;
+				}
+				if (data.state === 'done') {
+					showMessage(TEXT.translated);
+					refreshNowPlaying();
+					return;
+				}
+				if (data.state === 'failed') {
+					showMessage(TEXT.translate_failed + (data.reason ? ': ' + data.reason : ''));
+					return;
+				}
+				if (data.state === 'skipped') {
+					showMessage(TEXT.translate_skipped.replace('%1', data.reason || ''));
+					return;
+				}
+				setTimeout(poll, 1500);
+			}).catch(function () {
+				showMessage(TEXT.translate_failed);
+			});
+		}
+
+		poll();
+	}
+
+	function translateCurrent() {
+		requestCurrentInfo(function (info) {
+			var params = {
+				track_id: info.trackId,
+				url: info.url,
+				title: info.title,
+				artist: info.artist,
+				player: info.player || getPlayerId(),
+				_: Date.now()
+			};
+
+			requestJson('/plugins/MusicArtistInfo/lyrics/translate?' + encodeQuery(params), {
+				method: 'POST',
+				headers: { 'X-Requested-With': 'XMLHttpRequest' },
+				credentials: 'same-origin'
+			}).then(function (data) {
+				if (!data || data.error) {
+					showMessage(translateError(data && data.error));
+					return;
+				}
+				if (data.queued && data.key) {
+					showMessage(TEXT.translated_queued);
+					watchTranslation(data.key);
+					return;
+				}
+				if (data.state === 'done') {
+					showMessage(TEXT.translated);
+					refreshNowPlaying();
+					return;
+				}
+				showMessage(TEXT.translate_failed);
+			}).catch(function () {
+				showMessage(TEXT.translate_failed);
+			});
+		});
+	}
+
 	function applyCandidate(hash, index) {
 		if (state.busy || !state.searchId) return;
 
@@ -1105,6 +1285,11 @@
 
 			setStatus((candidate.source ? TEXT.source + ': ' + candidate.source + ' · ' : '') + TEXT.applied);
 			refreshNowPlaying();
+
+			if (result.translation && result.translation.queued && result.translation.key) {
+				showMessage(TEXT.translated_queued);
+				watchTranslation(result.translation.key);
+			}
 		}).catch(function () {
 			state.busy = false;
 			setStatus(TEXT.error);

@@ -81,7 +81,7 @@ sub init {
 		eval {
 			require Slim::Web::Pages;
 			Slim::Web::Pages->addRawFunction(
-				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel|save-preview|script|source-test)},
+				qr{plugins/MusicArtistInfo/lyrics/(?:candidates|select|search|cancel|save-preview|script|source-test|translate|translate-status|translate-test)},
 				\&_lyricsApi,
 			);
 		};
@@ -371,6 +371,10 @@ sub getSongLyricsCLI {
 				: _getLocalLyrics($args);
 			next unless defined $lyrics && $lyrics =~ /\S/;
 			main::INFOLOG && $log->is_info && $log->info("Found $source lyrics for " . $args->{title} . ' by ' . $args->{artist});
+			if ( $source eq 'LocalLyrics' ) {
+				my $sidecar = _sidecar_lyrics_path($args);
+				_maybe_enqueue_translation($args, $lyrics, $sidecar, 'file-load') if $sidecar;
+			}
 			_renderLyricsResponse($lyrics, $request, $args);
 			$request->setStatusDone();
 			return;
@@ -853,9 +857,96 @@ sub _save_lyrics_next_to_song {
 
 	if ( $result->{file} ) {
 		main::INFOLOG && $log->is_info && $log->info("Saved lyrics to $result->{file}");
+		if ( !$result->{skipped} ) {
+			my $translation = _maybe_enqueue_translation($args, $lyrics, $result->{file}, 'save');
+			$result->{translation} = $translation if $translation;
+		}
 	}
 	elsif ( $result->{error} ) {
 		$log->warn("Could not save lyrics next to $audioPath: $result->{error}");
+	}
+
+	return $result;
+}
+
+sub _translator {
+	return unless eval { require Plugins::MusicArtistInfo::Lyrics::Translator; 1 };
+	return 'Plugins::MusicArtistInfo::Lyrics::Translator';
+}
+
+sub _sidecar_lyrics_path {
+	my $args = shift || {};
+
+	my $track = $args->{track};
+	my $url   = $track ? eval { $track->url } : $args->{url};
+	$url =~ s/^tmp:/file:/ if defined $url;
+	return unless $url && Slim::Music::Info::isFileURL($url);
+
+	my $audioPath = Slim::Utils::Misc::pathFromFileURL($url);
+	return unless $audioPath && -f $audioPath;
+
+	my @files;
+
+	if ($track) {
+		my $format = $prefs->get('lyricsFileNameFormat') || 'FILE';
+		my $basename = eval {
+			Plugins::MusicArtistInfo::Lyrics::FileName->lyrics_filename($track, $format)
+		};
+		push @files, catfile(dirname($audioPath), $basename) if $basename;
+	}
+
+	my $target = eval {
+		Plugins::MusicArtistInfo::Lyrics::SaveTarget->build($track, {
+			template_language => $prefs->get('templateLanguage') || 'lms',
+			path_format    => $prefs->get('lyricsSavePathFormat'),
+			file_format    => $prefs->get('lyricsSaveFileNameFormat'),
+			lms_file_format => $prefs->get('lyricsFileNameFormat') || 'FILE',
+		});
+	};
+	push @files, $target->{full_path} if $target && $target->{full_path};
+
+	my $filePath = $audioPath;
+	$filePath =~ s/\.\w{2,4}$/.lrc/;
+	push @files, $filePath, $audioPath . '.lrc';
+
+	my %seen;
+	foreach my $file (@files) {
+		next unless defined $file && $file ne '' && !$seen{$file}++;
+		return $file if $file =~ /\.lrc$/i && -r $file;
+	}
+
+	return;
+}
+
+sub _maybe_enqueue_translation {
+	my ($args, $lyrics, $path, $source) = @_;
+
+	return unless $prefs->get('lyricsTranslate');
+	return unless defined $path && $path =~ /\.lrc$/i;
+	return unless defined $lyrics && $lyrics =~ /\S/;
+	return if $source eq 'file-load' && !$prefs->get('lyricsTranslateOnFileLoad');
+	return if $source eq 'save' && !$prefs->get('lyricsTranslateOnSave');
+
+	my $class = _translator();
+	return unless $class;
+
+	my $result = eval {
+		$class->enqueue({
+			path   => $path,
+			lyrics => $lyrics,
+			args   => $args,
+			source => $source,
+		});
+	};
+
+	if ( !$result ) {
+		$log->warn("Could not queue lyrics translation for $path: $@");
+	}
+	elsif ( $result->{queued} ) {
+		main::INFOLOG && $log->is_info && $log->info("Queued lyrics translation for $path");
+	}
+	elsif ( $result->{error} ) {
+		main::INFOLOG && $log->is_info && $log->info("Lyrics translation not queued for $path: $result->{error}");
 	}
 
 	return $result;
@@ -868,6 +959,9 @@ sub _web_lyrics_content {
 	my $chooserScript = catfile(dirname(__FILE__), '..', 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsChooser.js');
 	my $chooserMtime = (stat($chooserScript))[9] || 0;
 	$version .= "-$chooserMtime" if $chooserMtime;
+
+	my $translateScript = catfile(dirname(__FILE__), '..', 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsTranslate.js');
+	my $translateMtime = (stat($translateScript))[9] || 0;
 
 	return Plugins::MusicArtistInfo::Lyrics::WebUI->build(
 		client   => $client,
@@ -882,6 +976,9 @@ sub _web_lyrics_content {
 		endpoint => '/plugins/MusicArtistInfo/lyrics',
 		player   => $client ? $client->id : '',
 		script   => "/plugins/MusicArtistInfo/html/lyricsChooser.js?v=$version",
+		translate_enabled => $prefs->get('lyricsTranslate') ? 1 : 0,
+		translate_script  => "/plugins/MusicArtistInfo/html/lyricsTranslate.js?v=$version"
+			. ( $translateMtime ? "-$translateMtime" : '' ),
 		strings  => _lyrics_chooser_strings($client),
 	);
 }
@@ -904,6 +1001,16 @@ sub _lyrics_chooser_strings {
 		source  => 'Source',
 		synced  => 'Synced',
 		plain   => 'Plain text',
+		translate => 'Translate lyrics',
+		translating => 'Translating lyrics...',
+		translated => 'Lyrics translated',
+		translate_queued => 'Translation queued',
+		translate_failed => 'Translation failed',
+		translate_no_file => 'No LRC file next to the song. Enable saving lyrics or choose lyrics first.',
+		translate_already => 'Lyrics are already translated.',
+		translate_already_target => 'Lyrics already look like the target language. Translate anyway?',
+		translate_disabled => 'Lyrics translation is disabled in the plugin settings.',
+		translate_skipped => 'Translation skipped: %s',
 	);
 
 	my %strings;
@@ -1443,6 +1550,18 @@ sub _lyricsApi {
 		for (my $i = 0; $i < @pairs; $i += 2) {
 			$params{$pairs[$i]} = $pairs[$i + 1];
 		}
+	}
+
+	if ( $path =~ m{/lyrics/translate-status} ) {
+		return _handle_lyrics_translate_status($httpClient, $response, \%params);
+	}
+
+	if ( $path =~ m{/lyrics/translate-test} ) {
+		return _handle_lyrics_translate_test($httpClient, $response, \%params);
+	}
+
+	if ( $path =~ m{/lyrics/translate} ) {
+		return _handle_lyrics_translate($httpClient, $response, \%params);
 	}
 
 	if ( $path =~ m{/lyrics/source-test} ) {
@@ -1990,13 +2109,171 @@ sub _handle_lyrics_select {
 	_cacheLyrics($save, $candidate->{lyrics});
 
 	my $sidecar = _save_lyrics_next_to_song($save, $candidate->{lyrics}, undef, 1);
+	my $translation = $sidecar && $sidecar->{translation} ? $sidecar->{translation} : undef;
 
 	_send_json($httpClient, $response, {
 		lyrics  => _clean_candidate_text($candidate->{lyrics}),
 		source  => $candidate->{source} || '',
 		cached  => 1,
 		sidecar => $sidecar && $sidecar->{file} ? $sidecar->{file} : '',
+		( $translation ? ( translation => $translation ) : () ),
 	});
+}
+
+sub _request_is_safe {
+	my ($request, $response) = @_;
+
+	return 1 if lc($request->header('X-Requested-With') || '') eq 'xmlhttprequest';
+
+	my $safe = 0;
+	eval {
+		require Slim::Web::HTTP::CSRF;
+		$safe = Slim::Web::HTTP::CSRF->isRequestCSRFSafe($request, $response, {}, undef);
+	};
+
+	return $safe ? 1 : 0;
+}
+
+sub _lyrics_translation_track {
+	my $params = shift || {};
+
+	my $track;
+	if ( defined $params->{track_id} && $params->{track_id} =~ /^\d+$/ ) {
+		$track = Slim::Schema->find('Track', $params->{track_id});
+	}
+	elsif ( $params->{url} ) {
+		$track = eval { Slim::Schema->objectForUrl($params->{url}) };
+	}
+	elsif ( $params->{player} ) {
+		my $client = eval { Slim::Player::Client::getClient($params->{player}) };
+		my $song = $client ? eval { $client->playingSong } : undef;
+		$track = $song ? eval { $song->track } : undef;
+	}
+
+	if ( !$track ) {
+		foreach my $client ( Slim::Player::Client::clients() ) {
+			my $song = eval { $client->playingSong };
+			next unless $song;
+			$track = eval { $song->track };
+			last if $track;
+		}
+	}
+
+	return $track;
+}
+
+sub _handle_lyrics_translate {
+	my ($httpClient, $response, $params) = @_;
+
+	my $request = $response->request;
+	return _send_json($httpClient, $response, { error => 'Forbidden' }, 403)
+		unless _request_is_safe($request, $response);
+
+	return _send_json($httpClient, $response, { error => 'disabled' })
+		unless $prefs->get('lyricsTranslate');
+
+	my $class = _translator();
+	return _send_json($httpClient, $response, { error => 'disabled' }) unless $class;
+
+	my $track = _lyrics_translation_track($params);
+	return _send_json($httpClient, $response, { error => 'no-track' }, 400) unless $track;
+
+	my $args = {
+		track    => $track,
+		track_id => $track->id,
+		title    => $track->title,
+		artist   => $track->artistName,
+		album    => $track->albumname,
+		duration => $track->secs,
+		url      => $track->url,
+	};
+
+	my $path = _sidecar_lyrics_path($args);
+	return _send_json($httpClient, $response, { error => 'no-file' }) unless $path;
+
+	my $lyrics = Plugins::MusicArtistInfo::Text->read_file(
+		$path,
+		{ hints => [ $args->{artist}, $args->{title} ] },
+	);
+	return _send_json($httpClient, $response, { error => 'no-file' })
+		unless defined $lyrics && $lyrics =~ /\S/;
+
+	my $result = eval {
+		$class->enqueue({
+			path   => $path,
+			lyrics => $lyrics,
+			args   => $args,
+			source => 'manual',
+			force  => $params->{force} ? 1 : 0,
+		});
+	};
+
+	unless ($result) {
+		$log->warn("Could not queue lyrics translation for $path: $@");
+		return _send_json($httpClient, $response, { error => 'failed' }, 500);
+	}
+
+	return _send_json($httpClient, $response, $result);
+}
+
+sub _handle_lyrics_translate_status {
+	my ($httpClient, $response, $params) = @_;
+
+	my $key = $params->{key} || '';
+	return _send_json($httpClient, $response, { error => 'Invalid request' }, 400)
+		unless $key =~ /^[a-f0-9]{32}$/i;
+
+	my $class = _translator();
+	return _send_json($httpClient, $response, { state => 'unknown' }) unless $class;
+
+	my $status = eval { $class->status($key) } || { state => 'unknown' };
+	return _send_json($httpClient, $response, $status);
+}
+
+sub _handle_lyrics_translate_test {
+	my ($httpClient, $response, $params) = @_;
+
+	my $request = $response->request;
+	return _send_json($httpClient, $response, { error => 'Forbidden' }, 403)
+		unless _request_is_safe($request, $response);
+
+	unless ( eval {
+		require Plugins::MusicArtistInfo::Lyrics::TranslateSettings;
+		require Plugins::MusicArtistInfo::Lyrics::Translate::LLM;
+		1;
+	} ) {
+		return _send_json($httpClient, $response, { error => 'Translation is not available' }, 500);
+	}
+
+	my $settings = 'Plugins::MusicArtistInfo::Lyrics::TranslateSettings';
+	my $config = eval { $settings->config };
+	unless ( $config && ref $config eq 'HASH' ) {
+		return _send_json($httpClient, $response, { error => 'Invalid translation settings' }, 500);
+	}
+
+	my $key = eval { $settings->api_key } || $config->{api_key};
+	unless ( defined $key && $key ne '' ) {
+		return _send_json($httpClient, $response, { error => 'missing-api-key' });
+	}
+	$config->{api_key} = $key;
+	$config->{batch_timeout} = 30 if defined $config->{batch_timeout} && $config->{batch_timeout} > 30;
+	$config->{line_timeout}  = 30 if defined $config->{line_timeout}  && $config->{line_timeout}  > 30;
+
+	my $llm = Plugins::MusicArtistInfo::Lyrics::Translate::LLM->new(config => $config);
+	my $done = 0;
+
+	$llm->translate_lines(['Hello'], 'Hello', sub {
+		my ($translations, $stats, $error) = @_;
+
+		return if $done++;
+		if ($error) {
+			return _send_json($httpClient, $response, { error => $error });
+		}
+		my $text = $translations && ref $translations eq 'HASH' ? $translations->{'Hello'} : '';
+		return _send_json($httpClient, $response, { ok => 1, text => $text || '' });
+	});
+
+	return;
 }
 
 sub _renderLyricsResponse {

@@ -4,6 +4,7 @@ use strict;
 
 use Encode ();
 use File::Basename qw(dirname);
+use File::Copy ();
 use File::Spec::Functions qw(catfile);
 use File::Temp ();
 
@@ -60,8 +61,20 @@ sub save_path {
 	return { skipped => 'exists', file => $file }
 		if -e $file && !$opts->{overwrite};
 
-	my $text = $class->normalize($lyrics);
-	return { error => 'Empty lyrics' } unless $text =~ /\S/;
+	# Keep the permissions of an existing file (the translation queue rewrites
+	# user files, and a 0600 temp file must not silently change their mode).
+	my $existingMode;
+	if ( -e $file ) {
+		my $stat = ( stat($file) )[2];
+		$existingMode = $stat & 07777 if defined $stat;
+	}
+
+	# normalize => 0 skips the layout cleanup below; the caller (lyrics
+	# translator) has built the final text already.  The text is still encoded
+	# using the requested encoding, and empty output is still rejected.
+	my $normalize = exists $opts->{normalize} ? $opts->{normalize} : 1;
+	my $text = $normalize ? $class->normalize($lyrics) : ( defined $lyrics ? $lyrics : '' );
+	return { error => 'Empty lyrics' } unless defined $text && $text =~ /\S/;
 
 	my $encoding = $opts->{encoding} || ($opts->{bom} ? 'utf8bom' : 'utf8');
 	my %encodings = (
@@ -116,7 +129,55 @@ sub save_path {
 		}
 	}
 
+	chmod($existingMode, $file) if defined $existingMode;
+
 	return { file => $file };
+}
+
+# Back up a lyrics file before overwriting it.  Modes:
+#   none         - do nothing
+#   once         - <file>.orig, never overwriting an existing backup
+#   timestamped  - <file>.orig.YYYYmmdd-HHMMSS
+# The backup inherits the source file's mode (e.g. 0644).
+sub backup {
+	my ($class, $file, $mode) = @_;
+
+	$mode = 'none' unless defined $mode && !ref $mode && $mode ne '';
+
+	return { skipped => 'none' } if $mode eq 'none';
+
+	return { error => 'Missing lyrics target' } unless defined $file && $file ne '';
+	return { error => 'File not found' } unless -f $file;
+
+	my $dest;
+	if ( $mode eq 'once' ) {
+		$dest = $file . '.orig';
+		return { skipped => 'exists', file => $dest } if -e $dest;
+	}
+	elsif ( $mode eq 'timestamped' ) {
+		$dest = $file . '.orig.' . _timestamp();
+	}
+	else {
+		return { skipped => 'none' };
+	}
+
+	my $copied = eval { File::Copy::copy($file, $dest) };
+	return { error => "Could not back up lyrics file: " . ( $@ || $! ) } unless $copied;
+
+	my $sourceMode = ( stat($file) )[2];
+	chmod( $sourceMode & 07777, $dest ) if defined $sourceMode;
+
+	return { file => $dest, mode => $mode };
+}
+
+sub _timestamp {
+	my @now = localtime;
+
+	return sprintf(
+		'%04d%02d%02d-%02d%02d%02d',
+		$now[5] + 1900, $now[4] + 1, $now[3],
+		$now[2], $now[1], $now[0],
+	);
 }
 
 1;

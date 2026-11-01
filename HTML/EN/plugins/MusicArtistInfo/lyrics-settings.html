@@ -26,6 +26,7 @@
 .mai-lyrics-settings .mai-open-options { display:inline-block; padding:5px 10px; border:1px solid #888; text-decoration:none; }
 .mai-lyrics-settings .mai-preview { font-family:monospace; background:#eee; color:#111; padding:6px; margin-top:4px; white-space:pre-wrap; word-break:break-all; }
 .mai-lyrics-settings .mai-hint { opacity:.75; font-size:90%; }
+.mai-lyrics-settings textarea.mai-prompt { display:block; width:100%; box-sizing:border-box; font-family:monospace; font-size:13px; line-height:19px; white-space:pre-wrap !important; overflow-wrap:break-word !important; word-break:break-word !important; resize:vertical; }
 .mai-lyrics-settings .mai-code-editor { display:flex; border:1px solid #888; background:#1e1e1e; color:#d4d4d4; font-family:monospace; font-size:13px; line-height:19px; overflow:hidden; margin:4px 0; }
 .mai-lyrics-settings .mai-code-gutter { flex:0 0 auto; margin:0; padding:6px 8px; text-align:right; color:#858585; background:#252526; user-select:none; overflow:hidden; line-height:19px; }
 .mai-lyrics-settings .mai-code-area { position:relative; flex:1 1 auto; min-width:0; }
@@ -83,6 +84,7 @@
 	<button type="button" class="mai-tab" data-tab="search-settings">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TAB_SEARCH_SETTINGS" | string %]</button>
 	<button type="button" class="mai-tab" data-tab="process">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TAB_PROCESS" | string %]</button>
 	<button type="button" class="mai-tab" data-tab="save">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TAB_SAVE" | string %]</button>
+	<button type="button" class="mai-tab" data-tab="translate">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TAB_TRANSLATE" | string %]</button>
 </div>
 
 <div class="mai-panel active" data-panel="search">
@@ -235,6 +237,151 @@
 		<button type="button" class="stdclick" id="maiPreviewSave">[% "PLUGIN_MUSICARTISTINFO_LYRICS_PREVIEW" | string %]</button>
 		<div class="mai-preview" id="maiSavePreview"></div>
 		<input type="hidden" id="maiPlayerId" value="[% playerId | html %]" />
+	[% END %]
+</div>
+
+<div class="mai-panel" data-panel="translate">
+	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE" desc="PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_DESC" %]
+		<input type="checkbox" class="stdedit" name="pref_lyricsTranslate" id="pref_lyricsTranslate" value="1" [% IF prefs.pref_lyricsTranslate %]checked [% END %] />
+		<label for="pref_lyricsTranslate" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_ENABLE" | string %]</label>
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_NEEDS_SAVE" | string %]</div>
+		[% IF translationConfigError %]<div class="mai-hint" style="color:#b00">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_CONFIG_ERROR" | string %] [% translationConfigError | html %]</div>[% END %]
+		[% IF langidAvailable %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_LANGID_OK" | string %] [% langidVersion | html %]</div>
+		[% ELSE %]<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_LANGID_NONE" | string %]</div>[% END %]
+		<br/>
+		<label for="pref_lyricsTranslateTarget">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET" | string %]</label>
+		<select class="stdedit" name="pref_lyricsTranslateTarget" id="pref_lyricsTranslateTarget">
+			<option value="zh-Hans" [% IF prefs.pref_lyricsTranslateTarget == 'zh-Hans' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET_ZH_HANS" | string %]</option>
+			<option value="zh-Hant" [% IF prefs.pref_lyricsTranslateTarget == 'zh-Hant' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET_ZH_HANT" | string %]</option>
+			<option value="en" [% IF prefs.pref_lyricsTranslateTarget == 'en' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET_EN" | string %]</option>
+			<option value="ja" [% IF prefs.pref_lyricsTranslateTarget == 'ja' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET_JA" | string %]</option>
+			<option value="ko" [% IF prefs.pref_lyricsTranslateTarget == 'ko' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET_KO" | string %]</option>
+			<option value="custom" [% IF prefs.pref_lyricsTranslateTarget == 'custom' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET_OTHER" | string %]</option>
+		</select>
+		<span id="maiTranslateCustomWrap">
+			<label for="pref_lyricsTranslateTargetCustom">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TARGET_CUSTOM" | string %]</label>
+			<input type="text" class="stdedit" name="pref_lyricsTranslateTargetCustom" id="pref_lyricsTranslateTargetCustom" value="[% prefs.pref_lyricsTranslateTargetCustom | html %]" size="30" />
+		</span>
+		<br/>
+		<label for="pref_lyricsTranslateApiBase">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_BASE" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsTranslateApiBase" id="pref_lyricsTranslateApiBase" value="[% prefs.pref_lyricsTranslateApiBase | html %]" size="60" />
+		<br/>
+		<label for="pref_lyricsTranslateApiPath">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_PATH" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsTranslateApiPath" id="pref_lyricsTranslateApiPath" value="[% prefs.pref_lyricsTranslateApiPath | html %]" size="40" />
+		<br/>
+		<label for="pref_lyricsTranslateModel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MODEL" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsTranslateModel" id="pref_lyricsTranslateModel" value="[% prefs.pref_lyricsTranslateModel | html %]" size="40" />
+		<br/>
+		<label for="pref_lyricsTranslateApiKey">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_KEY" | string %]</label>
+		<input type="password" class="stdedit" name="pref_lyricsTranslateApiKey" id="pref_lyricsTranslateApiKey" value="" autocomplete="new-password" size="60" />
+		<div class="mai-hint">
+			[% IF translateApiKeySource == 'file' %][% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_KEY_STATE_FILE" | string %]
+			[% ELSIF translateApiKeySource == 'env' %][% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_KEY_STATE_ENV" | string %]
+			[% ELSE %][% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_KEY_STATE_NONE" | string %][% END %]
+			&mdash; [% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_KEY_HINT" | string %]
+		</div>
+		[% IF translateApiKeySource == 'file' %]
+		<input type="checkbox" class="stdedit" name="pref_lyricsTranslateApiKeyClear" id="pref_lyricsTranslateApiKeyClear" value="1" />
+		<label for="pref_lyricsTranslateApiKeyClear" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_API_KEY_CLEAR" | string %]</label>
+		<br/>
+		[% END %]
+		<label for="pref_lyricsTranslateAuthHeader">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_AUTH_HEADER" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsTranslateAuthHeader" id="pref_lyricsTranslateAuthHeader" value="[% prefs.pref_lyricsTranslateAuthHeader | html %]" size="30" />
+		<label for="pref_lyricsTranslateAuthPrefix">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_AUTH_PREFIX" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsTranslateAuthPrefix" id="pref_lyricsTranslateAuthPrefix" value="[% prefs.pref_lyricsTranslateAuthPrefix | html %]" size="20" />
+		<br/>
+		<input type="checkbox" class="stdedit" name="pref_lyricsTranslateOnFileLoad" id="pref_lyricsTranslateOnFileLoad" value="1" [% IF prefs.pref_lyricsTranslateOnFileLoad %]checked [% END %] />
+		<label for="pref_lyricsTranslateOnFileLoad" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_ON_FILE" | string %]</label>
+		<br/>
+		<input type="checkbox" class="stdedit" name="pref_lyricsTranslateOnSave" id="pref_lyricsTranslateOnSave" value="1" [% IF prefs.pref_lyricsTranslateOnSave %]checked [% END %] />
+		<label for="pref_lyricsTranslateOnSave" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_ON_SAVE" | string %]</label>
+		<br/>
+		<label for="pref_lyricsTranslateMode">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MODE" | string %]</label>
+		<select class="stdedit" name="pref_lyricsTranslateMode" id="pref_lyricsTranslateMode">
+			<option value="batch" [% IF prefs.pref_lyricsTranslateMode != 'line' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MODE_BATCH" | string %]</option>
+			<option value="line" [% IF prefs.pref_lyricsTranslateMode == 'line' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MODE_LINE" | string %]</option>
+		</select>
+		<br/>
+		<button type="button" class="stdclick" id="maiTranslateTest">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TEST" | string %]</button>
+		<div class="mai-preview" id="maiTranslateTestResult"></div>
+	[% END %]
+
+	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_ADVANCED" %]
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_RESPONSE_FORMAT" | string %]
+			<input type="checkbox" class="stdedit" name="pref_lyricsTranslateResponseFormat" id="pref_lyricsTranslateResponseFormat" value="1" [% IF prefs.pref_lyricsTranslateResponseFormat %]checked [% END %] />
+		</div>
+		<label for="pref_lyricsTranslateBatchTemperature">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TEMPERATURE" | string %]</label>
+		<input type="number" step="0.1" min="0" max="2" class="stdedit" name="pref_lyricsTranslateBatchTemperature" id="pref_lyricsTranslateBatchTemperature" value="[% prefs.pref_lyricsTranslateBatchTemperature %]" size="6" />
+		<label for="pref_lyricsTranslateBatchTimeout">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TIMEOUT" | string %]</label>
+		<input type="number" min="1" max="1800" class="stdedit" name="pref_lyricsTranslateBatchTimeout" id="pref_lyricsTranslateBatchTimeout" value="[% prefs.pref_lyricsTranslateBatchTimeout %]" size="6" />
+		<label for="pref_lyricsTranslateBatchSize">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_BATCH_SIZE" | string %]</label>
+		<input type="number" min="0" max="200" class="stdedit" name="pref_lyricsTranslateBatchSize" id="pref_lyricsTranslateBatchSize" value="[% prefs.pref_lyricsTranslateBatchSize %]" size="6" />
+		<br/>
+		<label for="pref_lyricsTranslateLineConcurrency">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_CONCURRENCY" | string %]</label>
+		<input type="number" min="1" max="16" class="stdedit" name="pref_lyricsTranslateLineConcurrency" id="pref_lyricsTranslateLineConcurrency" value="[% prefs.pref_lyricsTranslateLineConcurrency %]" size="6" />
+		<label for="pref_lyricsTranslateBatchMaxTokens">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MAX_TOKENS" | string %]</label>
+		<input type="number" min="0" max="32768" class="stdedit" name="pref_lyricsTranslateBatchMaxTokens" id="pref_lyricsTranslateBatchMaxTokens" value="[% prefs.pref_lyricsTranslateBatchMaxTokens %]" size="8" />
+		<br/>
+		<input type="checkbox" class="stdedit" name="pref_lyricsTranslateThinking" id="pref_lyricsTranslateThinking" value="1" [% IF prefs.pref_lyricsTranslateThinking %]checked [% END %] />
+		<label for="pref_lyricsTranslateThinking" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_THINKING" | string %]</label>
+		<label for="pref_lyricsTranslateReasoningEffort">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_REASONING_EFFORT" | string %]</label>
+		<select class="stdedit" name="pref_lyricsTranslateReasoningEffort" id="pref_lyricsTranslateReasoningEffort">
+			[% FOREACH level IN [ ['', ''], ['low', 'low'], ['high', 'high'], ['max', 'max'] ] %]
+				<option value="[% level.0 %]" [% IF prefs.pref_lyricsTranslateReasoningEffort == level.0 %]selected [% END %]>[% level.1 %]</option>
+			[% END %]
+		</select>
+		<br/>
+		<label for="pref_lyricsTranslateDetect">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_DETECT" | string %]</label>
+		<select class="stdedit" name="pref_lyricsTranslateDetect" id="pref_lyricsTranslateDetect">
+			<option value="auto" [% IF prefs.pref_lyricsTranslateDetect != 'always' && prefs.pref_lyricsTranslateDetect != 'llm' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_DETECT_AUTO" | string %]</option>
+			<option value="always" [% IF prefs.pref_lyricsTranslateDetect == 'always' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_DETECT_ALWAYS" | string %]</option>
+			<option value="llm" [% IF prefs.pref_lyricsTranslateDetect == 'llm' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_DETECT_LLM" | string %]</option>
+		</select>
+		<label for="pref_lyricsTranslateDetectThreshold">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_THRESHOLD" | string %]</label>
+		<input type="number" step="0.05" min="0" max="1" class="stdedit" name="pref_lyricsTranslateDetectThreshold" id="pref_lyricsTranslateDetectThreshold" value="[% prefs.pref_lyricsTranslateDetectThreshold %]" size="6" />
+		<label for="pref_lyricsTranslateDetectModelWeight">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MODEL_WEIGHT" | string %]</label>
+		<input type="number" step="0.05" min="0" max="1" class="stdedit" name="pref_lyricsTranslateDetectModelWeight" id="pref_lyricsTranslateDetectModelWeight" value="[% prefs.pref_lyricsTranslateDetectModelWeight %]" size="6" />
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MODEL_WEIGHT_DESC" | string %]</div>
+		<br/>
+		<label for="pref_lyricsTranslateMinTimestamps">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MIN_TIMESTAMPS" | string %]</label>
+		<input type="number" min="0" max="100" class="stdedit" name="pref_lyricsTranslateMinTimestamps" id="pref_lyricsTranslateMinTimestamps" value="[% prefs.pref_lyricsTranslateMinTimestamps %]" size="6" />
+		<label for="pref_lyricsTranslateMaxRepeatedTimestamps">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MAX_REPEATED" | string %]</label>
+		<input type="number" min="1" max="100" class="stdedit" name="pref_lyricsTranslateMaxRepeatedTimestamps" id="pref_lyricsTranslateMaxRepeatedTimestamps" value="[% prefs.pref_lyricsTranslateMaxRepeatedTimestamps %]" size="6" />
+		<br/>
+		<label for="pref_lyricsTranslateMultiline">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MULTILINE" | string %]</label>
+		<select class="stdedit" name="pref_lyricsTranslateMultiline" id="pref_lyricsTranslateMultiline">
+			<option value="drop" [% IF prefs.pref_lyricsTranslateMultiline != 'space' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MULTILINE_DROP" | string %]</option>
+			<option value="space" [% IF prefs.pref_lyricsTranslateMultiline == 'space' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_MULTILINE_SPACE" | string %]</option>
+		</select>
+		<label for="pref_lyricsTranslateFailedLine">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_FAILED_LINE" | string %]</label>
+		<select class="stdedit" name="pref_lyricsTranslateFailedLine" id="pref_lyricsTranslateFailedLine">
+			<option value="original" [% IF prefs.pref_lyricsTranslateFailedLine != 'omit' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_FAILED_ORIGINAL" | string %]</option>
+			<option value="omit" [% IF prefs.pref_lyricsTranslateFailedLine == 'omit' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_FAILED_OMIT" | string %]</option>
+		</select>
+		<br/>
+		<label for="pref_lyricsTranslateBackup">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_BACKUP" | string %]</label>
+		<select class="stdedit" name="pref_lyricsTranslateBackup" id="pref_lyricsTranslateBackup">
+			<option value="none" [% IF prefs.pref_lyricsTranslateBackup == 'none' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_BACKUP_NONE" | string %]</option>
+			<option value="once" [% IF !prefs.pref_lyricsTranslateBackup || prefs.pref_lyricsTranslateBackup == 'once' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_BACKUP_ONCE" | string %]</option>
+			<option value="timestamped" [% IF prefs.pref_lyricsTranslateBackup == 'timestamped' %]selected [% END %]>[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_BACKUP_TIMESTAMPED" | string %]</option>
+		</select>
+		<input type="checkbox" class="stdedit" name="pref_lyricsTranslateCache" id="pref_lyricsTranslateCache" value="1" [% IF prefs.pref_lyricsTranslateCache %]checked [% END %] />
+		<label for="pref_lyricsTranslateCache" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_CACHE" | string %]</label>
+		<label for="pref_lyricsTranslateCacheTtl">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_CACHE_TTL" | string %]</label>
+		<input type="text" class="stdedit" name="pref_lyricsTranslateCacheTtl" id="pref_lyricsTranslateCacheTtl" value="[% prefs.pref_lyricsTranslateCacheTtl | html %]" size="8" />
+		<br/>
+		<label for="pref_lyricsTranslateExtraHeaders">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_EXTRA_HEADERS" | string %]</label>
+		<textarea class="stdedit" name="pref_lyricsTranslateExtraHeaders" id="pref_lyricsTranslateExtraHeaders" rows="3" cols="60">[% prefs.pref_lyricsTranslateExtraHeaders | html %]</textarea>
+	[% END %]
+
+	[% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_PROMPTS" %]
+		<div class="mai-hint">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_PROMPT_HINT" | string %]</div>
+		<label for="pref_lyricsTranslateBatchSystem">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_PROMPT_BATCH" | string %]</label>
+		<textarea class="stdedit mai-prompt" wrap="soft" name="pref_lyricsTranslateBatchSystem" id="pref_lyricsTranslateBatchSystem" rows="8">[% prefs.pref_lyricsTranslateBatchSystem | html %]</textarea>
+		<label for="pref_lyricsTranslateLineSystem">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_PROMPT_LINE" | string %]</label>
+		<textarea class="stdedit mai-prompt" wrap="soft" name="pref_lyricsTranslateLineSystem" id="pref_lyricsTranslateLineSystem" rows="6">[% prefs.pref_lyricsTranslateLineSystem | html %]</textarea>
+		<label for="pref_lyricsTranslateDetectSystem">[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_PROMPT_DETECT" | string %]</label>
+		<textarea class="stdedit mai-prompt" wrap="soft" name="pref_lyricsTranslateDetectSystem" id="pref_lyricsTranslateDetectSystem" rows="4">[% prefs.pref_lyricsTranslateDetectSystem | html %]</textarea>
 	[% END %]
 </div>
 
@@ -777,6 +924,41 @@
 			location.reload();
 		}).catch(function () { alert(scriptError); });
 	});
+
+	/* Lyrics translation: target/custom toggle and connection test. */
+	var translateTarget = document.getElementById('pref_lyricsTranslateTarget');
+	var translateCustom = document.getElementById('maiTranslateCustomWrap');
+	function updateTranslateTarget() {
+		if (!translateTarget || !translateCustom) return;
+		translateCustom.style.display = translateTarget.value === 'custom' ? '' : 'none';
+	}
+	if (translateTarget) {
+		translateTarget.addEventListener('change', updateTranslateTarget);
+		updateTranslateTarget();
+	}
+
+	var translateTest = document.getElementById('maiTranslateTest');
+	if (translateTest) {
+		translateTest.addEventListener('click', function () {
+			var out = document.getElementById('maiTranslateTestResult');
+			if (out) out.textContent = '...';
+			fetch('[% webroot %]plugins/MusicArtistInfo/lyrics/translate-test', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-Requested-With': 'XMLHttpRequest' }
+			}).then(function (r) { return r.json(); }).then(function (data) {
+				if (!out) return;
+				if (data && data.ok) {
+					out.textContent = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TEST_OK" | string %]' + (data.text ? ': ' + data.text : '');
+				}
+				else {
+					out.textContent = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TEST_FAIL" | string %]' + (data && data.error ? ': ' + data.error : '');
+				}
+			}).catch(function () {
+				if (out) out.textContent = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_TEST_FAIL" | string %]';
+			});
+		});
+	}
 
 })();
 </script>

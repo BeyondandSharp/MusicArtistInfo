@@ -28,6 +28,7 @@ my $custom = catfile($dir, 'custom.js');
 
 my $prefs = preferences('plugin.musicartistinfo');
 $prefs->set('integrateMaterialSkin', 1);
+$prefs->set('lyricsTranslate', 1);
 
 open(my $fh, '>', $custom) or die $!;
 print {$fh} "var userCode = 1;\n";
@@ -41,6 +42,7 @@ close $fh;
 like($content, qr/var userCode = 1;/, 'existing custom code preserved');
 like($content, qr/BEGIN MusicArtistInfo lyrics chooser/, 'loader block added');
 like($content, qr/materialLyricsChooser\.js/, 'loader points at chooser script');
+like($content, qr/__MAI_TRANSLATE_ENABLED = 1;/, 'translation flag exposed to Material Skin');
 
 $class->remove;
 

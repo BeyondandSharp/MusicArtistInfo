@@ -34,11 +34,13 @@ sub _block {
 		'plugins', 'MusicArtistInfo', 'html', 'materialLyricsChooser.js');
 	my $mtime = (stat($script))[9] || 0;
 	my $cacheKey = $mtime ? "$version-$mtime" : $version;
+	my $translateEnabled = $prefs->get('lyricsTranslate') ? 1 : 0;
 
 	return $BEGIN_MARKER . "\n"
 		. "(function(){\n"
 		. "  if (window.__MAI_MATERIAL_LOADER) return;\n"
 		. "  window.__MAI_MATERIAL_LOADER = true;\n"
+		. "  window.__MAI_TRANSLATE_ENABLED = $translateEnabled;\n"
 		. "  var s = document.createElement('script');\n"
 		. "  s.src = '/plugins/MusicArtistInfo/html/materialLyricsChooser.js?v=$cacheKey';\n"
 		. "  s.async = true;\n"

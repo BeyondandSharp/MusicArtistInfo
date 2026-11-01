@@ -13,6 +13,7 @@ use JSON::PP ();
 
 my $DEFAULT_ENDPOINT = '/plugins/MusicArtistInfo/lyrics';
 my $DEFAULT_SCRIPT   = '/plugins/MusicArtistInfo/html/lyricsChooser.js';
+my $DEFAULT_TRANSLATE_SCRIPT = '/plugins/MusicArtistInfo/html/lyricsTranslate.js';
 
 sub escape_html {
 	my ($class, $text) = @_;
@@ -74,7 +75,28 @@ sub build {
 	$html .= ' data-duration="' . $class->_attr($args{duration} || '') . '"';
 	$html .= ' data-player="' . $class->_attr($args{player} || '') . '"';
 	$html .= ' data-strings="' . $stringsJson . '"';
+	$html .= ' data-translate-script="' . $class->_attr($args{translate_script} || $DEFAULT_TRANSLATE_SCRIPT) . '"';
 	$html .= ' onclick="' . $onclick . '">' . $buttonLabel . '</button>';
+
+	if ( $args{translate_enabled} ) {
+		my $translateLabel = $strings->{translate} || 'Translate lyrics';
+		$translateLabel = $class->escape_html($translateLabel);
+		my $translateScript = $args{translate_script} || $DEFAULT_TRANSLATE_SCRIPT;
+		my $translateOnclick = q{(function(b){if(window.MAILyricsTranslate){return window.MAILyricsTranslate.start(b);}var s=document.createElement('script');s.src=b.getAttribute('data-script');s.onload=function(){window.MAILyricsTranslate.start(b);};s.onerror=function(){if(window.console){console.error('MusicArtistInfo: failed to load lyrics translator');}};document.head.appendChild(s);})(this)};
+
+		$html .= '<button type="button" class="maiLyricsTranslateButton stdclick"';
+		$html .= ' data-endpoint="' . $class->_attr($endpoint) . '"';
+		$html .= ' data-script="' . $class->_attr($translateScript) . '"';
+		$html .= ' data-track-id="' . $class->_attr($args{track_id} || '') . '"';
+		$html .= ' data-url="' . $class->_attr($args{url} || '') . '"';
+		$html .= ' data-title="' . $class->_attr($args{title} || '') . '"';
+		$html .= ' data-artist="' . $class->_attr($args{artist} || '') . '"';
+		$html .= ' data-album="' . $class->_attr($args{album} || '') . '"';
+		$html .= ' data-player="' . $class->_attr($args{player} || '') . '"';
+		$html .= ' data-strings="' . $stringsJson . '"';
+		$html .= ' onclick="' . $translateOnclick . '">' . $translateLabel . '</button>';
+	}
+
 	$html .= '<span id="maiLyricsPageStatus" class="maiLyricsStatus"></span>';
 	$html .= '</div>';
 	$html .= '</div>';

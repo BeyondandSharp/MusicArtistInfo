@@ -4,6 +4,7 @@ use strict;
 
 use Exporter::Lite;
 use File::Spec::Functions qw(catdir);
+use JSON::PP ();
 use JSON::XS;
 use List::Util qw(min);
 use URI::Escape qw(uri_escape uri_escape_utf8);
@@ -407,6 +408,156 @@ sub call {
 			$params
 		)->get($url, %headers);
 	}
+}
+
+# POST a JSON body, as a small companion to call().  The response body is
+# decoded as JSON and handed to the callback: $cb->($data, $headers).
+# Transport and HTTP errors are reported as { error => "..." } in $data (unless
+# wantError => 0 is requested), because callers like the translation client
+# need a string to show/decide on.
+#
+# The request body and the headers are never logged: they contain lyrics and
+# credentials.
+sub post_json {
+	my ($class, $url, $opts, $cb) = @_;
+
+	$opts ||= {};
+	$cb   ||= sub {};
+	$url  = '' unless defined $url;
+
+	my $wantError = exists $opts->{wantError} ? delete $opts->{wantError} : 1;
+	$wantError = 1 if !defined $wantError;
+	my $timeout = $opts->{timeout} || 15;
+
+	my $body;
+	if ( !defined $opts->{json} ) {
+		$body = '';
+	}
+	elsif ( ref $opts->{json} ) {
+		$body = eval { JSON::PP->new->utf8->canonical(1)->encode($opts->{json}) };
+		if ( !defined $body ) {
+			my $error = $@ || 'unknown error';
+			$error =~ s/\s+/ /g;
+			return $cb->(
+				$wantError ? { error => "Could not encode request body: $error" } : {},
+				undef,
+			);
+		}
+	}
+	else {
+		$body = $opts->{json};
+	}
+
+	my %headers;
+	foreach my $name ( keys %{ ref $opts->{headers} eq 'HASH' ? $opts->{headers} : {} } ) {
+		next if lc($name) eq 'content-type';
+		my $value = $opts->{headers}->{$name};
+		next unless defined $value && !ref $value;
+		$headers{$name} = $value;
+	}
+
+	# We must use the "legacy" user agent string to comply with Discogs' TOU.
+	$headers{'User-Agent'} = Slim::Utils::Misc::userAgentString('legacy');
+
+	# Same identification headers as the GET helper in API.pm.
+	if ( Slim::Utils::Misc->can('apiHeaders') ) {
+		my $extra = eval { Slim::Utils::Misc::apiHeaders('Plugins::MusicArtistInfo::Plugin') };
+		if ( $extra && ref $extra eq 'HASH' ) {
+			foreach my $name ( keys %$extra ) {
+				$headers{$name} = $extra->{$name} unless exists $headers{$name};
+			}
+		}
+	}
+	elsif ( !exists $headers{'X-LMS-Plugin-ID'} ) {
+		$headers{'X-LMS-Plugin-ID'} = 'Plugins::MusicArtistInfo::Plugin';
+	}
+
+	main::INFOLOG && $log->is_info && $log->info('API call: POST ' . _debug($url));
+
+	my $done = 0;
+	my $finish = sub {
+		my ($data, $resultHeaders) = @_;
+		return if $done++;
+		$cb->($data, $resultHeaders);
+		return;
+	};
+
+	my $cb2 = sub {
+		my ($response, $error) = @_;
+
+		if ($error) {
+			my $message = ref $error ? "$error" : $error;
+			$message = 'request-failed' unless defined $message && $message ne '';
+			return $finish->($wantError ? { error => $message } : {}, undef);
+		}
+
+		my $status  = eval { $response->code };
+		my $content = eval {
+			$response->can('decoded_content') ? $response->decoded_content : $response->content;
+		};
+		$content = '' unless defined $content;
+
+		my $resultHeaders = eval { $response->headers };
+
+		if ( !defined $status || $status < 200 || $status >= 300 ) {
+			my $message = defined $status ? "http-$status" : 'http-error';
+
+			my $parsed = eval { JSON::PP->new->utf8->decode($content) };
+			if ( ref $parsed eq 'HASH' ) {
+				my $detail = _json_error_message($parsed);
+				$message .= ': ' . $detail if defined $detail && $detail ne '';
+			}
+
+			return $finish->($wantError ? { error => $message } : {}, $resultHeaders);
+		}
+
+		my $parsed = eval { JSON::PP->new->utf8->decode($content) };
+		return $finish->($wantError ? { error => 'invalid-response' } : {}, $resultHeaders)
+			unless defined $parsed;
+
+		return $finish->($parsed, $resultHeaders);
+	};
+
+	if ( defined &main::SCANNER && main::SCANNER() ) {
+		return $finish->(
+			$wantError ? { error => 'post_json is not available in the scanner' } : {},
+			undef,
+		);
+	}
+
+	my $ok = eval {
+		Slim::Networking::SimpleAsyncHTTP->new(
+			$cb2,
+			$cb2,
+			{ timeout => $timeout, cache => 0 },
+		)->post($url, 'Content-Type' => 'application/json', %headers, $body);
+		1;
+	};
+
+	unless ($ok) {
+		my $error = $@ || 'unknown error';
+		$error =~ s/\s+/ /g;
+		$finish->($wantError ? { error => "request-failed: $error" } : {}, undef);
+	}
+
+	return;
+}
+
+sub _json_error_message {
+	my $data = shift || {};
+
+	my $error = $data->{error};
+
+	if ( ref $error eq 'HASH' ) {
+		return $error->{message}
+			|| $error->{type}
+			|| $error->{code}
+			|| 'api-error';
+	}
+
+	return $error if defined $error && !ref $error && $error ne '';
+
+	return;
 }
 
 sub getUA { if (main::SCANNER) {

@@ -18,6 +18,19 @@ use Plugins::MusicArtistInfo::TrackInfo;
 
 my $prefs = preferences('plugin.musicartistinfo');
 
+# Text preferences which may contain non-ASCII values.  LMS stores form
+# values as byte strings; decode them before rendering and before they are
+# used by the translation modules.
+my @TRANSLATE_TEXT_PREFS = qw(
+	lyricsTranslateTarget lyricsTranslateTargetCustom
+	lyricsTranslateApiBase lyricsTranslateApiPath lyricsTranslateModel
+	lyricsTranslateAuthHeader lyricsTranslateAuthPrefix lyricsTranslateExtraHeaders
+	lyricsTranslateMode lyricsTranslateDetect lyricsTranslateMultiline lyricsTranslateFailedLine
+	lyricsTranslateBackup lyricsTranslateCacheTtl lyricsTranslateReasoningEffort
+	lyricsTranslateBatchSystem
+	lyricsTranslateLineSystem lyricsTranslateDetectSystem
+);
+
 sub name {
 	return 'PLUGIN_MUSICARTISTINFO_LYRICS_OPTIONS';
 }
@@ -38,6 +51,20 @@ sub prefs {
 		lyricsCustomSearchFields lyricsSearchTitleFormat lyricsSearchArtistFormat
 		lyricsSourceOrder lyricsSourceDisabled
 		lyricsSearchScript lyricsSearchScriptPath lyricsProcessingScript lyricsProcessingScriptPath
+		lyricsTranslate lyricsTranslateTarget lyricsTranslateTargetCustom
+		lyricsTranslateApiBase lyricsTranslateApiPath lyricsTranslateModel
+		lyricsTranslateAuthHeader lyricsTranslateAuthPrefix lyricsTranslateExtraHeaders
+		lyricsTranslateResponseFormat lyricsTranslateOnFileLoad lyricsTranslateOnSave
+		lyricsTranslateMode
+		lyricsTranslateBatchSize lyricsTranslateBatchTemperature lyricsTranslateBatchTimeout lyricsTranslateBatchMaxTokens
+		lyricsTranslateLineConcurrency lyricsTranslateLineTemperature lyricsTranslateLineTimeout lyricsTranslateLineMaxTokens
+		lyricsTranslateThinking lyricsTranslateReasoningEffort
+		lyricsTranslateDetect lyricsTranslateDetectThreshold lyricsTranslateDetectModelWeight lyricsTranslateDetectTimeout
+		lyricsTranslateMinTimestamps lyricsTranslateMaxRepeatedTimestamps
+		lyricsTranslateMultiline lyricsTranslateFailedLine
+		lyricsTranslateCache lyricsTranslateCacheTtl lyricsTranslateBackup
+		lyricsTranslateQueueLimit lyricsTranslateMaxAttempts lyricsTranslateRetryDelay lyricsTranslateFailCooldown
+		lyricsTranslateBatchSystem lyricsTranslateLineSystem lyricsTranslateDetectSystem
 	));
 
 	return @prefs;
@@ -71,6 +98,16 @@ sub handler {
 		my $decoded = eval { JSON::PP->new->decode($value) };
 		$value = '[]' unless ref $decoded eq 'ARRAY';
 		$paramRef->{"pref_$key"} = $value;
+	}
+
+	# LMS stores form values as byte strings.  Decode the translation text
+	# preferences before SUPER::handler persists them.
+	if ( $paramRef->{saveSettings} ) {
+		foreach my $name (@TRANSLATE_TEXT_PREFS) {
+			my $key = "pref_$name";
+			next unless exists $paramRef->{$key};
+			$paramRef->{$key} = _pref_chars($paramRef->{$key});
+		}
 	}
 
 	$paramRef->{fb2kFormatAvailable} = $fb2kAvailable;
@@ -113,11 +150,88 @@ sub handler {
 	} || 'plugins/PerlEditor/editor.js';
 	$paramRef->{playerId} = eval { $client ? $client->id : '' } || '';
 
+	# Lyrics translation settings.  The API key is deliberately not a pref:
+	# it lives in a separate 0600 file and is never sent back to the browser.
+	$paramRef->{translateApiKeySource} = 'none';
+	$paramRef->{translationConfigError} = '';
+	if ( eval { require Plugins::MusicArtistInfo::Lyrics::TranslateSettings; 1 } ) {
+		my $ts = 'Plugins::MusicArtistInfo::Lyrics::TranslateSettings';
+
+		if ( $paramRef->{saveSettings} ) {
+			my $submittedKey = $paramRef->{pref_lyricsTranslateApiKey};
+			my $clearKey     = $paramRef->{pref_lyricsTranslateApiKeyClear};
+
+			if ($clearKey) {
+				$ts->clear_key;
+			}
+			elsif ( defined $submittedKey && $submittedKey ne '' ) {
+				my $stored = $ts->store_key($submittedKey);
+				$paramRef->{warning} .= 'Could not store the API key in ' . $ts->key_file . '.<br/>'
+					unless $stored;
+			}
+
+			my $errors = eval { $ts->validate($paramRef) } || [];
+			if ( @$errors ) {
+				$paramRef->{translationConfigError} = join('; ', @$errors);
+				$paramRef->{warning} .= $paramRef->{translationConfigError} . '<br/>';
+			}
+		}
+
+		# Never echo a submitted key back into the page.
+		delete $paramRef->{pref_lyricsTranslateApiKey};
+		delete $paramRef->{pref_lyricsTranslateApiKeyClear} unless $paramRef->{saveSettings};
+
+		my $status = eval { $ts->key_status } || {};
+		$paramRef->{translateApiKeySource} = $status->{source} || 'none';
+	}
+
+	$paramRef->{langidAvailable} = 0;
+	if ( eval { require Plugins::LangID::API; Plugins::LangID::API->available } ) {
+		$paramRef->{langidAvailable} = 1;
+		$paramRef->{langidVersion} = eval { Plugins::LangID::API->version } || '';
+	}
+
 	my $result = $class->SUPER::handler($client, $paramRef, $pageSetup);
 
 	Plugins::MusicArtistInfo::Lyrics::MaterialSkin->sync if $paramRef->{saveSettings};
 
 	return $result;
+}
+
+# Called by Slim::Web::Settings after the prefs have been processed and
+# before the page is rendered.  Show the built-in prompt defaults in empty
+# textareas and decode any byte-string pref values.
+sub beforeRender {
+	my ($class, $paramRef, $client) = @_;
+
+	return unless ref $paramRef->{prefs} eq 'HASH';
+
+	foreach my $name (@TRANSLATE_TEXT_PREFS) {
+		my $key = "pref_$name";
+		next unless exists $paramRef->{prefs}{$key};
+		$paramRef->{prefs}{$key} = _pref_chars($paramRef->{prefs}{$key});
+	}
+
+	if ( eval { require Plugins::MusicArtistInfo::Lyrics::TranslateSettings; 1 } ) {
+		my $defaults = Plugins::MusicArtistInfo::Lyrics::TranslateSettings->defaults;
+		foreach my $stage (qw(Batch Line Detect)) {
+			my $key = "pref_lyricsTranslate${stage}System";
+			next if defined $paramRef->{prefs}{$key} && $paramRef->{prefs}{$key} ne '';
+			$paramRef->{prefs}{$key} = $defaults->{"lyricsTranslate${stage}System"};
+		}
+	}
+
+	return;
+}
+
+
+sub _pref_chars {
+	my ($value) = @_;
+
+	return $value unless defined $value && !ref $value && !utf8::is_utf8($value);
+
+	my $decoded = eval { Encode::decode('UTF-8', $value, FB_CROAK) };
+	return defined $decoded && !$@ ? $decoded : $value;
 }
 
 

@@ -81,4 +81,89 @@ $content = <$read>;
 close $read;
 is(substr($content, 0, 2), "\xFF\xFE", 'UTF-16LE BOM written');
 
+# ---------------------------------------------------------------------------
+# normalize => 0 (bilingual write-back by the translator)
+# ---------------------------------------------------------------------------
+my $rawFile = catfile($dir, 'Raw.lrc');
+my $rawText = "[00:01.00]a\r\n[00:02.00]b";
+
+$result = $class->save_path($rawFile, $rawText, { overwrite => 1, normalize => 0 });
+ok($result->{file}, 'save_path with normalize => 0 writes the file');
+open($read, '<:raw', $rawFile) or die $!;
+$content = <$read>;
+close $read;
+utf8::decode($content);
+is($content, $rawText, 'normalize => 0 keeps line endings and trailing text');
+
+$class->save_path($rawFile, $rawText, { overwrite => 1 });
+open($read, '<:raw', $rawFile) or die $!;
+$content = <$read>;
+close $read;
+utf8::decode($content);
+is($content, "[00:01.00]a\n[00:02.00]b\n", 'default save_path still normalizes');
+
+my $cjkRaw = "[00:01.00]你好\r\n[00:02.00]世界";
+$result = $class->save_path($rawFile, $cjkRaw, { overwrite => 1, normalize => 0 });
+ok($result->{file}, 'normalize => 0 writes UTF-8 text');
+open($read, '<:raw', $rawFile) or die $!;
+$content = <$read>;
+close $read;
+utf8::decode($content);
+is($content, $cjkRaw, 'normalize => 0 writes UTF-8 characters unchanged');
+
+$result = $class->save_path(catfile($dir, 'Empty.lrc'), " \n ", { overwrite => 1, normalize => 0 });
+like($result->{error}, qr/empty/i, 'normalize => 0 still rejects empty lyrics');
+
+# ---------------------------------------------------------------------------
+# backup()
+# ---------------------------------------------------------------------------
+my $backupSource = catfile($dir, 'Backup.lrc');
+$class->save_path($backupSource, "one\n", { overwrite => 1 });
+
+$result = $class->backup($backupSource, 'none');
+is($result->{skipped}, 'none', 'backup none is skipped');
+ok(!-e $backupSource . '.orig', 'backup none creates no file');
+
+$result = $class->backup($backupSource, undef);
+is($result->{skipped}, 'none', 'backup without a mode is skipped');
+
+$result = $class->backup($backupSource, 'once');
+is($result->{file}, $backupSource . '.orig', 'backup once uses the .orig name');
+ok(-f $backupSource . '.orig', 'backup once creates the file');
+open($read, '<:raw', $backupSource . '.orig') or die $!;
+$content = <$read>;
+close $read;
+utf8::decode($content);
+is($content, "one\n", 'backup once copies the content');
+
+$result = $class->backup($backupSource, 'once');
+is($result->{skipped}, 'exists', 'backup once does not overwrite');
+
+chmod(0640, $backupSource) or die "chmod: $!";
+unlink $backupSource . '.orig' or die "unlink: $!";
+$result = $class->backup($backupSource, 'once');
+is(( stat($backupSource . '.orig') )[2] & 07777, 0640, 'backup copies the source mode');
+
+$result = $class->backup($backupSource, 'timestamped');
+ok($result->{file}, 'backup timestamped creates a file');
+like($result->{file}, qr/\.orig\.\d{8}-\d{6}$/, 'backup timestamped name');
+ok(-f $result->{file}, 'backup timestamped file exists');
+open($read, '<:raw', $result->{file}) or die $!;
+$content = <$read>;
+close $read;
+utf8::decode($content);
+is($content, "one\n", 'backup timestamped content');
+
+$result = $class->backup(catfile($dir, 'missing-backup.lrc'), 'once');
+like($result->{error}, qr/not found/i, 'backup missing file is an error');
+
+my $modeFile = catfile($dir, 'mode.lrc');
+open(my $modeFh, '>', $modeFile) or die $!;
+print {$modeFh} "[00:01.00]old\n";
+close $modeFh;
+chmod(0640, $modeFile) or die "chmod: $!";
+$result = $class->save_path($modeFile, "[00:01.00]new\n", { overwrite => 1, normalize => 0 });
+ok($result->{file}, 'save_path overwrites the mode fixture');
+is(( stat($modeFile) )[2] & 07777, 0640, 'save_path keeps the existing file mode');
+
 done_testing();

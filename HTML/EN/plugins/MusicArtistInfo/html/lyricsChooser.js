@@ -20,7 +20,17 @@
 		source: 'Source',
 		synced: 'Synced',
 		plain: 'Plain text',
-		timeout: 'Search timed out. Please try again.'
+		timeout: 'Search timed out. Please try again.',
+		translate: 'Translate lyrics',
+		translating: 'Translating lyrics...',
+		translated: 'Lyrics translated',
+		translate_queued: 'Translation queued',
+		translate_failed: 'Translation failed',
+		translate_no_file: 'No LRC file next to the song. Enable saving lyrics or choose lyrics first.',
+		translate_already: 'Lyrics are already translated.',
+		translate_already_target: 'Lyrics already look like the target language. Translate anyway?',
+		translate_disabled: 'Lyrics translation is disabled in the plugin settings.',
+		translate_skipped: 'Translation skipped: %s'
 	};
 
 	var state = {
@@ -29,6 +39,7 @@
 		button: null,
 		strings: DEFAULT_STRINGS,
 		endpoint: '/plugins/MusicArtistInfo/lyrics',
+		translateScript: '/plugins/MusicArtistInfo/html/lyricsTranslate.js',
 		trackId: '',
 		url: '',
 		title: '',
@@ -439,6 +450,41 @@
 		});
 	}
 
+	function translationInfo() {
+		return {
+			endpoint: state.endpoint,
+			trackId: state.trackId,
+			url: state.url,
+			title: state.title,
+			artist: state.artist,
+			player: state.player,
+			strings: state.strings
+		};
+	}
+
+	function loadTranslateScript(cb) {
+		if (window.MAILyricsTranslate) {
+			cb();
+			return;
+		}
+		var script = document.createElement('script');
+		script.src = state.translateScript;
+		script.onload = cb;
+		script.onerror = function () { cb(); };
+		document.head.appendChild(script);
+	}
+
+	function watchTranslation(result) {
+		if (!result || !result.translation || !result.translation.queued || !result.translation.key) {
+			return;
+		}
+		var key = result.translation.key;
+		loadTranslateScript(function () {
+			if (!window.MAILyricsTranslate) return;
+			window.MAILyricsTranslate.watch(key, translationInfo(), state.strings);
+		});
+	}
+
 	function useSelected() {
 		if (state.busy || !state.session || state.selected < 0) return;
 
@@ -492,6 +538,8 @@
 					// ignore integration callback errors
 				}
 			}
+
+			watchTranslation(result);
 		}).catch(function (error) {
 			if (!state.overlay) return;
 			setBusy(false);
@@ -663,6 +711,7 @@
 			state.button = null;
 			state.strings = mergeStrings(input.strings);
 			state.endpoint = input.endpoint || state.endpoint;
+			state.translateScript = input.translateScript || state.translateScript;
 			state.trackId = text(input.trackId || input.track_id);
 			state.url = text(input.url);
 			state.title = text(input.title);
@@ -676,6 +725,7 @@
 			state.button = button;
 			state.strings = parseStrings(button);
 			state.endpoint = button.getAttribute('data-endpoint') || state.endpoint;
+			state.translateScript = button.getAttribute('data-translate-script') || state.translateScript;
 			state.trackId = button.getAttribute('data-track-id') || '';
 			state.url = button.getAttribute('data-url') || '';
 			state.title = button.getAttribute('data-title') || '';

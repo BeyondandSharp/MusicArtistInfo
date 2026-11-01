@@ -40,4 +40,20 @@ my $errorHtml = $class->build(
 );
 like($errorHtml, qr/not found &lt;here&gt;/, 'error text escaped');
 
+my $translateHtml = $class->build(
+	lyrics            => 'line one',
+	translate_enabled => 1,
+	translate_script  => '/plugins/MusicArtistInfo/html/lyricsTranslate.js?v=1',
+	strings           => { choose => 'Choose', translate => 'Translate & go' },
+);
+
+like($translateHtml, qr/class="maiLyricsTranslateButton/, 'translate button present');
+like($translateHtml, qr/Translate &amp; go/, 'translate label escaped');
+like($translateHtml, qr/window\.MAILyricsTranslate\.start/, 'translate loader used');
+like($translateHtml, qr/data-script="\/plugins\/MusicArtistInfo\/html\/lyricsTranslate\.js\?v=1"/, 'translate script URL');
+like($translateHtml, qr/data-translate-script=/, 'chooser can load the translate script');
+
+my $noTranslate = $class->build(lyrics => 'line one', strings => {});
+unlike($noTranslate, qr/maiLyricsTranslateButton/, 'translate button hidden when disabled');
+
 done_testing();
