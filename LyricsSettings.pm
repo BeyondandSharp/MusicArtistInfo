@@ -48,9 +48,18 @@ sub handler {
 
 	my $fb2kAvailable = Plugins::MusicArtistInfo::Lyrics::Format->available;
 	my $xslateAvailable = Plugins::MusicArtistInfo::Lyrics::Format->textxslate_available;
-	my $language = $prefs->get('templateLanguage') || 'lms';
-	$language = 'lms' if $language eq 'fb2k' && !$fb2kAvailable;
-	$language = 'lms' if $language eq 'textxslate' && !$xslateAvailable;
+	# Preserve a submitted selection.  The preference is still the old value
+	# while handling the POST, so it must not overwrite pref_templateLanguage
+	# before Slim::Web::Settings saves it.
+	my $submittedLanguage = $paramRef->{pref_templateLanguage};
+	my $language = defined $submittedLanguage && $submittedLanguage ne ''
+		? $submittedLanguage
+		: ($prefs->get('templateLanguage') || 'lms');
+	$language = 'lms' unless $language =~ /^(?:lms|fb2k|textxslate)$/;
+	if (!defined $submittedLanguage || $submittedLanguage eq '') {
+		$language = 'lms' if $language eq 'fb2k' && !$fb2kAvailable;
+		$language = 'lms' if $language eq 'textxslate' && !$xslateAvailable;
+	}
 	$paramRef->{pref_templateLanguage} = $language;
 
 	# Fill in defaults for array settings and make sure malformed JSON
