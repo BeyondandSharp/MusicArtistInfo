@@ -29,7 +29,7 @@ script, then the built-in providers.  Scripts must not block; use
 `Plugins::MusicArtistInfo::Common->call` for HTTP requests or another
 asynchronous mechanism.
 
-See `static-demo.pl` and `lrclib.pl` for generic examples, and
-`sources/netease.pl` / `sources/musixmatch.pl` for ports of the bundled
-ESLyric sources.  Scripts run with the
-permissions of the LMS user, so they can access the filesystem and network.
+See `static-demo.pl` and `lrclib.pl` for generic examples.  Local ports of
+the bundled ESLyric sources are kept outside the plugin tree in
+`script/source` and are not distributed.  Scripts run with the permissions of
+the LMS user, so they can access the filesystem and network.
