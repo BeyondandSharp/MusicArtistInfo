@@ -2,3 +2,6 @@
 .vscode
 
 dist/
+
+# Local lyrics source scripts (not distributed)
+/script/source/

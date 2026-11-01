@@ -26,9 +26,9 @@ if [ -d .git ]; then
   git archive --format=tar HEAD | tar -x -C "$DIST/MusicArtistInfo"
 else
   mkdir -p "$DIST/MusicArtistInfo"
-  tar --exclude=.git --exclude=.forgejo --exclude=dist -cf - . | tar -xf - -C "$DIST/MusicArtistInfo"
+  tar --exclude=.git --exclude=.forgejo --exclude=dist --exclude=script/source -cf - . | tar -xf - -C "$DIST/MusicArtistInfo"
 fi
-rm -rf "$DIST/MusicArtistInfo/.forgejo" "$DIST/MusicArtistInfo/dist"
+rm -rf "$DIST/MusicArtistInfo/.forgejo" "$DIST/MusicArtistInfo/dist" "$DIST/MusicArtistInfo/script/source"
 # t/lib/Plugins/MusicArtistInfo is a recursive symlink used by tests; it must
 # not be traversed by zip (otherwise it runs into "Too many levels of
 # symbolic links").  Tests are not part of the plugin release.
