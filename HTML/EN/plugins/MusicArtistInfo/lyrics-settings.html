@@ -454,8 +454,8 @@
 	var ratioWrap = document.getElementById('maiSaveRatioWrap');
 
 	var templateDefaults = {
-		lms:        { path: '$directory_path(%path%)', file: '', title: '%title%', artist: '[%artist%]' },
-		fb2k:       { path: '$directory_path(%path%)', file: "[$num(%discnumber%,1)-][$num(%tracknumber%,2). ][%artist% - ]$meta(title,0)[ '('cover %origartist%')']", title: '%title%', artist: '[%artist%]' },
+		lms:        { path: '$directory_path(%path%)', file: '', title: '%title%', artist: '[\x25artist%]' },
+		fb2k:       { path: '$directory_path(%path%)', file: "[$num(%discnumber%,1)-][$num(%tracknumber%,2). ][\x25artist% - ]$meta(title,0)[ '('cover %origartist%')']", title: '%title%', artist: '[\x25artist%]' },
 		textxslate: { path: '<: $directory :>', file: "<: if $discnumber { :><: num($discnumber,1) :>-<: } :><: if $tracknumber { :><: num($tracknumber,2) :>. <: } :><: if $artist { :><: $artist :> - <: } :><: $title :><: if $origartist { :> (cover <: $origartist :>)<: } :>", title: '<: $title :>', artist: '<: $artist :>' }
 	};
 	function pathIsTrackFolder(value) {
