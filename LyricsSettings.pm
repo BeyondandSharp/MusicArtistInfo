@@ -84,20 +84,28 @@ sub handler {
 	$paramRef->{lyricsSearchFilters} = $prefs->get('lyricsSearchFilters') || '[]';
 	$paramRef->{lyricsSearchScript} = $prefs->get('lyricsSearchScript') || Plugins::MusicArtistInfo::Lyrics::Scripts->default_search_script;
 	$paramRef->{lyricsProcessingScript} = $prefs->get('lyricsProcessingScript') || Plugins::MusicArtistInfo::Lyrics::Scripts->default_processing_script;
-	my $searchFile = _read_script_file($prefs->get('lyricsSearchScriptPath'));
+	# Write the submitted files before the settings page is rendered.  The
+	# previous ordering wrote them after SUPER::handler, so the page was
+	# rendered with the old file content and appeared to revert until restart.
+	my $searchPath = $paramRef->{pref_lyricsSearchScriptPath};
+	$searchPath = $prefs->get('lyricsSearchScriptPath')
+		if !defined $searchPath || $searchPath eq '';
+	my $processingPath = $paramRef->{pref_lyricsProcessingScriptPath};
+	$processingPath = $prefs->get('lyricsProcessingScriptPath')
+		if !defined $processingPath || $processingPath eq '';
+	if ( $paramRef->{saveSettings} ) {
+		_write_script_file($searchPath, $paramRef->{pref_lyricsSearchScript});
+		_write_script_file($processingPath, $paramRef->{pref_lyricsProcessingScript});
+	}
+	my $searchFile = _read_script_file($searchPath);
 	$paramRef->{lyricsSearchScript} = $searchFile if defined $searchFile;
-	my $processingFile = _read_script_file($prefs->get('lyricsProcessingScriptPath'));
+	my $processingFile = _read_script_file($processingPath);
 	$paramRef->{lyricsProcessingScript} = $processingFile if defined $processingFile;
 	$paramRef->{lyricsFieldProcessing} = $prefs->get('lyricsFieldProcessing') || '[]';
 	$paramRef->{lyricsProcessingRules} = $prefs->get('lyricsProcessingRules') || '[]';
 	$paramRef->{playerId} = eval { $client ? $client->id : '' } || '';
 
 	my $result = $class->SUPER::handler($client, $paramRef, $pageSetup);
-
-	if ( $paramRef->{saveSettings} ) {
-		_write_script_file($paramRef->{pref_lyricsSearchScriptPath}, $paramRef->{pref_lyricsSearchScript});
-		_write_script_file($paramRef->{pref_lyricsProcessingScriptPath}, $paramRef->{pref_lyricsProcessingScript});
-	}
 
 	Plugins::MusicArtistInfo::Lyrics::MaterialSkin->sync if $paramRef->{saveSettings};
 
