@@ -23,7 +23,7 @@ sub defaults_for {
 
 	return {
 		path_format  => '<: $directory :>',
-		file_format   => q{<: if $discnumber_padded { :><: $discnumber_padded :>-<: } :><: if $tracknumber_padded { :><: $tracknumber_padded :>. <: } :><: if $artist { :><: $artist :> - <: } :><: $title :><: if $origartist { :> (cover <: $origartist :>)<: } :>},
+		file_format   => q{<: if $discnumber { :><: num($discnumber,1) :>-<: } :><: if $tracknumber { :><: num($tracknumber,2) :>. <: } :><: if $artist { :><: $artist :> - <: } :><: $title :><: if $origartist { :> (cover <: $origartist :>)<: } :>},
 		search_title  => '<: $title :>',
 		search_artist => '<: $artist :>',
 	}
