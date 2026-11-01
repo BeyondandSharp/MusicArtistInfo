@@ -451,7 +451,7 @@
 	var templateDefaults = {
 		lms:        { path: '$directory_path(%path%)', file: '', title: '%title%', artist: '[\x25artist%]' },
 		fb2k:       { path: '$directory_path(%path%)', file: "[$num(%discnumber%,1)-][$num(%tracknumber%,2). ][\x25artist% - ]$meta(title,0)[ '('cover %origartist%')']", title: '%title%', artist: '[\x25artist%]' },
-		textxslate: { path: '<: $directory :>', file: "<: if $discnumber { :><: tx_num($discnumber,1) :>-<: } :><: if $tracknumber { :><: tx_num($tracknumber,2) :>. <: } :><: if $artist { :><: $artist :> - <: } :><: $title :><: if $origartist { :> (cover <: $origartist :>)<: } :>", title: '<: $title :>', artist: '<: $artist :>' }
+		textxslate: { path: '<: $directory :>', file: "<: if $discnumber { :><: number($discnumber,1) :>-<: } :><: if $tracknumber { :><: number($tracknumber,2) :>. <: } :><: if $artist { :><: $artist :> - <: } :><: $title :><: if $origartist { :> (cover <: $origartist :>)<: } :>", title: '<: $title :>', artist: '<: $artist :>' }
 	};
 	function pathIsTrackFolder(value) {
 		value = (value || '').replace(/\s+/g, '');
@@ -782,11 +782,15 @@
 </script>
 
 [% IF perlEditorAvailable %]
-<script src="[% webroot %]plugins/PerlEditor/editor.js"></script>
+<script src="[% webroot %][% perlEditorScript %]"></script>
 <script>
 (function () {
 	if (!window.LMSPerlEditor) return;
-	Array.prototype.forEach.call(document.querySelectorAll('textarea.mai-code'), function (area) {
+	var root = document.querySelector('.mai-lyrics-settings') || document;
+	if (window.LMSPerlEditor.init) {
+		try { window.LMSPerlEditor.init(root, 'textarea.mai-code'); return; } catch (e) {}
+	}
+	Array.prototype.forEach.call(root.querySelectorAll('textarea.mai-code'), function (area) {
 		try { window.LMSPerlEditor.attach(area); } catch (e) {}
 	});
 })();
