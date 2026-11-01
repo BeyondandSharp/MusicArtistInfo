@@ -60,7 +60,6 @@
 </style>
 
 [% PROCESS settings/header.html %]
-<link rel="stylesheet" href="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-tomorrow.min.css">
 
 <div class="mai-lyrics-settings">
 [% WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_TEMPLATE_LANGUAGE" desc="PLUGIN_MUSICARTISTINFO_TEMPLATE_LANGUAGE_DESC" %]
@@ -251,10 +250,6 @@
 		<button type="button" class="stdclick" id="maiScriptCancel">[% "PLUGIN_MUSICARTISTINFO_LYRICS_CANCEL" | string %]</button>
 	</div>
 </dialog>
-<script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-core.min.js"></script>
-<script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-clike.min.js"></script>
-<script src="[% webroot %]plugins/MusicArtistInfo/lib/prism/prism-perl.min.js"></script>
-<script src="[% webroot %]plugins/MusicArtistInfo/lib/codejar.min.js"></script>
 <script>
 (function () {
 	var root = document.querySelector('.mai-lyrics-settings');
@@ -695,7 +690,6 @@
 			gutter.scrollTop = editor.scrollTop;
 		});
 	}
-	Array.prototype.forEach.call(root.querySelectorAll('.mai-code'), maiSetupCodeJar);
 
 
 	/* Remove the empty trailing line LMS adds after the global FB2K group. */
@@ -726,14 +720,14 @@
 	var scriptAddTitle = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_ADD_TITLE" | string %]';
 	var scriptError = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_ERROR" | string %]';
 	var scriptDeleteConfirm = '[% "PLUGIN_MUSICARTISTINFO_LYRICS_SCRIPT_DELETE_CONFIRM" | string %]';
-	if (scriptContent) maiSetupCodeJar(scriptContent);
 
 	function setScriptContent(code) {
-		if (scriptContent._maiSetCode) scriptContent._maiSetCode(code || '');
+		if (scriptContent._lmsSetCode) scriptContent._lmsSetCode(code || '');
+		else if (scriptContent._maiSetCode) scriptContent._maiSetCode(code || '');
 		else scriptContent.value = code || '';
 	}
 	function getScriptContent() {
-		return scriptContent._maiGetCode ? scriptContent._maiGetCode() : scriptContent.value;
+		return scriptContent._lmsGetCode ? scriptContent._lmsGetCode() : (scriptContent._maiGetCode ? scriptContent._maiGetCode() : scriptContent.value);
 	}
 	function openScriptEditor(id) {
 		scriptEditId = id || '';
@@ -787,4 +781,15 @@
 })();
 </script>
 
+[% IF perlEditorAvailable %]
+<script src="[% webroot %]plugins/PerlEditor/editor.js"></script>
+<script>
+(function () {
+	if (!window.LMSPerlEditor) return;
+	Array.prototype.forEach.call(document.querySelectorAll('textarea.mai-code'), function (area) {
+		try { window.LMSPerlEditor.attach(area); } catch (e) {}
+	});
+})();
+</script>
+[% END %]
 [% PROCESS settings/footer.html %]

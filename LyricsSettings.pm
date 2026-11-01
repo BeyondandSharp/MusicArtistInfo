@@ -103,6 +103,10 @@ sub handler {
 	$paramRef->{lyricsProcessingScript} = $processingFile if defined $processingFile;
 	$paramRef->{lyricsFieldProcessing} = $prefs->get('lyricsFieldProcessing') || '[]';
 	$paramRef->{lyricsProcessingRules} = $prefs->get('lyricsProcessingRules') || '[]';
+	$paramRef->{perlEditorAvailable} = eval {
+		require Plugins::PerlEditor::API;
+		Plugins::PerlEditor::API->available;
+	} ? 1 : 0;
 	$paramRef->{playerId} = eval { $client ? $client->id : '' } || '';
 
 	my $result = $class->SUPER::handler($client, $paramRef, $pageSetup);
