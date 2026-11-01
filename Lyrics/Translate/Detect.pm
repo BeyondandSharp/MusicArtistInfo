@@ -2,30 +2,35 @@ package Plugins::MusicArtistInfo::Lyrics::Translate::Detect;
 
 use strict;
 
-# Language detection for the lyrics translation pipeline.  Detection has three
-# levels, cheapest first:
+# Language detection for the lyrics translation pipeline.  The confidence that
+# a text already is in the target language comes from the language detection
+# plugin's suite of detectors (lingua + fastlang), weighted with the configured
+# weights.  When the suite cannot decide, a caller supplied LLM detector
+# decides.
 #
-#   1. an optional language identification plugin (Plugins::LangID::API); it is
-#      only consulted for CJK targets and only if the plugin reports itself as
-#      available
-#   2. local script proportions (Han / Kana / Hangul), no dependencies
-#   3. a caller supplied LLM detector (asynchronous, optional)
+# Detection levels:
+#   1. injected suite detector:  $opts->{suite_detect}->($text, $target, $cb)
+#   2. Plugins::LangID::API->detect_suite, if that plugin is available
+#   3. caller supplied LLM detector: $opts->{llm_detect}->($text, $cb)
+#      with $cb->($confidence, $error)
 #
-# The module itself has no LMS dependency: the optional plugin is required
-# lazily and guarded by eval, so everything can be unit tested outside of LMS.
-# CJK labels and language names are written as \x{...} escapes to keep this
-# source file ASCII (plugin files are loaded as bytes by LMS).
+# Suite result contract:
+#   { lingua   => { confidence => 0..1, language => 'zh', name => 'Chinese' } | undef,
+#     fastlang => { confidence => 0..1, language => 'zh', name => 'Chinese' } | undef,
+#     error    => '...' | undef }
+#
+# The module itself has no LMS dependency: the plugin is required lazily and
+# guarded by eval, so everything can be unit tested outside of LMS.  CJK
+# labels are written as \x{...} escapes to keep this source file ASCII (plugin
+# files are loaded as bytes by LMS).
 #
 # Public entry points accept both class method and plain function calls:
 #
 #   Plugins::MusicArtistInfo::Lyrics::Translate::Detect->detect_target(...)
 #   Plugins::MusicArtistInfo::Lyrics::Translate::Detect::detect_target(...)
 
-my $external_override;
-my $external_checked = 0;
-my $external_package;
-
-my @SCRIPT_KEYS = qw(han kana hangul latin cyrillic greek arabic hebrew);
+my $suite_checked = 0;
+my $suite_package;
 
 # Prompt labels for the languages the settings offer.
 my %TARGET_LABELS = (
@@ -36,29 +41,8 @@ my %TARGET_LABELS = (
 	ko         => "\x{D55C}\x{AD6D}\x{C5B4}",            # Korean
 );
 
-# Language names and aliases a detector might return.
-my %LANGUAGE_ALIASES = (
-	chinese    => 'zh',
-	mandarin   => 'zh',
-	cmn        => 'zh',
-	"\x{4E2D}\x{6587}" => 'zh',                          # Chinese
-	"\x{6C49}\x{8BED}" => 'zh',                          # Chinese, simplified
-	"\x{6F22}\x{8A9E}" => 'zh',                          # Chinese, traditional
-	japanese   => 'ja',
-	jpn        => 'ja',
-	jp         => 'ja',
-	"\x{65E5}\x{672C}\x{8A9E}" => 'ja',                  # Japanese
-	korean     => 'ko',
-	kor        => 'ko',
-	kr         => 'ko',
-	"\x{D55C}\x{AD6D}\x{C5B4}" => 'ko',                  # Korean
-	english    => 'en',
-	eng        => 'en',
-);
-
 # Accept both $class->method(...) and method(...) calls.  Only a first
-# argument which looks like this class name is stripped, so plain function
-# calls and the coderef arguments of set_external_detector() are unaffected.
+# argument which looks like this class name is stripped.
 sub _strip_class {
 	my @args = @_;
 
@@ -71,75 +55,33 @@ sub _strip_class {
 	return @args;
 }
 
-# Inject a detector for tests (and for callers which provide their own).
-# Accepts a coderef ($detector->($text, $cb)), a package name using the
-# Plugins::LangID::API method layout ($package->detect($text, $cb)), an object
-# with a detect() method, or undef to drop an injected detector again.
-sub set_external_detector {
-	my ($detector) = _strip_class(@_);
-
-	if ( !defined $detector || ( !ref $detector && $detector eq '' ) ) {
-		$external_override = undef;
-	}
-	else {
-		$external_override = $detector;
-	}
-
-	return 1;
-}
-
-# Forget an injected detector and the memoized plugin availability.
+# Forget the memoized language detection plugin lookup.  Only needed by tests
+# and by callers which want to pick up a plugin installed at runtime.
 sub reset {
 	_strip_class(@_);
 
-	$external_override = undef;
-	$external_checked  = 0;
-	$external_package  = undef;
+	$suite_checked = 0;
+	$suite_package = undef;
 
 	return 1;
 }
 
-# Returns the injected detector, or the optional Plugins::LangID::API package
-# name if that plugin is installed and available, or undef.  The plugin lookup
-# is memoized.
-sub external_detector {
+# Package name of the language detection plugin if it is installed, available
+# and provides the suite API; undef otherwise.  The lookup is memoized.
+sub suite_detector {
 	_strip_class(@_);
 
-	return $external_override if defined $external_override;
-	return $external_package  if $external_checked;
+	return $suite_package if $suite_checked;
 
-	$external_checked = 1;
-	$external_package = eval {
+	$suite_checked = 1;
+	$suite_package = eval {
 		require Plugins::LangID::API;
-		Plugins::LangID::API->available ? 'Plugins::LangID::API' : undef;
+		Plugins::LangID::API->can('detect_suite') && Plugins::LangID::API->available
+			? 'Plugins::LangID::API'
+			: undef;
 	};
 
-	return $external_package;
-}
-
-# Count letters per writing system.  Punctuation, digits, symbols and
-# whitespace are ignored, and so are scripts we do not know about.  'total' is
-# the sum of the eight named counters, i.e. the basis for all ratios.
-sub script_counts {
-	my ($text) = _strip_class(@_);
-
-	my %counts = map { $_ => 0 } @SCRIPT_KEYS;
-
-	if ( defined $text && !ref $text && length $text ) {
-		$counts{han}      = () = $text =~ /(?=\p{L})\p{Han}/g;
-		$counts{kana}     = () = $text =~ /(?=\p{L})[\p{Hiragana}\p{Katakana}]/g;
-		$counts{hangul}   = () = $text =~ /(?=\p{L})\p{Hangul}/g;
-		$counts{latin}    = () = $text =~ /(?=\p{L})\p{Latin}/g;
-		$counts{cyrillic} = () = $text =~ /(?=\p{L})\p{Cyrillic}/g;
-		$counts{greek}    = () = $text =~ /(?=\p{L})\p{Greek}/g;
-		$counts{arabic}   = () = $text =~ /(?=\p{L})\p{Arabic}/g;
-		$counts{hebrew}   = () = $text =~ /(?=\p{L})\p{Hebrew}/g;
-	}
-
-	$counts{total} = 0;
-	$counts{total} += $counts{$_} for @SCRIPT_KEYS;
-
-	return \%counts;
+	return $suite_package;
 }
 
 # Prompt label for a target language.  'custom' returns the trimmed custom
@@ -164,15 +106,21 @@ sub target_label {
 # Decide whether $text needs a translation into $target.
 #
 # Options:
-#   threshold  number 0..1, default 0.5 - minimum confidence for a decision
-#   mode       'auto' (default) | 'always' | 'llm'
-#   llm_detect coderef $llm_detect->($text, $cb) with $cb->($confidence, $error)
+#   threshold       number 0..1, default 0.5
+#   mode            'auto' (default) | 'always' | 'llm'
+#   suite_detect    coderef $suite->($text, $target, $cb) - injected detector
+#   lingua_weight   weight of the lingua confidence, default 0.5
+#   fastlang_weight weight of the fastlang confidence, default 0.5
+#   llm_detect      coderef $llm->($text, $cb) with $cb->($confidence, $error)
 #
 # The callback is invoked exactly once with
-#   { needs_translation => 0|1, source => 'langid'|'rules'|'llm'|'forced',
-#     language => ..., confidence => ... }
-# 'language' is the detected language for source 'langid', the normalized
-# target id otherwise.
+#   { needs_translation => 0|1,
+#     source            => 'suite'|'suite+llm'|'llm'|'forced',
+#     language          => canonical target,
+#     confidence        => number (LLM confidence, or the score),
+#     score             => weighted suite score (when available),
+#     lingua_confidence, fastlang_confidence,
+#     lingua_language, fastlang_language }
 sub detect_target {
 	my ($text, $target, $opts, $cb) = _strip_class(@_);
 
@@ -193,7 +141,8 @@ sub detect_target {
 
 		$result ||= {};
 		$result->{needs_translation} = $result->{needs_translation} ? 1 : 0;
-		$result->{source} = 'rules' unless defined $result->{source};
+		$result->{source}   = 'suite' unless defined $result->{source};
+		$result->{language} = $canonical unless defined $result->{language};
 
 		$cb->($result);
 
@@ -209,324 +158,220 @@ sub detect_target {
 		});
 	}
 
-	# LLM only: skip the plugin and the local rules.  The configured model
-	# weight is not applied here: the caller explicitly asked the model.
+	# LLM only: skip the suite entirely
 	if ( $mode eq 'llm' ) {
-		return _llm_stage($text, $canonical, $threshold, $opts->{llm_detect}, $reply, 'llm');
+		return _llm_stage($text, $canonical, $threshold, $opts->{llm_detect}, $reply, undef, 'llm');
 	}
 
-	# auto: LangID for CJK targets first, then local rules, then the LLM.
-	# no_external lets a caller ask for a synchronous local-rules-only answer
-	# (the translator uses it for its fast enqueue-time check).
-	my $detector = $opts->{no_external} ? undef : external_detector();
+	# auto: ask the suite first, the LLM decides ambiguous results
+	my $suite = $opts->{suite_detect};
+	$suite = suite_detector() unless ref $suite eq 'CODE';
 
-	if ( $detector && _is_cjk($canonical) ) {
-		return _langid_stage($text, $canonical, $threshold, $detector, $opts, $reply);
+	unless ($suite) {
+		return _llm_stage($text, $canonical, $threshold, $opts->{llm_detect}, $reply, undef, 'llm');
 	}
 
-	my $decision = _rules_decision($text, $canonical, $threshold);
-	return $reply->($decision) if $decision;
-
-	# When the local rules cannot decide, blend their target-likelihood with
-	# the model's confidence.  weight = 1 means "trust the model directly";
-	# the default 0.2 mirrors the reference implementation's w_deepseek.
-	my $local  = local_score($text, $canonical);
-	my $weight = _clamped_number($opts->{model_weight});
-	$weight = 0.2 unless defined $weight;
-
-	return _llm_stage(
-		$text, $canonical, $threshold, $opts->{llm_detect}, $reply, 'rules', $local, $weight,
-	);
-}
-
-# Target-likelihood from script proportions, 0..1.  Used only to blend with
-# the model's confidence when the hard rules above are inconclusive.  Latin
-# script targets get a neutral 0.5 because script proportions cannot tell
-# English from, say, French.
-sub local_score {
-	my ($text, $target) = _strip_class(@_);
-
-	$text = '' unless defined $text && !ref $text;
-
-	my $canonical = _canonical_target($target);
-	my $counts    = script_counts($text);
-	my $total     = $counts->{total} || 0;
-
-	return undef unless $total > 0;
-
-	my $han    = $counts->{han} / $total;
-	my $kana   = $counts->{kana} / $total;
-	my $hangul = $counts->{hangul} / $total;
-
-	my $score;
-
-	if ( $canonical eq 'zh-Hans' || $canonical eq 'zh-Hant' ) {
-		my $penalty = ( $kana + $hangul ) * 10;
-		$penalty = 1 if $penalty > 1;
-		$score = $han * ( 1 - $penalty );
-	}
-	elsif ( $canonical eq 'ja' ) {
-		$score = $kana * 8 + $han * 0.3;
-	}
-	elsif ( $canonical eq 'ko' ) {
-		$score = $hangul * 8;
-	}
-	else {
-		$score = 0.5;
-	}
-
-	return _clamped_number($score);
-}
-
-sub _langid_stage {
-	my ($text, $canonical, $threshold, $detector, $opts, $reply) = @_;
-
-	my $settled = 0;
-	my $on_result = sub {
-		my ($result) = @_;
-		return if $settled++;
-
-		my ($language, $confidence);
-
-		if ( ref $result eq 'HASH' && !$result->{error} ) {
-			$language   = _normalize_language($result);
-			$confidence = _clamped_number($result->{confidence});
-		}
-
-		if ( !defined $language
-			|| $language eq ''
-			|| !defined $confidence
-			|| $confidence < $threshold ) {
-			my $decision = _rules_decision($text, $canonical, $threshold);
-			return $reply->($decision) if $decision;
-
-			return _llm_stage($text, $canonical, $threshold, $opts->{llm_detect}, $reply, 'rules');
-		}
-
-		return $reply->({
-			needs_translation => _matches_target($canonical, $language) ? 0 : 1,
-			source            => 'langid',
-			language          => $language,
-			confidence        => $confidence,
-		});
-	};
-
-	_invoke_detector($detector, $text, $on_result);
+	_suite_stage($text, $canonical, $threshold, $suite, $opts, $reply);
 
 	return;
 }
 
-# Last stage: ask the caller supplied LLM detector.  A missing detector means
-# "translate": the local rules could not prove that the text is target
-# language already.  When a local score and a model weight are supplied, the
-# decision uses (1 - weight) * local + weight * model confidence.
-sub _llm_stage {
-	my ($text, $canonical, $threshold, $llm_detect, $reply, $fallback, $local, $weight) = @_;
+sub _suite_stage {
+	my ($text, $canonical, $threshold, $suite, $opts, $reply) = @_;
 
-	my $source = defined $fallback && $fallback eq 'llm' ? 'llm' : 'rules';
+	my $settled = 0;
+	my $once = sub {
+		my ($result) = @_;
+		return if $settled++;
 
-	unless ( ref $llm_detect eq 'CODE' ) {
+		_suite_decision($text, $canonical, $threshold, $opts, $reply, $result);
+
+		return;
+	};
+
+	my $result;
+	my $ok = eval {
+		$result = ref $suite eq 'CODE'
+			? $suite->($text, $canonical, $once)
+			: $suite->detect_suite($text, $canonical, $once);
+		1;
+	};
+
+	return $once->({ error => $@ || 'suite detector failed' }) unless $ok;
+
+	# a detector may answer synchronously by returning a result hash
+	$once->($result) if ref $result eq 'HASH';
+
+	return;
+}
+
+sub _suite_decision {
+	my ($text, $canonical, $threshold, $opts, $reply, $result) = @_;
+
+	my ($lingua, $fastlang);
+
+	if ( ref $result eq 'HASH' && !$result->{error} ) {
+		$lingua   = _suite_confidence($result->{lingua});
+		$fastlang = _suite_confidence($result->{fastlang});
+	}
+
+	my %fields = (
+		lingua_confidence   => $lingua,
+		fastlang_confidence => $fastlang,
+		lingua_language     => _suite_language($result->{lingua}),
+		fastlang_language   => _suite_language($result->{fastlang}),
+	);
+
+	my $score = _blend_score($lingua, $fastlang, $opts);
+
+	# the suite produced no usable confidence: let the model decide
+	unless ( defined $score ) {
+		return _llm_stage($text, $canonical, $threshold, $opts->{llm_detect}, $reply, \%fields, 'llm');
+	}
+
+	$fields{score} = $score;
+
+	# clearly target or clearly not target: no need for the model
+	if ( $score >= 0.9 ) {
 		return $reply->({
-			needs_translation => 1,
-			source            => $source,
-			language          => $canonical,
+			%fields,
+			needs_translation => 0,
+			source            => 'suite',
+			confidence        => $score,
 		});
 	}
 
-	my $blend = defined $local && defined $weight && $weight < 1 ? 1 : 0;
+	if ( $score <= 0.1 ) {
+		return $reply->({
+			%fields,
+			needs_translation => 1,
+			source            => 'suite',
+			confidence        => $score,
+		});
+	}
+
+	# ambiguous band: the model decides, or the score is compared to the
+	# threshold when no model is available
+	return _llm_stage($text, $canonical, $threshold, $opts->{llm_detect}, $reply, \%fields, 'suite+llm');
+}
+
+# Final decision stage.  $fallback is 'suite+llm' (there is a suite score) or
+# 'llm' (there is none).  Without a model, a suite score is compared to the
+# threshold; with neither, the text is translated.
+sub _llm_stage {
+	my ($text, $canonical, $threshold, $llm_detect, $reply, $fields, $fallback) = @_;
+
+	$fields ||= {};
+	my $score  = $fields->{score};
+	my $source = ( defined $fallback && $fallback eq 'llm' ) ? 'llm' : 'suite+llm';
+
+	# no model: use the score if there is one, otherwise translate
+	unless ( ref $llm_detect eq 'CODE' ) {
+		if ( defined $score ) {
+			return $reply->({
+				%$fields,
+				needs_translation => $score >= $threshold ? 0 : 1,
+				source            => 'suite',
+			});
+		}
+
+		return $reply->({
+			%$fields,
+			needs_translation => 1,
+			source            => 'llm',
+		});
+	}
 
 	my $settled = 0;
-	my $on_result = sub {
+	my $on_llm = sub {
 		my ($confidence, $error) = @_;
 		return if $settled++;
 
 		my $value = _clamped_number($confidence);
 
 		if ( ( defined $error && $error ne '' ) || !defined $value ) {
+			if ( defined $score ) {
+				return $reply->({
+					%$fields,
+					needs_translation => $score >= $threshold ? 0 : 1,
+					source            => 'suite',
+				});
+			}
+
 			return $reply->({
+				%$fields,
 				needs_translation => 1,
 				source            => 'llm',
-				language          => $canonical,
 			});
 		}
 
-		my $score = $value;
-		if ($blend) {
-			$score = ( 1 - $weight ) * $local + $weight * $value;
-			$score = _clamped_number($score);
-			$score = $value unless defined $score;
-		}
-
 		return $reply->({
-			needs_translation => $score >= $threshold ? 0 : 1,
-			source            => 'llm',
-			language          => $canonical,
+			%$fields,
+			needs_translation => $value >= $threshold ? 0 : 1,
+			source            => $source,
 			confidence        => $value,
-			score             => $score,
-			( $blend ? ( local_score => $local, model_weight => $weight ) : () ),
 		});
 	};
 
 	my $result;
-	my $ok = eval { $result = $llm_detect->($text, $on_result); 1 };
+	my $ok = eval { $result = $llm_detect->($text, $on_llm); 1 };
 
-	return $on_result->(undef, $@ || 'llm detect failed') unless $ok;
+	return $on_llm->(undef, $@ || 'llm detect failed') unless $ok;
 
-	# a detector may answer synchronously by returning a result hash instead
-	# of calling the callback
-	$on_result->($result->{confidence}, $result->{error}) if ref $result eq 'HASH';
-
-	return;
-}
-
-# Call the detector.  Supported shapes: coderef, package name or object with a
-# detect() method (Plugins::LangID::API layout).  Asynchronous detectors call
-# $cb later; a detector returning a hash ref is treated as a synchronous
-# answer.  Detectors dying or returning nothing are treated as "no answer" and
-# trigger the rule based fallback.
-sub _invoke_detector {
-	my ($detector, $text, $cb) = @_;
-
-	my $settled = 0;
-	my $once = sub {
-		return if $settled++;
-		$cb->(@_);
-		return;
-	};
-
-	my $result;
-	my $ok = eval {
-		if ( ref $detector eq 'CODE' ) {
-			$result = $detector->($text, $once);
-		}
-		else {
-			$result = $detector->detect($text, $once);
-		}
-		1;
-	};
-
-	return $once->({ error => $@ || 'detector failed' }) unless $ok;
-
-	$once->($result) if ref $result eq 'HASH';
+	# a detector may answer synchronously by returning a result hash
+	$on_llm->($result->{confidence}, $result->{error}) if ref $result eq 'HASH';
 
 	return;
 }
 
-# Local rules.  Only a positive "already target language" answer is produced;
-# undef means "not decided, ask the next level".
-sub _rules_decision {
-	my ($text, $canonical, $threshold) = @_;
+# Weighted blend of the detector confidences: 0..1 or undef when the suite
+# returned no usable confidence.
+sub _blend_score {
+	my ($lingua, $fastlang, $opts) = @_;
 
-	my $counts = script_counts($text);
-	my $total  = $counts->{total} || 0;
+	my $linguaWeight   = _weight($opts->{lingua_weight});
+	my $fastlangWeight = _weight($opts->{fastlang_weight});
 
-	return undef unless $total > 0;
+	if ( defined $lingua && defined $fastlang ) {
+		my $sum = $linguaWeight + $fastlangWeight;
+		return undef if $sum <= 0;
 
-	my $han    = $counts->{han} / $total;
-	my $kana   = $counts->{kana} / $total;
-	my $hangul = $counts->{hangul} / $total;
-
-	if ( $canonical eq 'zh-Hans' || $canonical eq 'zh-Hant' ) {
-		return undef if $han < $threshold;
-		return undef if ( $kana + $hangul ) >= 0.02;
-
-		return {
-			needs_translation => 0,
-			source            => 'rules',
-			language          => $canonical,
-			confidence        => $han,
-		};
+		return _clamped_number(
+			( $linguaWeight * $lingua + $fastlangWeight * $fastlang ) / $sum
+		);
 	}
 
-	if ( $canonical eq 'ja' ) {
-		my $confidence;
+	# A detector with weight 0 is ignored, even when it is the only one.
+	return $lingua   if defined $lingua   && $linguaWeight   > 0;
+	return $fastlang if defined $fastlang && $fastlangWeight > 0;
 
-		if ( $kana >= 0.02 ) {
-			$confidence = $kana;
-		}
-		elsif ( $counts->{kana} > 0 && ( $kana + $han ) >= $threshold ) {
-			$confidence = $kana + $han;
-		}
-
-		return undef unless defined $confidence;
-
-		return {
-			needs_translation => 0,
-			source            => 'rules',
-			language          => $canonical,
-			confidence        => $confidence,
-		};
-	}
-
-	if ( $canonical eq 'ko' ) {
-		return undef if $hangul < $threshold;
-
-		return {
-			needs_translation => 0,
-			source            => 'rules',
-			language          => $canonical,
-			confidence        => $hangul,
-		};
-	}
-
-	# latin script and custom targets have no local rule
 	return undef;
 }
 
-sub _is_cjk {
-	my ($canonical) = @_;
+sub _suite_confidence {
+	my ($detector) = @_;
 
-	return 0 unless defined $canonical;
-	return 1 if $canonical eq 'zh-Hans' || $canonical eq 'zh-Hant';
-	return 1 if $canonical eq 'ja' || $canonical eq 'ko';
+	return undef unless ref $detector eq 'HASH';
 
-	return 0;
+	return _clamped_number($detector->{confidence});
 }
 
-# Does a detected language match the target?  Both Chinese targets accept any
-# Chinese variety; the other targets must match their language code.
-sub _matches_target {
-	my ($canonical, $language) = @_;
+sub _suite_language {
+	my ($detector) = @_;
 
-	return 0 unless defined $language && !ref $language && $language ne '';
+	return undef unless ref $detector eq 'HASH';
 
-	my $target = lc $canonical;
-	my $lang   = lc $language;
+	foreach my $key (qw(language iso name)) {
+		next unless defined $detector->{$key} && !ref $detector->{$key};
 
-	if ( $target eq 'zh-hans' || $target eq 'zh-hant' ) {
-		return $lang =~ /^zh(?:-|\z)/ ? 1 : 0;
-	}
-
-	return $lang =~ /^\Q$target\E(?:-|\z)/ ? 1 : 0;
-}
-
-# Detector results may carry a language name and/or an ISO code.  Prefer an
-# alias we know, then the primary language subtag, then whatever was given.
-sub _normalize_language {
-	my ($result) = @_;
-
-	my @candidates;
-	foreach my $key (qw(iso language)) {
-		next unless defined $result->{$key} && !ref $result->{$key};
-
-		my $value = $result->{$key};
+		my $value = $detector->{$key};
 		$value =~ s/^\s+//;
 		$value =~ s/\s+\z//;
-		push @candidates, $value if $value ne '';
+
+		return $value if $value ne '';
 	}
 
-	my $fallback;
-	foreach my $value (@candidates) {
-		my $language = lc $value;
-		$language =~ tr/_/-/;
-
-		return $LANGUAGE_ALIASES{$language} if defined $LANGUAGE_ALIASES{$language};
-		return $1 if $language =~ /^(zh|ja|ko|en)(?:-|\z)/;
-
-		$fallback = $language unless defined $fallback;
-	}
-
-	return $fallback;
+	return undef;
 }
 
 # Canonical target identifier: 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'en' or
@@ -559,6 +404,13 @@ sub _threshold {
 
 	my $threshold = _clamped_number($value);
 	return defined $threshold ? $threshold : 0.5;
+}
+
+sub _weight {
+	my ($value) = @_;
+
+	my $weight = _clamped_number($value);
+	return defined $weight ? $weight : 0.5;
 }
 
 sub _mode {

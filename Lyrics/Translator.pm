@@ -143,7 +143,7 @@ sub check {
 
 # Queue a translation job.  Returns { queued => 1, key => $statusKey } or
 # { error => $code }.  This is deliberately fast: only the synchronous checks
-# (and a local rules based target check) run here.
+# run here, the language detection is done by the worker.
 sub enqueue {
 	my ($invocant, $job) = @_;
 
@@ -186,19 +186,8 @@ sub enqueue {
 	$limit = 1 if $limit < 1;
 	return { error => 'queue-full' } if scalar @{ $self->{queue} } >= $limit;
 
-	# A quick target check which may finish synchronously (local script rules)
-	# lets the UI offer the "translate anyway" confirmation.  Anything which
-	# needs the network is re-done by the queue.
-	if ( !$job->{force} ) {
-		my $mode = defined $config->{detect} ? $config->{detect} : 'auto';
-		if ( $mode eq 'auto' ) {
-			my $decision = $self->_sync_detect($check->{detect_text}, $config);
-			if ( $decision && !$decision->{needs_translation} ) {
-				return { error => 'already-target' };
-			}
-		}
-	}
-
+	# No language pre-check here: enqueue must stay fast, and the suite / LLM
+	# detection is done by the worker (status 'skipped', reason 'already-target').
 	my $fullJob = {
 		path            => $path,
 		lyrics          => $lyrics,
@@ -486,10 +475,11 @@ sub _process {
 			$job->{detect_text},
 			$config->{target},
 			{
-				mode         => $mode,
-				threshold    => defined $config->{detect_threshold} ? $config->{detect_threshold} : 0.5,
-				model_weight => defined $config->{detect_model_weight} ? $config->{detect_model_weight} : 0.2,
-				llm_detect   => sub {
+				mode           => $mode,
+				threshold      => defined $config->{detect_threshold} ? $config->{detect_threshold} : 0.5,
+				lingua_weight  => $config->{lingua_weight},
+				fastlang_weight => $config->{fastlang_weight},
+				llm_detect     => sub {
 					my ( $text, $cb ) = @_;
 					return $llm->detect($text, $cb);
 				},
@@ -605,39 +595,6 @@ sub _release {
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
-
-# Synchronous (local rules only) target check.  Returns the decision hash when
-# Detect answered without waiting for the network, undef otherwise.
-sub _sync_detect {
-	my ($self, $text, $config) = @_;
-
-	return undef unless defined $text && $text =~ /\S/;
-
-	my $answered = 0;
-	my $result;
-
-	my $ok = eval {
-		Plugins::MusicArtistInfo::Lyrics::Translate::Detect->detect_target(
-			$text,
-			$config->{target},
-			{
-				mode        => 'auto',
-				threshold   => defined $config->{detect_threshold} ? $config->{detect_threshold} : 0.5,
-				no_external => 1,
-			},
-			sub {
-				$result   = shift;
-				$answered = 1;
-				return;
-			},
-		);
-		1;
-	};
-
-	return undef unless $ok && $answered && ref $result eq 'HASH';
-
-	return $result;
-}
 
 sub _set_status {
 	my ($self, $key, $status) = @_;

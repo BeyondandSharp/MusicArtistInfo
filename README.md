@@ -91,13 +91,14 @@ Translation**.
   file is backed up as `<file>.orig` by default.  Bilingual files are detected
   by their repeated timestamps; files translated by older versions which start
   with `[re:Deepseek翻译]` are still recognised and skipped.
-- **Language detection**: if the optional `LangID` plugin from
-  `/root/lms-plugin-LangID` is installed, it is used for Chinese, Japanese and
-  Korean targets (lingua-rs based).  Otherwise the plugin falls back to local
-  script rules and, when needed, one small LLM detection request.  **Model
-  confidence weight** (0-1, default 0.2) controls how strongly the model's
-  detection confidence is blended with the local rules when they are
-  inconclusive; 1 trusts the model directly.
+- **Language detection**: the optional `LangID` plugin from
+  `/root/lms-plugin-LangID` provides two detectors for the target language:
+  **lingua** (lingua-rs) and **fastlang** (fastText `lid.176.ftz`).  Their
+  confidence values are mixed with the configurable **Lingua weight** and
+  **Fastlang weight** (0-1 each, default 0.5/0.5); a mixed result between 0.1
+  and 0.9 falls back to the LLM detection request, and a missing/unsupported
+  detector falls back to the LLM as well.  The old script-rule detection was
+  removed.
 - **Queue**: translations run serially in the background; failed jobs are
   retried a limited number of times and are not re-queued while cooling down.
 

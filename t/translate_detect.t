@@ -9,32 +9,51 @@ use Test::More;
 
 require Plugins::MusicArtistInfo::Lyrics::Translate::Detect;
 
-my $class = 'Plugins::MusicArtistInfo::Lyrics::Translate::Detect';
+my $Detect = 'Plugins::MusicArtistInfo::Lyrics::Translate::Detect';
 
-# A package based detector mirroring the Plugins::LangID::API layout.
-{
-	package FakeLangID;
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
 
-	our @CALLS;
-	our $RESULT;
+sub detector {
+	my ($confidence, $language) = @_;
 
-	sub detect {
-		my ($class, $text, $cb) = @_;
-		push @CALLS, $text;
-		$cb->($RESULT);
-		return;
-	}
+	return {
+		confidence => $confidence,
+		language   => defined $language ? $language : 'zh',
+		name       => 'Chinese',
+	};
 }
 
-# Run a detection with synchronous fakes; returns the reply and the number of
-# callback invocations.
+# A suite detector which answers with the given detector results.
+sub suite_detector {
+	my ($lingua, $fastlang) = @_;
+
+	return sub {
+		my ( $text, $target, $cb ) = @_;
+		$cb->({ lingua => $lingua, fastlang => $fastlang });
+		return;
+	};
+}
+
+sub llm_detector {
+	my ($confidence, $error) = @_;
+
+	return sub {
+		my ( $text, $cb ) = @_;
+		$cb->($confidence, $error);
+		return;
+	};
+}
+
+# Run a detection and return (reply, callback_count).
 sub run_detect {
 	my ($text, $target, $opts) = @_;
 
 	my $reply;
 	my $calls = 0;
 
-	$class->detect_target($text, $target, $opts || {}, sub {
+	$Detect->detect_target($text, $target, $opts || {}, sub {
 		$calls++;
 		$reply = shift;
 	});
@@ -43,454 +62,407 @@ sub run_detect {
 }
 
 # ---------------------------------------------------------------------------
-# target_label
+# target_label()
 # ---------------------------------------------------------------------------
-is($class->target_label('zh-Hans'), '简体中文', 'label for zh-Hans');
-is($class->target_label('zh-Hant'), '繁體中文', 'label for zh-Hant');
-is($class->target_label('zh_CN'), '简体中文', 'zh_CN alias label');
-is($class->target_label('zh-TW'), '繁體中文', 'zh-TW alias label');
-is($class->target_label('en'), 'English', 'label for en');
-is($class->target_label('en-US'), 'English', 'en-US alias label');
-is($class->target_label('ja'), '日本語', 'label for ja');
-is($class->target_label('ko'), '한국어', 'label for ko');
-is($class->target_label('custom', '  文言  '), '文言', 'custom label is trimmed');
-is($class->target_label('custom'), '', 'custom label without text');
-is($class->target_label(undef), '', 'missing target label');
-is($class->target_label('fr'), 'fr', 'unknown target label falls back to identifier');
-
-# ---------------------------------------------------------------------------
-# script_counts
-# ---------------------------------------------------------------------------
-my $counts = $class->script_counts("Hello, world! 123");
-is($counts->{latin}, 10, 'latin letters counted');
-is($counts->{total}, 10, 'punctuation and digits are ignored');
-
-$counts = $class->script_counts("你好，世界！");
-is($counts->{han}, 4, 'han letters counted');
-is($counts->{total}, 4, 'CJK punctuation is ignored');
-
-$counts = $class->script_counts("こんにちは");
-is($counts->{kana}, 5, 'hiragana counted');
-$counts = $class->script_counts("コンニチハ");
-is($counts->{kana}, 5, 'katakana counted');
-$counts = $class->script_counts("안녕하세요");
-is($counts->{hangul}, 5, 'hangul counted');
-$counts = $class->script_counts("Привет");
-is($counts->{cyrillic}, 6, 'cyrillic counted');
-$counts = $class->script_counts("Γειά σου");
-is($counts->{greek}, 7, 'greek counted');
-$counts = $class->script_counts("مرحبا");
-is($counts->{arabic}, 5, 'arabic counted');
-$counts = $class->script_counts("שלום");
-is($counts->{hebrew}, 4, 'hebrew counted');
-
-$counts = $class->script_counts("Hello 世界");
-is($counts->{latin}, 5, 'mixed text: latin part');
-is($counts->{han}, 2, 'mixed text: han part');
-is($counts->{total}, 7, 'mixed text: total');
-
-$counts = $class->script_counts("٣");
-is($counts->{arabic}, 0, 'arabic-indic digit ignored');
-is($counts->{total}, 0, 'digit only text has no letters');
-
-$counts = $class->script_counts('!!!');
-is($counts->{total}, 0, 'punctuation only text has no letters');
-
-$counts = $class->script_counts('');
-is($counts->{total}, 0, 'empty text has no letters');
-
-$counts = $class->script_counts(undef);
-is($counts->{total}, 0, 'undef text has no letters');
+is($Detect->target_label('zh-Hans'), '简体中文', 'label for zh-Hans');
+is($Detect->target_label('zh-Hant'), '繁體中文', 'label for zh-Hant');
+is($Detect->target_label('zh_CN'), '简体中文', 'zh_CN alias label');
+is($Detect->target_label('zh-TW'), '繁體中文', 'zh-TW alias label');
+is($Detect->target_label('en'), 'English', 'label for en');
+is($Detect->target_label('en-US'), 'English', 'en-US alias label');
+is($Detect->target_label('ja'), '日本語', 'label for ja');
+is($Detect->target_label('ko'), '한국어', 'label for ko');
+is($Detect->target_label('custom', '  文言  '), '文言', 'custom label is trimmed');
+is($Detect->target_label('custom'), '', 'custom label without text');
+is($Detect->target_label(undef), '', 'missing target label');
+is($Detect->target_label('fr'), 'fr', 'unknown target label falls back to identifier');
 
 # ---------------------------------------------------------------------------
-# CJK targets use the LangID plugin first
+# the optional LangID plugin suite (package fallback path)
 # ---------------------------------------------------------------------------
-$class->reset;
+{
+	$INC{'Plugins/LangID/API.pm'} = 1;
 
-my @calls;
-my $detector_result = { language => 'Chinese', iso => 'zh', confidence => 0.97 };
+	package Plugins::LangID::API;
 
-$class->set_external_detector(sub {
-	my ($text, $cb) = @_;
-	push @calls, $text;
-	$cb->($detector_result);
-	return;
-});
+	our @CALLS;
 
-my ($reply, $count) = run_detect('你好世界', 'zh-Hans');
-is($reply->{needs_translation}, 0, 'langid: text already in target language');
-is($reply->{source}, 'langid', 'langid: source reported');
-is($reply->{language}, 'zh', 'langid: detected language normalized');
-is($reply->{confidence}, 0.97, 'langid: confidence passed through');
-is($count, 1, 'langid: callback invoked once');
-is(scalar @calls, 1, 'langid: detector used for CJK target');
-is($calls[0], '你好世界', 'langid: detector received the text');
+	sub available { 1 }
 
-$detector_result = { language => 'Japanese', iso => 'ja', confidence => 0.99 };
-($reply) = run_detect('こんにちは', 'zh-Hans');
-is($reply->{needs_translation}, 1, 'langid: other language needs translation');
-is($reply->{source}, 'langid', 'langid: detected answer is authoritative');
-is($reply->{language}, 'ja', 'langid: detected language reported');
+	sub detect_suite {
+		my ( $class, $text, $target, $cb ) = @_;
 
-# no_external forces the synchronous local rules (used by Translator enqueue)
-@calls = ();
-($reply) = run_detect('你好世界', 'zh-Hans', { no_external => 1 });
-is($reply->{needs_translation}, 0, 'no_external: local rules decide');
-is($reply->{source}, 'rules', 'no_external: source is rules');
-is(scalar @calls, 0, 'no_external: detector is not called');
+		push @CALLS, { text => $text, target => $target };
 
-($reply) = run_detect('こんにちは', 'ja', { no_external => 1 });
-is($reply->{needs_translation}, 0, 'no_external: kana is already Japanese');
+		$cb->({
+			lingua   => { confidence => 0.95, language => 'zh', name => 'Chinese' },
+			fastlang => { confidence => 0.9,  language => 'zh', name => 'Chinese' },
+		});
 
-# package name detector, Plugins::LangID::API method layout
-$class->reset;
-@FakeLangID::CALLS = ();
-$FakeLangID::RESULT = { language => 'Japanese', iso => 'ja', confidence => 0.9 };
-$class->set_external_detector('FakeLangID');
+		return;
+	}
 
-($reply) = run_detect('こんにちは', 'ja');
-is($reply->{needs_translation}, 0, 'package detector: text already target');
-is($reply->{source}, 'langid', 'package detector: source');
-is($reply->{language}, 'ja', 'package detector: language');
-is(scalar @FakeLangID::CALLS, 1, 'package detector: detect() called');
+	package main;
 
-# a detector answering synchronously by returning a hash
-$class->reset;
-$class->set_external_detector(sub {
-	return { iso => 'ja', confidence => 0.9 };
-});
-($reply) = run_detect('こんにちは', 'ja');
-is($reply->{needs_translation}, 0, 'synchronous detector return accepted');
-is($reply->{source}, 'langid', 'synchronous detector return: source');
+	my ($reply) = run_detect('你好世界', 'zh-Hans', {});
+	is($reply->{needs_translation}, 0, 'plugin suite: already target');
+	is($reply->{source}, 'suite', 'plugin suite: source suite');
+	is(scalar @Plugins::LangID::API::CALLS, 1, 'plugin suite: detect_suite called');
+	is($Plugins::LangID::API::CALLS[0]{target}, 'zh-Hans', 'plugin suite: canonical target');
+	is($Detect->suite_detector, 'Plugins::LangID::API', 'plugin suite: package memoized');
+
+	# simulate a host without the plugin for every later test
+	delete $INC{'Plugins/LangID/API.pm'};
+	$Detect->reset;
+	is($Detect->suite_detector, undef, 'plugin suite: absent after reset');
+}
 
 # ---------------------------------------------------------------------------
-# LangID fallbacks: low confidence, timeout/error, missing confidence
+# mode "always" and "llm"
 # ---------------------------------------------------------------------------
-$class->reset;
-$class->set_external_detector(sub {
-	$_[1]->({ iso => 'ja', confidence => 0.2 });
-	return;
-});
-($reply) = run_detect('你好世界', 'zh-Hans');
-is($reply->{needs_translation}, 0, 'low confidence: rules decide');
-is($reply->{source}, 'rules', 'low confidence: rules source');
-is($reply->{language}, 'zh-Hans', 'low confidence: target reported');
-cmp_ok($reply->{confidence}, '>=', 0.99, 'low confidence: han ratio as rule confidence');
+{
+	my $suiteCalls = 0;
+	my $llmCalls   = 0;
 
-$class->reset;
-$class->set_external_detector(sub {
-	$_[1]->({ error => 'timeout' });
-	return;
-});
-($reply) = run_detect('こんにちは世界', 'ja');
-is($reply->{needs_translation}, 0, 'detector timeout: rules decide');
-is($reply->{source}, 'rules', 'detector timeout: rules source');
+	my $suite = sub {
+		$suiteCalls++;
+		$_[2]->({ lingua => detector(1), fastlang => detector(1) });
+		return;
+	};
 
-$class->set_external_detector(sub {
-	die "detector exploded\n";
-});
-($reply) = run_detect('こんにちは', 'ja');
-is($reply->{needs_translation}, 0, 'dying detector: rules decide');
-is($reply->{source}, 'rules', 'dying detector: rules source');
+	my $llm = sub {
+		$llmCalls++;
+		$_[1]->(1, undef);
+		return;
+	};
 
-$class->reset;
-$class->set_external_detector(sub {
-	$_[1]->({ language => 'Chinese' });
-	return;
-});
-($reply) = run_detect('你好世界', 'zh-Hans');
-is($reply->{source}, 'rules', 'detector without confidence falls back to rules');
-is($reply->{needs_translation}, 0, 'detector without confidence: rules decide');
+	my ($reply) = run_detect('anything', 'zh-Hans', {
+		mode         => 'always',
+		suite_detect => $suite,
+		llm_detect   => $llm,
+	});
+	is($reply->{needs_translation}, 1, 'always: forces translation');
+	is($reply->{source}, 'forced', 'always: forced source');
+	is($reply->{language}, 'zh-Hans', 'always: target reported');
+	is($suiteCalls, 0, 'always: suite not called');
+	is($llmCalls, 0, 'always: LLM not called');
 
-$class->reset;
-$class->set_external_detector(sub {
-	my ($text, $cb) = @_;
-	$cb->({ iso => 'ja', confidence => 0.9 });
-	$cb->({ iso => 'zh', confidence => 0.9 });
-	return;
-});
-($reply, $count) = run_detect('こんにちは', 'ja');
-is($count, 1, 'detector answering twice: callback still invoked once');
-is($reply->{language}, 'ja', 'detector answering twice: first answer wins');
+	$suiteCalls = 0;
+	$llmCalls   = 0;
 
-# ---------------------------------------------------------------------------
-# no detector: local rules only
-# ---------------------------------------------------------------------------
-$class->reset;
-($reply) = run_detect('你好世界', 'zh-Hans');
-is($reply->{needs_translation}, 0, 'no detector: rules detect Chinese');
-is($reply->{source}, 'rules', 'no detector: rules source');
-is($reply->{language}, 'zh-Hans', 'no detector: target reported');
+	($reply) = run_detect('anything', 'ja', {
+		mode         => 'llm',
+		suite_detect => $suite,
+		llm_detect   => $llm,
+	});
+	is($reply->{needs_translation}, 0, 'llm mode: confidence above threshold');
+	is($reply->{source}, 'llm', 'llm mode: source llm');
+	is($reply->{confidence}, 1, 'llm mode: confidence reported');
+	is($suiteCalls, 0, 'llm mode: suite skipped');
+
+	($reply) = run_detect('anything', 'ja', { mode => 'llm', llm_detect => llm_detector(0.2) });
+	is($reply->{needs_translation}, 1, 'llm mode: confidence below threshold');
+
+	($reply) = run_detect('anything', 'ja', { mode => 'llm', llm_detect => llm_detector(undef, 'timeout') });
+	is($reply->{needs_translation}, 1, 'llm mode: LLM failure translates');
+	is($reply->{source}, 'llm', 'llm mode: failure source');
+
+	($reply) = run_detect('anything', 'ja', { mode => 'llm' });
+	is($reply->{needs_translation}, 1, 'llm mode: no LLM translates');
+	is($reply->{source}, 'llm', 'llm mode: no LLM source');
+}
 
 # ---------------------------------------------------------------------------
-# non-CJK targets skip the LangID plugin
+# auto: clear suite decisions (no LLM needed)
 # ---------------------------------------------------------------------------
-$class->reset;
-@calls = ();
-$class->set_external_detector(sub {
-	push @calls, 'called';
-	$_[1]->({ iso => 'zh', confidence => 0.99 });
-	return;
-});
+{
+	my $llmCalls = 0;
+	my $llm = sub {
+		$llmCalls++;
+		$_[1]->(0.5, undef);
+		return;
+	};
 
-($reply) = run_detect('hello world', 'en');
-is($reply->{needs_translation}, 1, 'en target: translate without a local rule');
-is($reply->{source}, 'rules', 'en target: rules path');
-is(scalar @calls, 0, 'en target: LangID skipped');
+	my ($reply) = run_detect('你好世界', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.95), detector(0.9)),
+		llm_detect   => $llm,
+	});
+	is($reply->{needs_translation}, 0, 'auto: high score is already target');
+	is($reply->{source}, 'suite', 'auto: high score source');
+	is($reply->{language}, 'zh-Hans', 'auto: target reported');
+	is($reply->{lingua_confidence}, 0.95, 'auto: lingua confidence reported');
+	is($reply->{fastlang_confidence}, 0.9, 'auto: fastlang confidence reported');
+	is($reply->{lingua_language}, 'zh', 'auto: lingua language reported');
+	is($reply->{fastlang_language}, 'zh', 'auto: fastlang language reported');
+	ok(defined $reply->{score}, 'auto: score reported');
+	cmp_ok($reply->{score}, '>=', 0.9, 'auto: score is the weighted blend');
+	is($llmCalls, 0, 'auto: high score does not call the LLM');
 
-($reply) = run_detect('hello world', 'custom', { custom => '文言' });
-is($reply->{needs_translation}, 1, 'custom target: translate without a local rule');
-is($reply->{source}, 'rules', 'custom target: rules path');
-is(scalar @calls, 0, 'custom target: LangID skipped');
-
-# ---------------------------------------------------------------------------
-# plain Han vs kana / hangul text
-# ---------------------------------------------------------------------------
-$class->reset;
-($reply) = run_detect('你好世界', 'zh-Hans');
-is($reply->{needs_translation}, 0, 'plain han: Chinese');
-
-($reply) = run_detect('こんにちは世界', 'zh-Hans');
-is($reply->{needs_translation}, 1, 'kana text: not Chinese');
-
-($reply) = run_detect('こんにちは世界', 'ja');
-is($reply->{needs_translation}, 0, 'kana text: Japanese');
-
-($reply) = run_detect('你好世界', 'ja');
-is($reply->{needs_translation}, 1, 'plain han: not confidently Japanese');
-
-($reply) = run_detect('你好世界안', 'zh-Hans');
-is($reply->{needs_translation}, 1, 'hangul mixed in: not Chinese');
-
-($reply) = run_detect('안녕하세요', 'ko');
-is($reply->{needs_translation}, 0, 'hangul text: Korean');
-
-($reply) = run_detect('안녕하세요', 'ja');
-is($reply->{needs_translation}, 1, 'hangul text: not Japanese');
-
-# kanji heavy text with a single kana is still Japanese
-my $kanji_heavy = ('世' x 100) . 'の';
-$counts = $class->script_counts($kanji_heavy);
-is($counts->{han}, 100, 'kanji heavy: han counted');
-is($counts->{kana}, 1, 'kanji heavy: single kana counted');
-($reply) = run_detect($kanji_heavy, 'ja');
-is($reply->{needs_translation}, 0, 'kanji heavy with kana: Japanese');
+	($reply) = run_detect('hello world', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.02), detector(0.05)),
+		llm_detect   => $llm,
+	});
+	is($reply->{needs_translation}, 1, 'auto: low score translates');
+	is($reply->{source}, 'suite', 'auto: low score source');
+	is($llmCalls, 0, 'auto: low score does not call the LLM');
+}
 
 # ---------------------------------------------------------------------------
-# mode 'always' forces a translation without any detection
+# auto: weighted blend
 # ---------------------------------------------------------------------------
-$class->reset;
-@calls = ();
-my $llm_calls = 0;
-$class->set_external_detector(sub {
-	push @calls, 'detector';
-	$_[1]->({ iso => 'zh', confidence => 0.99 });
-	return;
-});
+{
+	my $suite = suite_detector(detector(1.0), detector(0.0));
 
-($reply) = run_detect('你好世界', 'zh-Hans', {
-	mode       => 'always',
-	llm_detect => sub { $llm_calls++; $_[1]->(0.9); return },
-});
-is($reply->{needs_translation}, 1, 'always: forces translation');
-is($reply->{source}, 'forced', 'always: forced source');
-is($reply->{language}, 'zh-Hans', 'always: target reported');
-is(scalar @calls, 0, 'always: LangID not called');
-is($llm_calls, 0, 'always: LLM not called');
+	my ($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect    => $suite,
+		lingua_weight   => 0.8,
+		fastlang_weight => 0.2,
+	});
+	is($reply->{source}, 'suite', 'weights: score compared to the threshold');
+	is($reply->{needs_translation}, 0, 'weights: lingua-heavy score above threshold');
+	cmp_ok(abs($reply->{score} - 0.8), '<', 0.000001, 'weights: 0.8/0.2 blend is 0.8');
 
-# ---------------------------------------------------------------------------
-# mode 'llm' skips LangID and rules
-# ---------------------------------------------------------------------------
-$class->reset;
-@calls = ();
-$class->set_external_detector(sub {
-	push @calls, 'detector';
-	$_[1]->({ iso => 'zh', confidence => 0.99 });
-	return;
-});
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect    => $suite,
+		lingua_weight   => 0.2,
+		fastlang_weight => 0.8,
+	});
+	is($reply->{needs_translation}, 1, 'weights: fastlang-heavy score below threshold');
+	cmp_ok(abs($reply->{score} - 0.2), '<', 0.000001, 'weights: 0.2/0.8 blend is 0.2');
 
-($reply) = run_detect('你好世界', 'zh-Hans', {
-	mode       => 'llm',
-	llm_detect => sub { $_[1]->(0.1, undef); return },
-});
-is($reply->{needs_translation}, 1, 'llm mode: low confidence translates');
-is($reply->{source}, 'llm', 'llm mode: source');
-is($reply->{confidence}, 0.1, 'llm mode: confidence');
-is($reply->{language}, 'zh-Hans', 'llm mode: target reported');
-is(scalar @calls, 0, 'llm mode: LangID skipped');
+	# default weights are 0.5 / 0.5
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.6), detector(0.4)),
+	});
+	cmp_ok(abs($reply->{score} - 0.5), '<', 0.000001, 'weights: default weights are 0.5');
+	is($reply->{needs_translation}, 0, 'weights: default blend equals the threshold');
 
-($reply) = run_detect('你好世界', 'zh-Hans', {
-	mode       => 'llm',
-	llm_detect => sub { $_[1]->(0.9); return },
-});
-is($reply->{needs_translation}, 0, 'llm mode: high confidence is already target');
-is($reply->{source}, 'llm', 'llm mode: high confidence source');
+	# only one detector defined
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.95), undef),
+	});
+	is($reply->{score}, 0.95, 'weights: only lingua confidence used');
+	is($reply->{needs_translation}, 0, 'weights: only lingua decides');
 
-($reply) = run_detect('你好世界', 'zh-Hans', {
-	mode       => 'llm',
-	llm_detect => sub { $_[1]->(undef, 'timeout'); return },
-});
-is($reply->{needs_translation}, 1, 'llm mode: error translates');
-is($reply->{source}, 'llm', 'llm mode: error source');
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => suite_detector(undef, detector(0.5)),
+	});
+	is($reply->{score}, 0.5, 'weights: only fastlang confidence used');
 
-($reply) = run_detect('你好世界', 'zh-Hans', { mode => 'llm' });
-is($reply->{needs_translation}, 1, 'llm mode: missing detector translates');
-is($reply->{source}, 'llm', 'llm mode: missing detector source');
+	# both detectors defined but both weights zero: no score
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect    => suite_detector(detector(0.95), detector(0.95)),
+		lingua_weight   => 0,
+		fastlang_weight => 0,
+	});
+	is($reply->{score}, undef, 'weights: zero weights give no score');
+	is($reply->{needs_translation}, 1, 'weights: no score and no LLM translates');
 
-($reply) = run_detect('你好世界', 'zh-Hans', {
-	mode       => 'llm',
-	llm_detect => sub { die "llm exploded\n" },
-});
-is($reply->{needs_translation}, 1, 'llm mode: dying detector translates');
-is($reply->{source}, 'llm', 'llm mode: dying detector source');
+	# invalid weights fall back to 0.5
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect    => suite_detector(detector(0.0), detector(1.0)),
+		lingua_weight   => 'nonsense',
+		fastlang_weight => '0.5',
+	});
+	is($reply->{source}, 'suite', 'weights: invalid weight falls back');
+	ok(defined $reply->{score}, 'weights: invalid weight still produces a score');
+}
 
 # ---------------------------------------------------------------------------
-# model confidence weight blends the local score with the model confidence
+# auto: ambiguous band - LLM fallback
 # ---------------------------------------------------------------------------
-$class->reset;
+{
+	my $amb = suite_detector(detector(0.55), detector(0.55));
+	my $llmCalls = 0;
+	my $llm = sub {
+		$llmCalls++;
+		$_[1]->(0.9, undef);
+		return;
+	};
 
-($reply) = run_detect('Hello 你好', 'zh-Hans', {
-	model_weight => 0,
-	llm_detect   => sub { $_[1]->(0.9); return },
-});
-is($reply->{needs_translation}, 1, 'weight 0: the local score decides');
-ok(defined $reply->{local_score}, 'weight 0: local score reported');
-is($reply->{model_weight}, 0, 'weight 0: weight reported');
+	my ($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => $amb,
+		llm_detect   => $llm,
+	});
+	is($reply->{needs_translation}, 0, 'ambiguous: LLM confidence decides (already target)');
+	is($reply->{source}, 'suite+llm', 'ambiguous: source suite+llm');
+	is($reply->{confidence}, 0.9, 'ambiguous: LLM confidence reported');
+	cmp_ok(abs($reply->{score} - 0.55), '<', 0.000001, 'ambiguous: suite score kept');
+	is($llmCalls, 1, 'ambiguous: LLM called once');
 
-($reply) = run_detect('Hello 你好', 'zh-Hans', {
-	model_weight => 1,
-	llm_detect   => sub { $_[1]->(0.9); return },
-});
-is($reply->{needs_translation}, 0, 'weight 1: the model confidence is authoritative');
-is($reply->{confidence}, 0.9, 'weight 1: raw model confidence reported');
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => $amb,
+		llm_detect   => llm_detector(0.2),
+	});
+	is($reply->{needs_translation}, 1, 'ambiguous: low LLM confidence translates');
+	is($reply->{source}, 'suite+llm', 'ambiguous: low confidence source');
 
-($reply) = run_detect('Hello 你好', 'zh-Hans', {
-	model_weight => 0.5,
-	llm_detect   => sub { $_[1]->(0.9); return },
-});
-is($reply->{needs_translation}, 0, 'weight 0.5: blended score is already target');
-ok($reply->{score} > $reply->{local_score}, 'weight 0.5: blended score is between local and model');
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.4), detector(0.4)),
+		llm_detect   => llm_detector(undef, 'timeout'),
+	});
+	is($reply->{needs_translation}, 1, 'ambiguous: LLM failure uses score below threshold');
+	is($reply->{source}, 'suite', 'ambiguous: LLM failure source suite');
 
-# ---------------------------------------------------------------------------
-# mode 'auto' with an injected LLM detector
-# ---------------------------------------------------------------------------
-$class->reset;
-@calls = ();
-$class->set_external_detector(sub {
-	push @calls, 'detector';
-	$_[1]->({ iso => 'en', confidence => 0.99 });
-	return;
-});
-
-($reply) = run_detect('hello world', 'en', {
-	llm_detect => sub { $_[1]->(0.85); return },
-});
-is($reply->{needs_translation}, 0, 'auto + LLM: already target');
-is($reply->{source}, 'llm', 'auto + LLM: source');
-is($reply->{confidence}, 0.85, 'auto + LLM: confidence');
-is(scalar @calls, 0, 'auto + LLM: LangID still skipped for en');
-
-($reply) = run_detect('hello world', 'en', {
-	llm_detect => sub { $_[1]->(0.2); return },
-});
-is($reply->{needs_translation}, 1, 'auto + LLM: low confidence translates');
-
-($reply) = run_detect('hello world', 'en', {
-	llm_detect => sub { die "llm exploded\n" },
-});
-is($reply->{needs_translation}, 1, 'auto + LLM: dying LLM translates');
-is($reply->{source}, 'llm', 'auto + LLM: dying LLM source');
+	# LLM failure with a score above the threshold
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.8), detector(0.8)),
+		llm_detect   => llm_detector(undef, 'timeout'),
+	});
+	is($reply->{needs_translation}, 0, 'ambiguous: LLM failure keeps a high score');
+	is($reply->{source}, 'suite', 'ambiguous: LLM failure high score source');
+}
 
 # ---------------------------------------------------------------------------
-# ISO normalization of targets and detector results
+# auto: threshold handling
 # ---------------------------------------------------------------------------
-$class->reset;
-($reply) = run_detect('你好世界', 'zh_CN');
-is($reply->{language}, 'zh-Hans', 'target zh_CN normalized to zh-Hans');
+{
+	my $amb = suite_detector(detector(0.55), detector(0.55));
 
-($reply) = run_detect('你好世界', 'zh-TW');
-is($reply->{language}, 'zh-Hant', 'target zh-TW normalized to zh-Hant');
+	my ($reply) = run_detect('text', 'zh-Hans', { suite_detect => $amb, threshold => 0.6 });
+	is($reply->{needs_translation}, 1, 'threshold: score below cut-off translates');
 
-($reply) = run_detect('日本語のテキスト', 'ja-JP');
-is($reply->{needs_translation}, 0, 'target ja-JP detects Japanese');
-is($reply->{language}, 'ja', 'target ja-JP normalized to ja');
+	($reply) = run_detect('text', 'zh-Hans', { suite_detect => $amb, threshold => 0.5 });
+	is($reply->{needs_translation}, 0, 'threshold: score above cut-off is target');
 
-$class->set_external_detector(sub {
-	$_[1]->({ language => 'Chinese', iso => 'zh-CN', confidence => 0.95 });
-	return;
-});
-($reply) = run_detect('你好世界', 'zh-Hant');
-is($reply->{needs_translation}, 0, 'zh variety matches either Chinese target');
-is($reply->{language}, 'zh', 'detected iso zh-CN normalized to zh');
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => $amb,
+		llm_detect   => llm_detector(0.55),
+		threshold    => 0.6,
+	});
+	is($reply->{needs_translation}, 1, 'threshold: LLM confidence below cut-off translates');
 
-$class->set_external_detector(sub {
-	$_[1]->({ language => 'Japanese', iso => 'ja-JP', confidence => 0.95 });
-	return;
-});
-($reply) = run_detect('こんにちは', 'zh-Hans');
-is($reply->{needs_translation}, 1, 'detected Japanese does not match Chinese target');
-is($reply->{language}, 'ja', 'detected iso ja-JP normalized to ja');
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => $amb,
+		llm_detect   => llm_detector(0.55),
+		threshold    => 0.5,
+	});
+	is($reply->{needs_translation}, 0, 'threshold: LLM confidence above cut-off is target');
+}
 
 # ---------------------------------------------------------------------------
-# threshold handling
+# auto: suite errors, missing suite, no score
 # ---------------------------------------------------------------------------
-$class->reset;
-$class->set_external_detector(sub {
-	$_[1]->({ iso => 'ja', confidence => 0.3 });
-	return;
-});
+{
+	my ($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => sub {
+			$_[2]->({ error => 'suite-failed' });
+			return;
+		},
+		llm_detect => llm_detector(0.9),
+	});
+	is($reply->{needs_translation}, 0, 'suite error: LLM decides');
+	is($reply->{source}, 'llm', 'suite error: source llm');
+	is($reply->{score}, undef, 'suite error: no score');
 
-($reply) = run_detect('ありがとう', 'zh-Hans', { threshold => 0.2 });
-is($reply->{source}, 'langid', 'threshold 0.2: detector trusted');
-is($reply->{needs_translation}, 1, 'threshold 0.2: Japanese needs Chinese translation');
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => sub {
+			die "detector exploded\n";
+		},
+		llm_detect => llm_detector(0.9),
+	});
+	is($reply->{needs_translation}, 0, 'dying suite: LLM decides');
+	is($reply->{source}, 'llm', 'dying suite: source llm');
 
-($reply) = run_detect('ありがとう', 'zh-Hans', { threshold => 0.5 });
-is($reply->{source}, 'rules', 'threshold 0.5: falls back to rules');
-is($reply->{needs_translation}, 1, 'threshold 0.5: kana text is not Chinese');
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => sub {
+			die "detector exploded\n";
+		},
+	});
+	is($reply->{needs_translation}, 1, 'dying suite: no LLM translates');
+	is($reply->{source}, 'llm', 'dying suite: no LLM source');
 
-# the default threshold is 0.5
-$class->reset;
-$class->set_external_detector(sub {
-	$_[1]->({ iso => 'zh', confidence => 0.4 });
-	return;
-});
-($reply) = run_detect('你好世界', 'zh-Hans');
-is($reply->{source}, 'rules', 'confidence below the default threshold falls back');
+	# no injected suite and no plugin: LLM fallback
+	($reply) = run_detect('text', 'zh-Hans', { llm_detect => llm_detector(0.9) });
+	is($reply->{needs_translation}, 0, 'no suite: LLM decides');
+	is($reply->{source}, 'llm', 'no suite: source llm');
+	is($reply->{score}, undef, 'no suite: no score');
+
+	($reply) = run_detect('text', 'zh-Hans', {});
+	is($reply->{needs_translation}, 1, 'no suite, no LLM: translates');
+
+	# a suite detector which never calls back and never returns
+	my $never = sub { return; };
+	my ($silentReply, $silentCalls) = run_detect('text', 'zh-Hans', { suite_detect => $never });
+	is($silentReply, undef, 'silent suite: callback not invoked');
+	is($silentCalls, 0, 'silent suite: caller not called');
+}
 
 # ---------------------------------------------------------------------------
-# option validation and reset
+# auto: callback and synchronous-return handling
 # ---------------------------------------------------------------------------
-$class->reset;
-($reply) = run_detect('你好世界', 'zh-Hans', { mode => 'bogus' });
-is($reply->{needs_translation}, 0, 'unknown mode falls back to auto');
-is($reply->{source}, 'rules', 'unknown mode: rules source');
+{
+	my $suite = sub {
+		$_[2]->({ lingua => detector(0.95), fastlang => detector(0.95) });
+		$_[2]->({ lingua => detector(0.0), fastlang => detector(0.0) });
+		return;
+	};
 
-$class->set_external_detector(sub {
-	$_[1]->({ iso => 'ja', confidence => 0.99 });
-	return;
-});
-$class->reset;
-($reply) = run_detect('你好世界', 'zh-Hans');
-is($reply->{source}, 'rules', 'reset clears the injected detector');
+	my ($reply, $calls) = run_detect('text', 'zh-Hans', { suite_detect => $suite });
+	is($calls, 1, 'suite answering twice: callback invoked once');
+	is($reply->{needs_translation}, 0, 'suite answering twice: first answer wins');
 
-$class->set_external_detector(sub {
-	$_[1]->({ iso => 'ja', confidence => 0.99 });
-	return;
-});
-$class->set_external_detector(undef);
-($reply) = run_detect('你好世界', 'zh-Hans');
-is($reply->{source}, 'rules', 'set_external_detector(undef) clears the detector');
+	# suite detector answering synchronously by returning a hash
+	my $sync = sub {
+		return { lingua => detector(0.95), fastlang => detector(0.95) };
+	};
+	($reply) = run_detect('text', 'zh-Hans', { suite_detect => $sync });
+	is($reply->{needs_translation}, 0, 'synchronous suite return accepted');
+	is($reply->{source}, 'suite', 'synchronous suite return: source');
+
+	# synchronous LLM return
+	my $syncLlm = sub {
+		return { confidence => 0.9 };
+	};
+	($reply) = run_detect('text', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.55), detector(0.55)),
+		llm_detect   => $syncLlm,
+	});
+	is($reply->{needs_translation}, 0, 'synchronous LLM return accepted');
+	is($reply->{source}, 'suite+llm', 'synchronous LLM return: source');
+}
+
+# ---------------------------------------------------------------------------
+# target canonicalization and detector language metadata
+# ---------------------------------------------------------------------------
+{
+	my $seen;
+	my $suite = sub {
+		my ( $text, $target, $cb ) = @_;
+		$seen = $target;
+		$cb->({
+			lingua   => { confidence => 0.95, language => 'Chinese', name => 'Chinese' },
+			fastlang => { confidence => 0.9,  language => 'zh',      name => 'Chinese' },
+		});
+		return;
+	};
+
+	my ($reply) = run_detect('text', 'zh_CN', { suite_detect => $suite });
+	is($seen, 'zh-Hans', 'canonicalization: zh_CN becomes zh-Hans for the suite');
+	is($reply->{language}, 'zh-Hans', 'canonicalization: reply language');
+	is($reply->{lingua_language}, 'Chinese', 'language metadata: lingua');
+	is($reply->{fastlang_language}, 'zh', 'language metadata: fastlang');
+
+	($reply) = run_detect('text', 'en-US', { suite_detect => $suite });
+	is($seen, 'en', 'canonicalization: en-US becomes en');
+
+	($reply) = run_detect('text', 'custom', { suite_detect => $suite });
+	is($seen, 'custom', 'canonicalization: custom stays custom');
+}
 
 # ---------------------------------------------------------------------------
 # plain function call style also works
 # ---------------------------------------------------------------------------
-my $direct = Plugins::MusicArtistInfo::Lyrics::Translate::Detect::script_counts('abc');
-is($direct->{latin}, 3, 'plain function script_counts');
-
-my $direct_reply;
-Plugins::MusicArtistInfo::Lyrics::Translate::Detect::detect_target('你好世界', 'zh-Hans', {}, sub {
-	$direct_reply = shift;
-});
-is($direct_reply->{needs_translation}, 0, 'plain function detect_target');
+{
+	my $reply;
+	Plugins::MusicArtistInfo::Lyrics::Translate::Detect::detect_target('text', 'zh-Hans', {
+		suite_detect => suite_detector(detector(0.95), detector(0.95)),
+	}, sub {
+		$reply = shift;
+	});
+	is($reply->{needs_translation}, 0, 'plain function detect_target');
+	is(Plugins::MusicArtistInfo::Lyrics::Translate::Detect::target_label('ja'), '日本語',
+		'plain function target_label');
+}
 
 done_testing();

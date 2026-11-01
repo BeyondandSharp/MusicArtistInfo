@@ -82,7 +82,8 @@ my %DEFAULTS = (
 	# language detection
 	lyricsTranslateDetect             => 'auto',
 	lyricsTranslateDetectThreshold    => 0.5,
-	lyricsTranslateDetectModelWeight  => 0.2,
+	lyricsTranslateLinguaWeight       => 0.5,
+	lyricsTranslateFastlangWeight     => 0.5,
 	lyricsTranslateDetectTimeout      => 30,
 	# output
 	lyricsTranslateMarker             => "[re:Deepseek\x{7ffb}\x{8bd1}]",
@@ -276,7 +277,8 @@ sub config {
 
 		detect             => $values{lyricsTranslateDetect},
 		detect_threshold   => 0 + $values{lyricsTranslateDetectThreshold},
-		detect_model_weight => 0 + $values{lyricsTranslateDetectModelWeight},
+		lingua_weight      => 0 + $values{lyricsTranslateLinguaWeight},
+		fastlang_weight    => 0 + $values{lyricsTranslateFastlangWeight},
 		detect_timeout     => 0 + $values{lyricsTranslateDetectTimeout},
 
 		marker                  => $marker,
@@ -320,7 +322,8 @@ sub cache_signature {
 			: defined $config->{target} ? $config->{target} : '',
 		defined $config->{batch_temperature} ? $config->{batch_temperature} : '',
 		defined $config->{line_temperature} ? $config->{line_temperature} : '',
-		defined $config->{detect_model_weight} ? $config->{detect_model_weight} : '',
+		defined $config->{lingua_weight} ? $config->{lingua_weight} : '',
+		defined $config->{fastlang_weight} ? $config->{fastlang_weight} : '',
 		$config->{thinking} ? 1 : 0,
 		defined $config->{reasoning_effort} ? $config->{reasoning_effort} : '',
 		$config->{response_format} ? 1 : 0,
@@ -447,7 +450,8 @@ sub validate {
 		lyricsTranslateLineTimeout        => [ 1,   1800,  1 ],
 		lyricsTranslateLineMaxTokens      => [ 0,   32768, 1 ],
 		lyricsTranslateDetectThreshold    => [ 0,   1,     0 ],
-		lyricsTranslateDetectModelWeight  => [ 0,   1,     0 ],
+		lyricsTranslateLinguaWeight       => [ 0,   1,     0 ],
+		lyricsTranslateFastlangWeight     => [ 0,   1,     0 ],
 		lyricsTranslateDetectTimeout      => [ 1,   1800,  1 ],
 		lyricsTranslateMinTimestamps      => [ 0,   100,   1 ],
 		lyricsTranslateMaxRepeatedTimestamps => [ 1, 100,   1 ],

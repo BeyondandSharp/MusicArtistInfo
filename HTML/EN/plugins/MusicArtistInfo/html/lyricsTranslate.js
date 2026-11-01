@@ -206,8 +206,37 @@
 				}
 
 				if (jobState === 'skipped') {
-					setStatus(skipMessage(strings, text(data.reason)), true);
+					var reason = text(data.reason);
 					stopWatch();
+
+					// Detection now runs in the worker, so an already-target
+					// result arrives as a skipped status rather than an
+					// immediate error.  Offer the same "translate anyway"
+					// confirmation here and retry with force=1.
+					if (reason === 'already-target' && window.confirm && window.confirm(strings.translate_already_target)) {
+						setStatus(strings.translating, false);
+						translate(info, true).then(function (retry) {
+							if (retry && retry.queued && retry.key) {
+								setStatus(strings.translate_queued, false);
+								watchStatus(retry.key, info, strings);
+								return;
+							}
+							if (retry && retry.error) {
+								setStatus(errorMessage(strings, retry.error), true);
+								return;
+							}
+							if (retry && retry.state === 'done') {
+								refreshDisplay(info, strings);
+								return;
+							}
+							setStatus(skipMessage(strings, (retry && retry.reason) || reason), true);
+						}).catch(function () {
+							setStatus(strings.translate_failed, true);
+						});
+						return;
+					}
+
+					setStatus(skipMessage(strings, reason), true);
 					return;
 				}
 

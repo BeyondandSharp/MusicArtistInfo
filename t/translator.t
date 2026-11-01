@@ -168,7 +168,8 @@ sub test_config {
 		failed_line             => 'original',
 		detect                  => 'always',
 		detect_threshold        => 0.5,
-		detect_model_weight     => 0.2,
+		lingua_weight           => 0.5,
+		fastlang_weight         => 0.5,
 		detect_timeout          => 30,
 		backup                  => 'none',
 		queue_limit             => 20,
@@ -291,14 +292,26 @@ my $CHINESE = "[00:01.00]你好世界\n[00:02.00]第二行\n[00:03.00]第三行\
 	is($tr->enqueue({ path => $path, lyrics => $SAMPLE })->{error},
 		'missing-api-key', 'enqueue: missing API key');
 
-	# local rules can answer the target question synchronously
-	$tr = new_translator({ detect => 'auto' });
-	$path = write_text(temp_path('chinese'), $CHINESE);
-	is($tr->enqueue({ path => $path, lyrics => $CHINESE })->{error},
-		'already-target', 'enqueue: already target language');
+	# enqueue never decides about the target language itself: the worker does
+	my $targetLlm = FakeLLM->new(detect => 0.95);
+	$tr = $Translator->new(
+		config => test_config({ detect => 'auto' }),
+		llm    => $targetLlm,
+		cache  => FakeCache->new,
+	);
+	$path = write_text(temp_path('target'), $CHINESE);
+	my $targetResult = $tr->enqueue({ path => $path, lyrics => $CHINESE });
+	ok($targetResult->{queued}, 'enqueue: target check deferred to the worker');
+	is($targetResult->{error}, undef, 'enqueue: no immediate already-target error');
+	run_jobs();
+	my $targetStatus = $tr->status($targetResult->{key});
+	is($targetStatus->{state}, 'skipped', 'enqueue: worker skipped already-target lyrics');
+	is($targetStatus->{reason}, 'already-target', 'enqueue: worker skip reason');
+	is(scalar @{ $targetLlm->{calls} }, 0, 'enqueue: already-target lyrics not translated');
+	is(read_text($path), $CHINESE, 'enqueue: already-target file untouched');
 
-	# force bypasses target detection only
-	my $llm = FakeLLM->new;
+	# force bypasses the worker target detection
+	my $llm = FakeLLM->new(detect => 0.95);
 	$tr = $Translator->new(
 		config => test_config({ detect => 'auto', backup => 'none' }),
 		llm    => $llm,
@@ -309,6 +322,7 @@ my $CHINESE = "[00:01.00]你好世界\n[00:02.00]第二行\n[00:03.00]第三行\
 	run_jobs();
 	is($tr->status($forced->{key})->{state}, 'done', 'enqueue: forced job translated');
 	is(scalar @{ $llm->{calls} }, 1, 'enqueue: forced job used the LLM');
+	is(scalar @{ $llm->{detect_calls} }, 0, 'enqueue: forced job skipped detection');
 
 	# queue limit (nothing is pumped between the two calls)
 	$tr = new_translator({ queue_limit => 1 });

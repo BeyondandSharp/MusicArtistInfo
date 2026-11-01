@@ -68,7 +68,8 @@ subtest 'defaults' => sub {
 	is($defaults->{lyricsTranslateReasoningEffort}, '', 'no reasoning effort');
 	is($defaults->{lyricsTranslateDetect}, 'auto', 'detect auto');
 	is($defaults->{lyricsTranslateDetectThreshold}, 0.5, 'detect threshold');
-	is($defaults->{lyricsTranslateDetectModelWeight}, 0.2, 'detect model weight');
+	is($defaults->{lyricsTranslateLinguaWeight}, 0.5, 'lingua weight');
+	is($defaults->{lyricsTranslateFastlangWeight}, 0.5, 'fastlang weight');
 	is($defaults->{lyricsTranslateDetectTimeout}, 30, 'detect timeout');
 
 	is($defaults->{lyricsTranslateMarker}, '[re:Deepseek翻译]', 'marker');
@@ -353,7 +354,8 @@ subtest 'validate numbers' => sub {
 	subtest_validate_case('hot temperature', sub { $_[0]{pref_lyricsTranslateBatchTemperature} = '3' }, qr/lyricsTranslateBatchTemperature/);
 	subtest_validate_case('zero concurrency', sub { $_[0]{pref_lyricsTranslateLineConcurrency} = '0' }, qr/lyricsTranslateLineConcurrency/);
 	subtest_validate_case('huge threshold', sub { $_[0]{pref_lyricsTranslateDetectThreshold} = '2' }, qr/lyricsTranslateDetectThreshold/);
-	subtest_validate_case('huge model weight', sub { $_[0]{pref_lyricsTranslateDetectModelWeight} = '1.5' }, qr/lyricsTranslateDetectModelWeight/);
+	subtest_validate_case('huge lingua weight', sub { $_[0]{pref_lyricsTranslateLinguaWeight} = '1.5' }, qr/lyricsTranslateLinguaWeight/);
+	subtest_validate_case('huge fastlang weight', sub { $_[0]{pref_lyricsTranslateFastlangWeight} = '1.5' }, qr/lyricsTranslateFastlangWeight/);
 	subtest_validate_case('zero timeout', sub { $_[0]{pref_lyricsTranslateBatchTimeout} = '0' }, qr/lyricsTranslateBatchTimeout/);
 	subtest_validate_case('huge max tokens', sub { $_[0]{pref_lyricsTranslateBatchMaxTokens} = '99999' }, qr/lyricsTranslateBatchMaxTokens/);
 	subtest_validate_case('negative timestamps', sub { $_[0]{pref_lyricsTranslateMinTimestamps} = '-1' }, qr/lyricsTranslateMinTimestamps/);
