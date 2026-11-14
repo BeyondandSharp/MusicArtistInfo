@@ -93,7 +93,10 @@ Translation**.
   with `[re:Deepseek翻译]` are still recognised and skipped.
 - **Language detection**: the optional `LangID` plugin from
   `/root/lms-plugin-LangID` provides two detectors for the target language:
-  **lingua** (lingua-rs) and **fastlang** (fastText `lid.176.ftz`).  Their
+  **lingua** (lingua-rs) and **fastlang** (fastText `lid.176.ftz`).  The
+  fastText model is **not shipped**; LangID downloads it automatically on
+  first use into its cache, verifies its checksum, and keeps it for later
+  runs.  If the download is unavailable, Lingua is used alone.  Their
   confidence values are mixed with the configurable **Lingua weight** and
   **Fastlang weight** (0-1 each, default 0.5/0.5); a mixed result between 0.1
   and 0.9 falls back to the LLM detection request, and a missing/unsupported

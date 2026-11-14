@@ -1672,5 +1672,5 @@ PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_FASTLANG_WEIGHT
 	ZH_CN	Fastlang 权重（0-1）
 
 PLUGIN_MUSICARTISTINFO_LYRICS_TRANSLATE_DETECT_WEIGHTS_DESC
-	EN	The two detector confidences are mixed by these weights; when the mixed result is inconclusive the LLM decides. 0 ignores a detector.
-	ZH_CN	两个检测器的置信度按这两个权重混合；混合结果不明确时由 LLM 兜底判断。0 表示忽略该检测器。
+	EN	The two detector confidences are mixed by these weights; when the mixed result is inconclusive the LLM decides. 0 ignores a detector. LangID downloads the fastText model on first use; if it is unavailable, Lingua is used alone.
+	ZH_CN	两个检测器的置信度按这两个权重混合；混合结果不明确时由 LLM 兜底判断。0 表示忽略该检测器。LangID 首次使用时会自动下载 fastText 模型；下载失败时仅使用 Lingua。
