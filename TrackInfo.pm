@@ -963,6 +963,9 @@ sub _web_lyrics_content {
 	my $translateScript = catfile(dirname(__FILE__), 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsTranslate.js');
 	my $translateMtime = (stat($translateScript))[9] || 0;
 
+	my $watcherScript = catfile(dirname(__FILE__), 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsWatcher.js');
+	my $watcherMtime = (stat($watcherScript))[9] || 0;
+
 	return Plugins::MusicArtistInfo::Lyrics::WebUI->build(
 		client   => $client,
 		lyrics   => $lyrics,
@@ -979,6 +982,8 @@ sub _web_lyrics_content {
 		translate_enabled => $prefs->get('lyricsTranslate') ? 1 : 0,
 		translate_script  => "/plugins/MusicArtistInfo/html/lyricsTranslate.js?v=$version"
 			. ( $translateMtime ? "-$translateMtime" : '' ),
+		watcher_script    => "/plugins/MusicArtistInfo/html/lyricsWatcher.js?v=$version"
+			. ( $watcherMtime ? "-$watcherMtime" : '' ),
 		strings  => _lyrics_chooser_strings($client),
 	);
 }

@@ -47,6 +47,10 @@ to the settings above.
 Candidate searches are bounded to about ten seconds; slow online sources are
 skipped so the dialog does not remain in the "Searching" state forever.
 
+When the standard lyrics page belongs to the currently playing track, it
+follows the player: switching tracks updates the displayed lyrics, the cover
+and song-info breadcrumb, and the title/artist used by the chooser.
+
 The same chooser is available in **Material Skin** without a separate
 dialog. Open the now-playing settings menu (the gear at the top right of the
 lyrics) and choose **Choose lyrics**, or use the lyrics icon in the queue

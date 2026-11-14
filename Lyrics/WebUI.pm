@@ -13,6 +13,7 @@ use JSON::PP ();
 
 my $DEFAULT_ENDPOINT = '/plugins/MusicArtistInfo/lyrics';
 my $DEFAULT_SCRIPT   = '/plugins/MusicArtistInfo/html/lyricsChooser.js';
+my $DEFAULT_WATCHER_SCRIPT = '/plugins/MusicArtistInfo/html/lyricsWatcher.js';
 my $DEFAULT_TRANSLATE_SCRIPT = '/plugins/MusicArtistInfo/html/lyricsTranslate.js';
 
 sub escape_html {
@@ -100,6 +101,9 @@ sub build {
 	$html .= '<span id="maiLyricsPageStatus" class="maiLyricsStatus"></span>';
 	$html .= '</div>';
 	$html .= '</div>';
+
+	my $watcherScript = $args{watcher_script} || $DEFAULT_WATCHER_SCRIPT;
+	$html .= '<script src="' . $class->_attr($watcherScript) . '" defer></script>';
 
 	return $html;
 }

@@ -32,7 +32,8 @@ like($html, qr/data-title="Title &amp; &quot;quotes&quot;"/, 'title attribute es
 like($html, qr/Choose &amp; pick/, 'button label escaped');
 like($html, qr/window\.MAILyrics\.open/, 'dynamic loader used');
 like($html, qr/data-script="\/plugins\/MusicArtistInfo\/html\/lyricsChooser\.js"/, 'script URL');
-unlike($html, qr/<\/script>/, 'no inline script tag needed');
+like($html, qr{<script src="/plugins/MusicArtistInfo/html/lyricsWatcher\.js" defer></script>}, 'watcher script loaded');
+unlike($html, qr{<script(?![^>]*\bsrc=)[^>]*>}, 'no inline script tags');
 
 my $errorHtml = $class->build(
 	error   => 'not found <here>',
