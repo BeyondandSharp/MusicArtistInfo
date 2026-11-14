@@ -956,11 +956,11 @@ sub _web_lyrics_content {
 	my ($client, $args, $lyrics, $error) = @_;
 
 	my $version = eval { $Plugins::MusicArtistInfo::Plugin::VERSION } || '0.0.0';
-	my $chooserScript = catfile(dirname(__FILE__), '..', 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsChooser.js');
+	my $chooserScript = catfile(dirname(__FILE__), 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsChooser.js');
 	my $chooserMtime = (stat($chooserScript))[9] || 0;
 	$version .= "-$chooserMtime" if $chooserMtime;
 
-	my $translateScript = catfile(dirname(__FILE__), '..', 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsTranslate.js');
+	my $translateScript = catfile(dirname(__FILE__), 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsTranslate.js');
 	my $translateMtime = (stat($translateScript))[9] || 0;
 
 	return Plugins::MusicArtistInfo::Lyrics::WebUI->build(

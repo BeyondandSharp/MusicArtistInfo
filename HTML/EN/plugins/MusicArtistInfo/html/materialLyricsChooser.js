@@ -88,6 +88,9 @@
 		url: '',
 		album: '',
 		duration: '',
+		trackKey: '',
+		trackCheckBusy: false,
+		lastTrackCheck: 0,
 		wrapped: false,
 		preview: null,
 		resizer: null,
@@ -113,16 +116,38 @@
 			'#queue-view.mai-lq-active > .lms-list{display:none!important}' +
 			'.mai-lq-panel{display:none;flex:1 1 0;min-height:0;max-height:100%;flex-direction:column;background:var(--background-color);color:var(--text-color);overflow:hidden;font:inherit}' +
 			'#queue-view.mai-lq-active > .mai-lq-panel{display:flex}' +
+			// On phones Material Skin takes the queue out of the normal flow: the
+			// queue list is position:fixed and #queue-view itself collapses to
+			// zero height.  Mirror the list's mobile box so the chooser is not
+			// squeezed into an invisible 0px-high container.
+			'#queue-view.mai-lq-active > .mai-lq-panel.mai-lq-fixed{position:fixed;top:calc(var(--main-toolbar-height,48px) + var(--sub-toolbar-height,48px));bottom:var(--mobile-npbar-height,60px);left:0;right:0;width:auto;height:auto;max-height:none;z-index:1;flex:none}' +
+			'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar{flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:2px;padding:4px 8px;min-height:0}' +
+			'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar .mai-lq-inputs{flex:1 1 100%;order:1;gap:8px;padding:0}' +
+			'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar input{font-size:16px;padding:8px 2px 6px;min-height:36px}' +
+			'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar .mai-lq-toolbar-btn{width:44px!important;height:44px!important;margin:0;order:2}' +
+			'.mai-lq-panel.mai-lq-fixed .mai-lq-status{padding:4px 14px}' +
+			'.mai-lq-panel.mai-lq-fixed .mai-lq-list{min-height:96px}' +
+			'.mai-lq-panel.mai-lq-fixed .mai-lq-lyrics{flex-basis:38%;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain;-webkit-overflow-scrolling:touch}' +
+			'@media (max-height:520px){' +
+				'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar{flex-wrap:nowrap;gap:0;padding:2px 6px}' +
+				'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar .mai-lq-inputs{flex:1 1 auto;gap:6px}' +
+				'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar .mai-lq-toolbar-btn{width:40px!important;height:40px!important}' +
+				'.mai-lq-panel.mai-lq-fixed .mai-lq-searchbar input{font-size:16px;padding:4px 2px;min-height:32px}' +
+				'.mai-lq-panel.mai-lq-fixed .mai-lq-status{padding:2px 14px;min-height:20px}' +
+				'.mai-lq-panel.mai-lq-fixed .mai-lq-list{min-height:56px}' +
+				'.mai-lq-panel.mai-lq-fixed .mai-lq-lyrics{flex-basis:32%;min-height:48px;padding-top:4px;padding-bottom:8px}' +
+			'}' +
 			'.mai-lq-searchbar{display:flex;align-items:center;gap:2px;min-height:var(--sub-toolbar-height,48px);padding:0 7px;border-bottom:1px solid var(--sub-toolbar-border-color);background:var(--sub-toolbar-color);color:var(--sub-toolbar-text-color);flex:0 0 auto}' +
 			'.mai-lq-searchbar .mai-lq-inputs{display:flex;gap:12px;flex:1 1 auto;min-width:0;padding:0 2px}' +
 			'.mai-lq-searchbar input{flex:1 1 0;min-width:0;border:0;border-bottom:1px solid var(--border-color);background:transparent;color:var(--text-color);font:inherit;padding:7px 2px 5px;outline:none}' +
 			'.mai-lq-searchbar input:focus{border-bottom-color:var(--highlight-color,#1976d2)}' +
 			'.mai-lq-searchbar input::placeholder{color:var(--text-color);opacity:.55}' +
 			'.mai-lq-status{flex:0 0 auto;min-height:24px;padding:4px 14px;font-size:var(--small-font-size,90%);opacity:var(--sub-opacity,.7);white-space:normal}' +
-			'.mai-lq-list{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}' +
+			'.mai-lq-list{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}' +
 			'.mai-lq-resizer{flex:0 0 0;height:0;min-height:0;cursor:row-resize;background:transparent;position:relative;overflow:visible;touch-action:none}' +
-			'.mai-lq-resizer:before{content:"";position:absolute;left:0;right:0;top:-5px;height:10px;cursor:row-resize}' +
-			'.mai-lq-resizer:after{content:"";position:absolute;left:50%;top:2px;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:var(--sub-toolbar-text-color);opacity:.45}' +
+			'.mai-lq-resizer:before{content:"";position:absolute;left:0;right:0;top:-10px;height:20px;cursor:row-resize}' +
+			'.mai-lq-resizer:after{content:"";position:absolute;left:50%;top:2px;width:40px;height:3px;margin-left:-20px;border-radius:2px;background:var(--sub-toolbar-text-color);opacity:.45}' +
+			'.mai-lq-toolbar-btn[hidden]{display:none!important}' +
 			'.mai-lq-item{display:block;width:100%;box-sizing:border-box;text-align:left;border:0;border-bottom:1px solid var(--list-item-border-color);background:transparent;color:inherit;font:inherit;padding:9px 14px 8px;cursor:pointer;outline:none}' +
 			'.mai-lq-item:hover{background:var(--list-hover-color)}' +
 			'.mai-lq-item.selected{background:var(--pq-current-color)}' +
@@ -202,12 +227,12 @@
 		return list[0] || {};
 	}
 
-	function requestCurrentInfo(cb) {
+	function requestCurrentInfo(cb, force) {
 		var vm = findNowPlaying(window.app, 0);
 		var info = currentInfoFromVm(vm);
 		var playerId = getPlayerId();
 
-		if (info.title && info.artist) {
+		if (!force && info.title && info.artist) {
 			cb(info);
 			return;
 		}
@@ -218,7 +243,8 @@
 		}
 
 		window.lmsCommand(playerId, ['status', 0, 10, 'tags:title,artist,album,url']).then(function (response) {
-			var item = statusCurrentItem(response && response.data ? response.data.result : null);
+			var result = response && response.data ? response.data.result : (response && response.result);
+			var item = statusCurrentItem(result);
 			info.title = item.title || info.title;
 			info.artist = item.artist || info.artist;
 			info.album = item.album || info.album;
@@ -373,7 +399,7 @@
 		state.cancelButton.className = 'v-btn v-btn--flat v-btn--icon v-btn--small toolbar-button mai-lq-toolbar-btn mai-lq-cancel';
 		state.cancelButton.title = TEXT.cancel;
 		state.cancelButton.setAttribute('aria-label', TEXT.cancel);
-		state.cancelButton.style.display = 'none';
+		state.cancelButton.hidden = true;
 		state.cancelButton.innerHTML = '<i class="v-icon material-icons" aria-hidden="true">close</i>';
 		state.cancelButton.addEventListener('click', function (event) {
 			event.preventDefault();
@@ -412,7 +438,7 @@
 		panel.appendChild(state.status);
 
 		state.list = document.createElement('div');
-		state.list.className = 'lms-list mai-lq-list';
+		state.list.className = 'mai-lq-list';
 		state.list.id = 'mai-lq-list';
 		panel.appendChild(state.list);
 
@@ -426,7 +452,6 @@
 		state.preview = document.createElement('div');
 		state.preview.className = 'mai-lq-lyrics np-info-lyrics';
 		state.preview.id = 'mai-lq-lyrics';
-		state.preview.style.flex = '0 0 33.333%';
 		state.preview.addEventListener('scroll', function () {
 			if (state.programmaticScroll) {
 				state.programmaticScroll = false;
@@ -480,15 +505,29 @@
 			}
 		}
 
-		var queueHeight = view.getBoundingClientRect().height;
-		if (queueHeight > 0) {
-			state.queueHeight = queueHeight;
-			state.windowHeight = window.innerHeight;
-			view.style.height = queueHeight + 'px';
+		// Material's mobile layout positions the queue list with
+		// position:fixed and leaves #queue-view at zero height.  Use the same
+		// fixed positioning for the chooser panel in that case.
+		var listStyle = state.queueList ? window.getComputedStyle(state.queueList) : null;
+		var fixedPanel = !!(listStyle && listStyle.position === 'fixed');
+		state.panel.classList.toggle('mai-lq-fixed', fixedPanel);
+
+		if (fixedPanel) {
+			state.queueHeight = 0;
+			view.style.height = '';
+		}
+		else {
+			var queueHeight = view.getBoundingClientRect().height;
+			if (queueHeight > 0) {
+				state.queueHeight = queueHeight;
+				state.windowHeight = window.innerHeight;
+				view.style.height = queueHeight + 'px';
+			}
 		}
 		if (!state.onWindowResize) {
 			state.onWindowResize = function () {
 				if (!state.active || !state.queueView || !state.queueHeight) return;
+				if (state.panel && state.panel.classList.contains('mai-lq-fixed')) return;
 				var next = state.queueHeight + (window.innerHeight - state.windowHeight);
 				next = Math.max(240, next);
 				state.queueView.style.height = next + 'px';
@@ -656,14 +695,62 @@
 		}
 	}
 
-	function fillInfo(info) {
+	function fillInfo(info, force) {
 		state.playerId = info.player || '';
 		state.trackId = info.trackId || '';
 		state.url = info.url || '';
 		state.album = info.album || '';
 		state.duration = info.duration || '';
-		if (state.titleInput && !state.titleInput.value) state.titleInput.value = info.title || '';
-		if (state.artistInput && !state.artistInput.value) state.artistInput.value = info.artist || '';
+		if (state.titleInput && (force || !state.titleInput.value)) state.titleInput.value = info.title || '';
+		if (state.artistInput && (force || !state.artistInput.value)) state.artistInput.value = info.artist || '';
+	}
+
+	function trackSignature(info) {
+		return [
+			info.player || '',
+			info.trackId || '',
+			info.url || '',
+			info.title || '',
+			info.artist || '',
+			info.album || ''
+		].join('\u001f');
+	}
+
+	// Update the search fields when the playing track changes.  Reopening the
+	// panel for the same track keeps manually edited keywords; a real track
+	// change replaces them and (unless this is the initial open) starts a new
+	// search automatically.
+	function applyTrackInfo(info, autoSearch) {
+		if (!info || (!info.title && !info.artist)) return false;
+
+		var key = trackSignature(info);
+		var changed = !state.trackKey || key !== state.trackKey;
+
+		if (!changed) {
+			fillInfo(info, false);
+			return false;
+		}
+
+		state.trackKey = key;
+		fillInfo(info, true);
+
+		if (autoSearch) search();
+		return true;
+	}
+
+	function checkTrackChange() {
+		if (!state.open || state.trackCheckBusy) return;
+
+		var now = Date.now();
+		if (now - state.lastTrackCheck < 1500) return;
+		state.lastTrackCheck = now;
+		state.trackCheckBusy = true;
+
+		requestCurrentInfo(function (info) {
+			state.trackCheckBusy = false;
+			if (!state.open) return;
+			applyTrackInfo(info, true);
+		}, true);
 	}
 
 	function clearSearchTimer() {
@@ -710,7 +797,7 @@
 
 	function showSearchUi(searching) {
 		if (state.searchButton) state.searchButton.disabled = !!searching;
-		if (state.cancelButton) state.cancelButton.style.display = searching ? '' : 'none';
+		if (state.cancelButton) state.cancelButton.hidden = !searching;
 	}
 
 	function setSearchRunning(running) {
@@ -1318,11 +1405,15 @@
 			ensureToolbarButton();
 			updateToolbarButton();
 
+			state.lastTrackCheck = Date.now();
+			state.trackCheckBusy = true;
 			requestCurrentInfo(function (info) {
+				state.trackCheckBusy = false;
 				if (!state.open) return;
-				fillInfo(info);
+				// On a track change, replace the keywords before searching.
+				applyTrackInfo(info, false);
 				search();
-			});
+			}, true);
 		});
 	}
 
@@ -1338,6 +1429,7 @@
 		if (state.open) {
 			if (!ensurePanel()) return;
 			updateToolbarButton();
+			checkTrackChange();
 		}
 	}
 
