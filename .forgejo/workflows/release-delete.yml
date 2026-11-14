@@ -1,0 +1,26 @@
+# Frozen entry — tag deletion.
+#
+# A separate file per event: Forgejo expands reusable workflows under the
+# callee's trigger (`workflow_call`), so selecting the mode with a caller-side
+# `if:` would make the expanded job inherit a false condition. The `mode` input
+# tells the reusable workflow that this run is a cleanup, not a release.
+#
+# `on: delete` has no filters in Forgejo: every deleted branch or tag triggers
+# this file, and the program ignores anything that is not a deleted semver tag.
+# The removed tag is forwarded explicitly; the event payload is the fallback.
+name: release (tag deleted)
+
+on:
+  delete:
+
+concurrency:
+  group: release-delete-${{ github.event.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: BeyondandSharp/action-template/.forgejo/workflows/release.yml@main
+    secrets: inherit
+    with:
+      mode: delete
+      deleted_ref: ${{ github.event.ref }}
