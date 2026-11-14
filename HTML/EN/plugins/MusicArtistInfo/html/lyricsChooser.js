@@ -62,7 +62,11 @@
 		programmaticScroll: false,
 		bodyOverflow: null,
 		zoomScale: 1,
-		onViewportResize: null
+		onViewportResize: null,
+		opening: false,
+		followTimer: null,
+		followKey: '',
+		followBusy: false
 	};
 
 	function text(value) {
@@ -281,7 +285,7 @@
 			xhr.onerror = function () {
 				reject(new Error('Network error'));
 			};
-			xhr.send(null);
+			xhr.send(options.body || null);
 		});
 	}
 
@@ -649,6 +653,7 @@
 		}
 
 		stopSync();
+		stopFollow();
 		if (state.centerTimer) { clearTimeout(state.centerTimer); state.centerTimer = null; }
 		state.lines = [];
 		if (state.overlay && state.overlay.parentNode) {
@@ -657,6 +662,7 @@
 		state.overlay = null;
 		state.dialog = null;
 		state.zoomScale = 1;
+		state.opening = false;
 
 		unlockBodyScroll();
 
@@ -713,6 +719,7 @@
 		dialog.setAttribute('role', 'dialog');
 		dialog.setAttribute('aria-modal', 'true');
 		dialog.setAttribute('aria-label', state.strings.choose);
+		dialog.setAttribute('data-track-id', state.trackId || '');
 
 		var header = el('div', 'mai-lyrics-header');
 		header.appendChild(el('span', '', state.strings.choose));
@@ -822,6 +829,165 @@
 		return { overlay: overlay, dialog: dialog };
 	}
 
+	function currentItem(result) {
+		var list = result && result.playlist_loop;
+		if (!list || !list.length) return null;
+
+		var index = parseInt(result.playlist_cur_index, 10);
+		for (var i = 0; i < list.length; i++) {
+			if (parseInt(list[i]['playlist index'], 10) === index) return list[i];
+		}
+
+		return list[0];
+	}
+
+	function updateButtonTrack(item) {
+		var buttons = document.querySelectorAll('.maiLyricsChooserButton, .maiLyricsTranslateButton');
+		for (var i = 0; i < buttons.length; i++) {
+			var button = buttons[i];
+			button.setAttribute('data-track-id', text(item.id || item.track_id));
+			button.setAttribute('data-url', text(item.url));
+			button.setAttribute('data-title', text(item.title));
+			button.setAttribute('data-artist', text(item.artist));
+			button.setAttribute('data-album', text(item.album));
+			button.setAttribute('data-player', state.player);
+			if (button.classList && button.classList.contains('maiLyricsChooserButton')) {
+				button.setAttribute('data-duration', text(item.duration));
+			}
+		}
+	}
+
+	function applyStatusItem(item) {
+		if (!item) return;
+		if (item.title) state.title = item.title;
+		if (item.artist) state.artist = item.artist;
+		state.album = text(item.album);
+		state.duration = text(item.duration);
+		state.trackId = text(item.id || item.track_id);
+		state.url = text(item.url);
+		updateButtonTrack(item);
+	}
+
+	// The standard lyrics page can be inserted via AJAX, where its watcher
+	// script is not guaranteed to have run.  Refresh the track when opening
+	// the chooser so a just-played track never opens with the previous values.
+	function refreshFromPlayer(cb) {
+		if (!state.player) {
+			cb();
+			return;
+		}
+
+		var body = JSON.stringify({
+			id: 1,
+			method: 'slim.request',
+			params: [ state.player, [ 'status', '-', 1, 'tags:title,artist,album,duration,url' ] ]
+		});
+		var finished = false;
+		var timer = setTimeout(function () {
+			if (finished) return;
+			finished = true;
+			cb();
+		}, 2000);
+
+		function finish() {
+			if (finished) return;
+			finished = true;
+			clearTimeout(timer);
+			cb();
+		}
+
+		requestJson('/jsonrpc.js', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+			credentials: 'same-origin',
+			body: body
+		}).then(function (data) {
+			if (finished) return;
+			applyStatusItem(currentItem(data && data.result));
+			finish();
+		}).catch(finish);
+	}
+
+	function stateTrackKey() {
+		return [
+			state.player,
+			state.trackId,
+			state.url,
+			state.title,
+			state.artist,
+			state.album
+		].join('\u001f');
+	}
+
+	function stopFollow() {
+		if (state.followTimer) {
+			clearInterval(state.followTimer);
+			state.followTimer = null;
+		}
+		state.followBusy = false;
+		state.followKey = '';
+	}
+
+	function checkFollow() {
+		if (!state.overlay) {
+			stopFollow();
+			return;
+		}
+		if (state.followBusy || !state.player) return;
+		state.followBusy = true;
+
+		var body = JSON.stringify({
+			id: 1,
+			method: 'slim.request',
+			params: [ state.player, [ 'status', '-', 1, 'tags:title,artist,album,duration,url' ] ]
+		});
+
+		requestJson('/jsonrpc.js', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+			credentials: 'same-origin',
+			body: body
+		}).then(function (data) {
+			state.followBusy = false;
+			if (!state.overlay) return;
+
+			var item = currentItem(data && data.result);
+			if (!item) return;
+
+			var key = [
+				state.player,
+				text(item.id || item.track_id),
+				text(item.url),
+				text(item.title),
+				text(item.artist),
+				text(item.album)
+			].join('\u001f');
+
+			if (key === state.followKey) return;
+			state.followKey = key;
+			applyStatusItem(item);
+
+			if (state.dialog) state.dialog.setAttribute('data-track-id', state.trackId || '');
+			var titleInput = document.getElementById('maiLyricsTitle');
+			var artistInput = document.getElementById('maiLyricsArtist');
+			if (titleInput) titleInput.value = state.title;
+			if (artistInput) artistInput.value = state.artist;
+
+			search();
+		}).catch(function () {
+			state.followBusy = false;
+		});
+	}
+
+	function startFollow() {
+		stopFollow();
+		if (!state.button || state.button.getAttribute('data-follow-player') !== '1' || !state.player) {
+			return;
+		}
+		state.followKey = stateTrackKey();
+		state.followTimer = setInterval(checkFollow, 2000);
+	}
+
 	function open(input) {
 		addStyle();
 
@@ -856,27 +1022,44 @@
 			state.player = button.getAttribute('data-player') || '';
 		}
 
-		if (state.overlay) {
+		if (state.overlay || state.opening) {
 			return;
 		}
 
-		ensureViewportMeta();
+		state.opening = true;
 
-		var built = buildDialog();
-		state.overlay = built.overlay;
-		state.dialog = built.dialog;
+		function showDialog() {
+			if (state.overlay) {
+				state.opening = false;
+				return;
+			}
 
-		lockBodyScroll();
-		document.body.appendChild(state.overlay);
-		document.addEventListener('keydown', onKeyDown);
+			ensureViewportMeta();
 
-		applyViewportFallback();
-		if (!state.onViewportResize) {
-			state.onViewportResize = applyViewportFallback;
+			var built = buildDialog();
+			state.overlay = built.overlay;
+			state.dialog = built.dialog;
+
+			lockBodyScroll();
+			document.body.appendChild(state.overlay);
+			document.addEventListener('keydown', onKeyDown);
+
+			applyViewportFallback();
+			if (!state.onViewportResize) {
+				state.onViewportResize = applyViewportFallback;
+			}
+			window.addEventListener('resize', state.onViewportResize);
+
+			state.opening = false;
+			search();
+			startFollow();
 		}
-		window.addEventListener('resize', state.onViewportResize);
 
-		search();
+		if (state.button && state.button.getAttribute('data-follow-player') === '1') {
+			refreshFromPlayer(showDialog);
+		} else {
+			showDialog();
+		}
 	}
 
 	window.MAILyrics = {

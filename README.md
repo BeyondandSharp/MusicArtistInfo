@@ -51,6 +51,10 @@ When the standard lyrics page belongs to the currently playing track, it
 follows the player: switching tracks updates the displayed lyrics, the cover
 and song-info breadcrumb, and the title/artist used by the chooser.
 
+Opening the chooser always initializes the title and artist from the current
+track. Manually edited keywords are used by the search you start yourself, but
+they are not carried over to the next automatic search after a track change.
+
 The same chooser is available in **Material Skin** without a separate
 dialog. Open the now-playing settings menu (the gear at the top right of the
 lyrics) and choose **Choose lyrics**, or use the lyrics icon in the queue

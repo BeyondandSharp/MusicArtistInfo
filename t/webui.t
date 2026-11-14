@@ -32,8 +32,18 @@ like($html, qr/data-title="Title &amp; &quot;quotes&quot;"/, 'title attribute es
 like($html, qr/Choose &amp; pick/, 'button label escaped');
 like($html, qr/window\.MAILyrics\.open/, 'dynamic loader used');
 like($html, qr/data-script="\/plugins\/MusicArtistInfo\/html\/lyricsChooser\.js"/, 'script URL');
-like($html, qr{<script src="/plugins/MusicArtistInfo/html/lyricsWatcher\.js" defer></script>}, 'watcher script loaded');
+like($html, qr/data-follow-player="0"/, 'non-playing pages do not follow the player');
+like($html, qr/data-watcher="\/plugins\/MusicArtistInfo\/html\/lyricsWatcher\.js"/, 'watcher loader present');
+like($html, qr/onload="[^"]*__MAI_LYRICS_WATCHER_LOADING__/, 'watcher loader handler present');
 unlike($html, qr{<script(?![^>]*\bsrc=)[^>]*>}, 'no inline script tags');
+
+my $followHtml = $class->build(
+	lyrics        => 'line one',
+	follow_player => 1,
+	strings       => {},
+);
+
+like($followHtml, qr/data-follow-player="1"/, 'playing track page follows the player');
 
 my $errorHtml = $class->build(
 	error   => 'not found <here>',

@@ -966,6 +966,50 @@ sub _web_lyrics_content {
 	my $watcherScript = catfile(dirname(__FILE__), 'HTML', 'EN', 'plugins', 'MusicArtistInfo', 'html', 'lyricsWatcher.js');
 	my $watcherMtime = (stat($watcherScript))[9] || 0;
 
+	my $followPlayer = 0;
+	if ($client) {
+		my $currentId;
+		my $currentUrl;
+
+		my $status = eval {
+			Slim::Control::Request::executeRequest(
+				$client,
+				[ 'status', '-', 1, 'tags:title,artist,album,url' ],
+			);
+		};
+
+		if ($status && !$status->isStatusError) {
+			my $loop = $status->getResult('playlist_loop');
+			my $index = $status->getResult('playlist_cur_index');
+			my $item;
+
+			if (ref $loop eq 'ARRAY' && @$loop) {
+				foreach my $candidate (@$loop) {
+					if (defined $index && defined $candidate->{'playlist index'}
+						&& "$candidate->{'playlist index'}" eq "$index") {
+						$item = $candidate;
+						last;
+					}
+				}
+				$item ||= $loop->[0];
+			}
+
+			if ($item) {
+				$currentId  = $item->{id};
+				$currentUrl = $item->{url};
+			}
+		}
+
+		my $pageId = $args->{track_id} || $args->{id};
+		if (defined $currentId && defined $pageId && "$currentId" eq "$pageId") {
+			$followPlayer = 1;
+		}
+		elsif (($args->{url} || '') ne '' && ($currentUrl || '') ne ''
+			&& $args->{url} eq $currentUrl) {
+			$followPlayer = 1;
+		}
+	}
+
 	return Plugins::MusicArtistInfo::Lyrics::WebUI->build(
 		client   => $client,
 		lyrics   => $lyrics,
@@ -978,6 +1022,7 @@ sub _web_lyrics_content {
 		duration  => $args->{duration},
 		endpoint => '/plugins/MusicArtistInfo/lyrics',
 		player   => $client ? $client->id : '',
+		follow_player => $followPlayer,
 		script   => "/plugins/MusicArtistInfo/html/lyricsChooser.js?v=$version",
 		translate_enabled => $prefs->get('lyricsTranslate') ? 1 : 0,
 		translate_script  => "/plugins/MusicArtistInfo/html/lyricsTranslate.js?v=$version"

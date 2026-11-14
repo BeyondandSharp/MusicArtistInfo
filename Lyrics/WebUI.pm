@@ -75,6 +75,7 @@ sub build {
 	$html .= ' data-album="' . $class->_attr($args{album} || '') . '"';
 	$html .= ' data-duration="' . $class->_attr($args{duration} || '') . '"';
 	$html .= ' data-player="' . $class->_attr($args{player} || '') . '"';
+	$html .= ' data-follow-player="' . ($args{follow_player} ? 1 : 0) . '"';
 	$html .= ' data-strings="' . $stringsJson . '"';
 	$html .= ' data-translate-script="' . $class->_attr($args{translate_script} || $DEFAULT_TRANSLATE_SCRIPT) . '"';
 	$html .= ' onclick="' . $onclick . '">' . $buttonLabel . '</button>';
@@ -103,7 +104,11 @@ sub build {
 	$html .= '</div>';
 
 	my $watcherScript = $args{watcher_script} || $DEFAULT_WATCHER_SCRIPT;
-	$html .= '<script src="' . $class->_attr($watcherScript) . '" defer></script>';
+	my $watcherLoader = q{(function(i){if(window.__MAI_LYRICS_WATCHER__||window.__MAI_LYRICS_WATCHER_LOADING__){return;}window.__MAI_LYRICS_WATCHER_LOADING__=1;var s=document.createElement('script');s.src=i.getAttribute('data-watcher');s.onload=function(){window.__MAI_LYRICS_WATCHER_LOADING__=0;};s.onerror=function(){window.__MAI_LYRICS_WATCHER_LOADING__=0;};document.head.appendChild(s);})(this)};
+	$html .= '<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" width="1" height="1" alt="" aria-hidden="true"'
+		. ' data-watcher="' . $class->_attr($watcherScript) . '"'
+		. ' onload="' . $class->_attr($watcherLoader) . '"'
+		. ' style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0" />';
 
 	return $html;
 }

@@ -716,15 +716,15 @@
 		].join('\u001f');
 	}
 
-	// Update the search fields when the playing track changes.  Reopening the
-	// panel for the same track keeps manually edited keywords; a real track
-	// change replaces them and (unless this is the initial open) starts a new
-	// search automatically.
-	function applyTrackInfo(info, autoSearch) {
+	// Update the search fields when the playing track changes.  Opening the
+	// panel always starts from the currently playing track; manual edits are
+	// only used by the search the user explicitly triggers.  A real track
+	// change replaces the keywords and starts a new search automatically.
+	function applyTrackInfo(info, autoSearch, forceFill) {
 		if (!info || (!info.title && !info.artist)) return false;
 
 		var key = trackSignature(info);
-		var changed = !state.trackKey || key !== state.trackKey;
+		var changed = forceFill || !state.trackKey || key !== state.trackKey;
 
 		if (!changed) {
 			fillInfo(info, false);
@@ -1410,8 +1410,8 @@
 			requestCurrentInfo(function (info) {
 				state.trackCheckBusy = false;
 				if (!state.open) return;
-				// On a track change, replace the keywords before searching.
-				applyTrackInfo(info, false);
+				// Always start from the playing track when the panel is opened.
+				applyTrackInfo(info, false, true);
 				search();
 			}, true);
 		});

@@ -32,6 +32,7 @@
 	}
 
 	var page = pageInfo(chooserButton);
+	var followPage = chooserButton.getAttribute('data-follow-player') === '1';
 	var following = false;
 	var lastKey = '';
 	var lyricsSeq = 0;
@@ -129,6 +130,13 @@
 		button.setAttribute(name, text(value));
 	}
 
+	function markFollowing() {
+		var buttons = document.querySelectorAll('.maiLyricsChooserButton, .maiLyricsTranslateButton');
+		for (var i = 0; i < buttons.length; i++) {
+			buttons[i].setAttribute('data-follow-player', '1');
+		}
+	}
+
 	function updateButtons(item) {
 		var buttons = document.querySelectorAll('.maiLyricsChooserButton, .maiLyricsTranslateButton');
 		for (var i = 0; i < buttons.length; i++) {
@@ -208,11 +216,9 @@
 		lastKey = trackKey(item);
 
 		updateButtons(item);
+		markFollowing();
 		updatePage(item, oldTitle);
 
-		if (window.MAILyrics) {
-			try { window.MAILyrics.close(); } catch (e) {}
-		}
 
 		loadLyrics(item);
 	}
@@ -225,10 +231,17 @@
 			}
 
 			if (!following) {
-				if (isPageTrack(item)) {
+				if (followPage || isPageTrack(item)) {
 					following = true;
-					page = pageInfo(chooserButton);
-					lastKey = trackKey(item);
+					if (isPageTrack(item)) {
+						page = pageInfo(chooserButton);
+						markFollowing();
+						lastKey = trackKey(item);
+					}
+					else {
+						lastKey = '';
+						trackChanged(item);
+					}
 				}
 				return schedule();
 			}
